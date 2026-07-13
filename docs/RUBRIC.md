@@ -106,7 +106,7 @@ Question { id, scenario, choices[4], answer[](복수 가능), explanation }
   - 축1 쓰기 허용: `reports/axis1/**`, `docs/SCHEMA_FEEDBACK_AXIS1.md`
   - **둘 다 금지**: 콘텐츠 원본 수정(평가만 한다 — 수정은 별도 작업), RUBRIC.md·CURRICULUM.md 수정, 상대 축의 산출물 수정
 - **동기화 (워크트리 간 파일은 커밋으로만 넘어간다)**: 축2는 파일 3~5개 평가마다 커밋한다. 축1은 세션 시작 시와 배치 사이마다 `git merge eval/axis2` (또는 `git checkout eval/axis2 -- reports/axis2 docs/VERIFIED_FACTS.md`)로 최신 리포트를 가져온다. 축2 리포트가 아직 없는 파일은 건너뛰고 대기 큐로 보고한다
-- **완료 시**: 인간이 두 브랜치를 main에 머지한다 (쓰기 경계를 지켰다면 충돌 없음)
+- **완료 시**: 인간이 두 브랜치를 develop에 머지한다 (쓰기 경계를 지켰다면 충돌 없음. develop → main은 릴리스 시점에 브랜치 전략대로)
 - **MCP 전제**: AWS MCP는 반드시 `--scope project`로 등록해 `.mcp.json`이 리포에 커밋되어 있어야 한다. local 스코프는 경로 기준이라 워크트리(다른 디렉터리)에서 보이지 않는다. 축1은 MCP 불필요
 
 ## 7. 축2 프로토콜 — 사실·시험 정합성 (1차 패스)
