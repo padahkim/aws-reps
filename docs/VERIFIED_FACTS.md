@@ -109,3 +109,22 @@
 | API Gateway | WebSocket @connections | POST=클라이언트로 전송·GET=연결 상태·DELETE=연결 종료, SigV4 서명 필수, IAM 액션 execute-api:ManageConnections | https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-how-to-call-websocket-api-connections.html · apigateway-websocket-control-access-iam.html | 2026-07-13 |
 | API Gateway | WebSocket 라우트 | 사전 정의 $connect/$disconnect/$default 3종 + route selection expression(JSON 속성 평가, 예: $request.body.action), 비JSON·미매칭은 $default | https://docs.aws.amazon.com/apigateway/latest/developerguide/websocket-api-develop-routes.html | 2026-07-13 |
 | API Gateway | MOCK 통합·SDK 생성 | MOCK=백엔드 없이 API Gateway가 직접 응답 생성(REST 전용) / SDK 생성 지원: Java·JavaScript·Android·iOS(ObjC/Swift)·Ruby | https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-mock-integration.html · how-to-generate-sdk.html | 2026-07-13 |
+| Lambda | 계정 동시성 기본값 | 리전당 계정 기본 1,000(소프트 리밋), 함수별 예약 최대 900 | https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html · gettingstarted-limits.html | 2026-07-13 |
+| Lambda | ⚠️ 동시성 스케일링 규칙(현행) | **"버스트 500~3000 후 분당 500" 구식 — 현행: 함수별로 10초마다 최대 1,000개 실행 환경(=10초마다 요청 10,000개) 추가 가능**, 리전·함수 단위 | https://docs.aws.amazon.com/lambda/latest/dg/scaling-behavior.html | 2026-07-13 |
+| Lambda | 메모리 128MB~10,240MB, 1MB 단위 | 1,769MB=1vCPU(선형 비례) — ⚠️ "1,792MB" 아님, 정확히 1,769MB | https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html | 2026-07-13 |
+| Lambda | 타임아웃 | 기본 3초, 최대 900초(15분) | https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html | 2026-07-13 |
+| Lambda | /tmp 스토리지 | 512MB(기본)~10,240MB, 1MB 단위 | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 환경 변수 총량 | 4KB(전체 합산) | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 레이어 한도 | 함수당 최대 5개, 함수+레이어 압축해제 합산 250MB | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 배포 패키지 크기 | zip 50MB(콘솔·API 업로드 공통) / 압축해제(레이어 포함) 250MB / 컨테이너 이미지 10GB | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 리소스 기반 정책 크기 | 20KB | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 호출 페이로드 크기 | 동기 요청·응답 각 6MB / 스트리밍 응답 200MB / 비동기 1MB | gettingstarted-limits.html | 2026-07-13 |
+| Lambda | 비동기 재시도 정책 | 기본 2회 재시도(총 3회 시도), 1차 재시도 전 1분·2차 재시도 전 2분 대기. 스로틀·시스템 오류는 최대 6시간 큐 보관 후 지수 백오프 재시도 | https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-error-handling.html · invocation-async-configuring.html | 2026-07-13 |
+| Lambda | SQS 이벤트 소스 매핑 가시성 타임아웃 권장 | 함수 타임아웃의 최소 6배 | https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-configure.html | 2026-07-13 |
+| Lambda | ⚠️ SQS Standard ESM 스케일링(현행) | **"분당 60개 인스턴스 추가·최대 1,000 동시" 구식 — 현행: 5개 동시 호출로 시작 → 분당 최대 300개 동시 호출 추가 → 최대 1,250 동시 호출**(Standard 모드 기준. Provisioned 모드는 분당 최대 1,000 동시성 추가로 별도) | https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-scaling.html | 2026-07-13 |
+| Lambda | Kinesis/DynamoDB Streams 병렬화 계수 | ParallelizationFactor 설정으로 샤드당 최대 10 배치 동시 처리(기본값 1) | https://aws.amazon.com/blogs/compute/new-aws-lambda-scaling-controls-for-kinesis-and-dynamodb-event-sources/ | 2026-07-13 |
+| Lambda | ⚠️ Lambda@Edge 실행 시간·코드 크기(현행) | **"5~10초/1MB~50MB" 구식 — 현행: 실행 시간은 viewer·origin 요청/응답 전부 "최대 30초"(과거 viewer 5초 제한이 통합됨), 코드 크기는 viewer·origin 전부 50MB(과거 viewer 1MB 제한 없어짐)**. 메모리는 viewer 128MB 고정 / origin 최대 10,240MB, CF Functions는 초당 수백만 요청·서브밀리초·2MB·10KB | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/edge-functions-choosing.html | 2026-07-13 |
+| Lambda | Lambda@Edge 작성 리전 | us-east-1(버지니아 북부)에서만 함수 작성, CloudFront가 엣지로 복제 | https://aws.amazon.com/blogs/gametech/how-to-deliver-custom-game-content-to-players-using-lambdaedge/ · https://docs.aws.amazon.com/amplify/latest/userguide/ssr-supported-features.html | 2026-07-13 |
+| Lambda | CodeGuru Profiler 지원 언어 | Java/JVM 언어(Scala·Kotlin 등) + Python 3.6+ (그 외 런타임 미지원) | https://docs.aws.amazon.com/codeguru/latest/profiler-ug/what-is-codeguru-profiler.html | 2026-07-13 |
+| Lambda | 무료 티어·요금 | 월 100만 요청 무료 + 40만 GB-초 무료, 초과 시 $0.20/100만 요청 | https://docs.aws.amazon.com/whitepapers/latest/big-data-analytics-options/aws-lambda.html | 2026-07-13 |
+| Lambda | SnapStart 지원 런타임 (재확인) | Java 11+, Python 3.12+, .NET 8+ — nodejs24.x·ruby4.0 등 그 외 런타임·OS-only·컨테이너 이미지 미지원 | https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html | 2026-07-13 |
