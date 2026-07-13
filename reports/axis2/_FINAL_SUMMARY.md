@@ -1,14 +1,15 @@
 # 축2 최종 종합 보고 — 사실·시험 정합성 검수 완료
 
-> RUBRIC §7-5 완료 보고. 대상: 레거시 콘텐츠 27파일(원 22 + 사용자 추가 5). 평가 기간: 2026-07-12~2026-07-13. 모드: 레거시(전 파일).
+> RUBRIC §7-5 완료 보고. 대상: 레거시 콘텐츠 **28파일**(원 22 + 사용자 추가 6). 평가 기간: 2026-07-12~2026-07-13. 모드: 레거시(전 파일).
 > 방법: AWS MCP 서버(공식 문서 검색·읽기) 대조, URL 근거 없는 검증 무효 원칙 준수. 세션 MCP 클라이언트 단선 구간은 동일 서버 HTTP 직접 호출로 우회(도구·서버·반환 URL 동일).
+> **2026-07-13 갱신**: 최초 27파일 완료 후 사용자가 `sam_guide.jsx`(4-4 SAM)를 추가 임포트 → 배치 14로 평가(커밋 b8760b9). 이로써 아래 §2가 지목했던 **최우선 갭(SAM 콘텐츠 전무)이 해소됨**. 본 보고서는 28파일 기준으로 갱신됨.
 
 ## 1. 판정 분포
 
 | 판정 | 파일 수 | 비율 |
 |---|---|---|
-| 통과 | 1 | 3.7% |
-| 수정 | 26 | 96.3% |
+| 통과 | 1 | 3.6% |
+| 수정 | 27 | 96.4% |
 | 재작성·제외 | 0 | 0% |
 
 **해석**: "재작성·제외"가 0건이라는 것은 원본 콘텐츠의 기반 설계(구조·서술·시험 포인트 배치)가 전반적으로 견고했다는 뜻. 다만 "수정" 비율이 96%로 압도적인데, 그 내역을 뜯어보면 **사실 자체가 애초에 틀렸던 경우는 소수**이고 대다수는 **"제작 시점엔 맞았지만 이후 AWS가 사양을 바꾼" 시간차 오류**와 **단독 챕터 커버리지 기준 적용에 따른 누락**이다. 아래 §3·§4 참조.
@@ -30,7 +31,7 @@
 | 3-2·3-3 보안 | ACM/Private CA 개념 블록 부재, 데이터 마스킹·멀티테넌트 패턴 없음 | aws-dva-security-guide-1 |
 | 4-0 컴퓨팅 | 없음(오히려 "최소한" 규정 대비 상세) | — |
 | 4-1 컨테이너 | 헬스체크·레디니스 프로브(EXAM_TASK_MAP이 4-0·4-1 "부분 갭"으로 명시한 항목) | aws-container-guide |
-| **4-3·4-4 (SAM)** | **SAM 고유 콘텐츠(AWS::Serverless::* 리소스, sam build/package/deploy, 카나리 배포)가 두 파일 모두에 전무** — 커리큘럼 4-4가 "SAM+CDK 개요"로 명시하는데 실제로는 CDK 전용(aws-cdk-dva-guide)과 CloudFormation 전용(cloudformation-dva-guide)만 있고 SAM 자체 콘텐츠가 27파일 전체에 없음. **최우선 보충 생성 대상** | aws-cdk-dva-guide, cloudformation-dva-guide (교차 확인 완료, 갭 확정) |
+| ~~4-4 (SAM)~~ **해소됨** | ~~SAM 고유 콘텐츠 전무~~ → **2026-07-13 `sam_guide.jsx` 추가 임포트·평가(배치 14, 커밋 b8760b9)로 해소.** AWS::Serverless::* 6종, sam CLI 전 계열, 카나리/선형/AllAtOnce 배포(AutoPublishAlias·DeploymentPreference·Alarms·Hooks) 온전 커버. 판정 "수정"이나 사실 오류는 경미 1건(LogGroup 자동생성 서술)뿐. 잔여 부분 누락: `sam deploy --guided` 대화형 흐름, SAM Accelerate 기능명 | sam_guide (신규) |
 | 4-3 CloudFormation | 드리프트 감지 전무, 중첩 스택 간접 언급뿐, 변경 세트 절차 표면 커버 | cloudformation-dva-guide |
 | 4-2 Beanstalk | Enhanced Health Reporting 구분, 플랫폼 브랜치·버전·관리형 업데이트 | aws-elastic-beanstalk-guide |
 | 5-1 CloudWatch | **EMF(Embedded Metric Format) 완전 누락** — RUBRIC §2가 5-1 필수 요소로 명시, Task 4.1 키워드에도 명시. 대시보드 위젯·자동화도 표면 커버 | aws-dva-monitoring |
@@ -90,19 +91,19 @@
 
 ## 6. 검증 통계 총계
 
-- **VERIFIED_FACTS 캐시**: 231행 (전부 AWS 공식 문서 URL 근거)
-- **SCHEMA_FEEDBACK 제안**: 44건
-- **평가 파일**: 27/27 (원 22 + beanstalk·cloudformation·cdk·container·monitoring 5건 추가 임포트, 전부 md5 대조 후 무수정 임포트)
+- **VERIFIED_FACTS 캐시**: 240행 (전부 AWS 공식 문서 URL 근거)
+- **SCHEMA_FEEDBACK 제안**: 46건
+- **평가 파일**: 28/28 (원 22 + beanstalk·cloudformation·cdk·container·monitoring·sam_guide 6건 추가 임포트, 전부 md5 대조 후 무수정 임포트)
 - **중복 쌍 처리**: 사용자 결정(2026-07-13)에 따라 6개 중복 쌍(S3·API GW·Lambda·IAM·메시징·CI/CD) 전부 개별 정식 평가, 컬 0건
 - **VPC 특수 케이스**: 매핑 챕터 없음(F1 N/A), F2만으로 판정 — 시험 가이드가 VPC 네트워크 설계를 out-of-scope로 명시하나 사용자 결정으로 평가는 유지
 
 ## 7. 다음 단계 (인간 결정 사항)
 
 1. **스키마 v1 확정** — §4의 재현성 높은 제안(examFrequency, decisionTable, choiceExplanations 등) 검토 후 확정
-2. **축1(학습 설계) 세션 가동** — 이 리포트들을 입력으로 챕터 배치 워크트리(`.claude/worktrees/session-prompt-file-932b42`)에서 진행
+2. **축1(학습 설계) 세션 가동** — 이 리포트들을 입력으로 eval/axis1 워크트리에서 진행 (2026-07-13 캘리브레이션 3파일 완료, 전수는 다음 세션)
 3. **§3 "높음" 등급 4건 우선 수정** — KMS FIPS 레벨, EBS gp3 IOPS, CodeCommit 단종 철회, ECS IAM 자기모순
-4. **SAM 콘텐츠 신규 생성** — 4-3·4-4 커리큘럼 갭, 현재 27파일 어디에도 없음
-5. **develop 브랜치 머지** — RUBRIC §6(수정됨, main→develop)에 따라 eval/axis2를 develop에 병합
+4. ~~SAM 콘텐츠 신규 생성~~ **해소됨** — sam_guide.jsx 추가·평가 완료(배치 14). 잔여 부분 누락(sam deploy --guided, SAM Accelerate)만 보강 검토
+5. **develop 브랜치 머지** — RUBRIC §6(수정됨, main→develop)에 따라 eval/axis2를 develop에 병합 (2026-07-13 최초 통합 완료: 머지 커밋 508f423, 이후 배치 14 커밋 b8760b9은 재머지 필요)
 
 ## 커밋 이력 (eval/axis2)
 ```
