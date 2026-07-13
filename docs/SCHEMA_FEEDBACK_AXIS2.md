@@ -43,3 +43,6 @@
 | aws-container-guide.jsx | 빈출도 정렬 "시험 직전 총정리표"(SummaryTab) | 챕터 말미 요약표를 스키마 필드로 표준화 검토(cheatsheet 유형, 기존 제안과 동일 계열) | SummaryTab 15행 표 |
 | aws-cdk-dva-guide.jsx | "문제 속 신호 → 정답 방향" 즉답표(TabExam) | 스키마에 시나리오 키워드-정답 매핑 전용 필드(quickAnswerMap 유형) 신설 검토 | TabExam의 `map` 배열(9행, 신호→정답 페어) |
 | aws-cdk-dva-guide.jsx | "출제 비중 한눈에" 랭킹표(TabExam) | 빈출도순 총정리표를 표준 cheatsheet 필드로 검토(기존 제안과 동일 계열) | TabExam의 `rank` 배열(7행) |
+| aws-elastic-beanstalk-guide.jsx | `Simulator` — 배포 정책을 모드 전환 버튼으로 고른 뒤, 각 모드마다 다단계 시퀀스(인스턴스 상태·용량 게이지·트래픽 분할 바)를 이전/다음/자동재생으로 넘기는 인터랙션 | 기존 `interactiveDemo`/`interactive:{type,params}` 제안과 동일 범주이나 "하나의 개념을 N개 변형(모드)으로 전환 + 변형마다 독립된 다단계 시퀀스 재생"은 이 배치가 첫 근거 사례 — 별도 하위유형(`interactiveDemo.variants[]`)으로 세분화 검토 | MODES 배열(6개 모드 × 3~6스텝) |
+| cloudformation-dva-guide.jsx | `.file`/`.file-row` — 템플릿을 파일 트리처럼 보여주며 각 섹션에 필수/선택 배지와 1줄 설명을 붙이는 "구조 해부(anatomy)" 컴포넌트 | Section에 `structureAnatomy[]{field, desc, required}` 필드 신설 검토 — decisionTable·comparisonViews와 다른 "스키마/구조 자체를 가르치는" 유형 | template.yaml 파일 트리 패널(강의 202) |
+| cloudformation-dva-guide.jsx | `ul.check` 진행률 카운터가 있는 최종 체크리스트(`{doneCount}/{CHECKS.length}`) | 기존 `selfCheck[]{statement, freq}` 제안(aws-dva-stage0)과 동일 계열이나 빈출도 없이 순수 완료 추적형 — 근거 사례로 추가 | 파일 말미 FINAL 섹션 |
