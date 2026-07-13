@@ -128,3 +128,5 @@
 | Lambda | CodeGuru Profiler 지원 언어 | Java/JVM 언어(Scala·Kotlin 등) + Python 3.6+ (그 외 런타임 미지원) | https://docs.aws.amazon.com/codeguru/latest/profiler-ug/what-is-codeguru-profiler.html | 2026-07-13 |
 | Lambda | 무료 티어·요금 | 월 100만 요청 무료 + 40만 GB-초 무료, 초과 시 $0.20/100만 요청 | https://docs.aws.amazon.com/whitepapers/latest/big-data-analytics-options/aws-lambda.html | 2026-07-13 |
 | Lambda | SnapStart 지원 런타임 (재확인) | Java 11+, Python 3.12+, .NET 8+ — nodejs24.x·ruby4.0 등 그 외 런타임·OS-only·컨테이너 이미지 미지원 | https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html | 2026-07-13 |
+| IAM | Permission Boundary 적용 대상 | 사용자·역할(user or role)에만 설정 가능, 그룹 불가. 권한을 부여하지 않고 상한만 설정 | https://docs.aws.amazon.com/help-panel/IAM/latest/console/hp-policies-permissions-boundary.html | 2026-07-13 |
+| IAM | iam:PassRole | API 호출이 아니라 IAM 액션 — 리소스가 서비스 역할로 생성/갱신될 때마다 검사됨. 서비스에 역할을 "전달"하는 사용자에게 필요 | https://aws.amazon.com/blogs/security/how-to-use-the-passrole-permission-with-iam-roles/ · https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html | 2026-07-13 |
