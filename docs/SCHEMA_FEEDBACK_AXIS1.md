@@ -119,3 +119,44 @@
 | G-d | 예시는 `Section` 내부 결합(별도 퀴즈 분리 금지) | L3 역설 방지 | **채택** |
 
 > **요약**: 코퍼스의 강점(L3·L4)은 유지하고, **최대 결손인 L6(선행연결)·퀴즈/해설(L1·L2)을 스키마 필수 필드(E1·Q1·Q6 + 게이트 G-a~G-d)로 강제**하는 것이 v1의 핵심 설계 방향. 인터랙티브(R1·R2)만 렌더러 복잡도 때문에 인간 판단이 필요.
+
+---
+
+## E. CONTRACT_PREWORK §2-4 대조 — v1 확정 결정시트 (축1 학습설계 관점, 2026-07-14)
+
+> develop에 이미 **`docs/CONTRACT_PREWORK.md`(기술·3파일 스트레스)** 와 **`docs/LEARNING_LOOP_DRAFT.md`(Leitner 자동채점 루프)** 가 규약 v1을 co-design 중임을 확인. 두 문서 모두 **mc(4지선다) 자동채점을 전제**한다.
+> 본 §E는 §A~§D(축1 28파일)를 그 v1 초안에 **대조**해 인간의 v1 확정을 돕는 결정시트다. §D는 축1 단독 관점, **§E는 세 문서 통합 관점 — 충돌 시 §E가 §D를 정정한다.** (프리워크가 3파일만 봤고 축1은 28파일을 봤으므로, 커버리지가 다른 지점에서 축1이 보강한다.)
+
+### E-1. 이미 수렴 — 확정만 하면 되는 항목 (3문서 합의)
+| 필드/규칙 | CONTRACT_PREWORK | 축1 근거 | 상태 |
+|---|---|---|---|
+| `choiceExplanations?` (선택지별 해설) | §2-4 신설(optional) | B1·Q1 = L2 앵커 강제 | **합의** |
+| `concept: string[]` (복수화) | §2-4 단수→배열 | L8 이전챕터 결합문항 = 본질적 다개념 | **합의** (LEARNING_LOOP §2-3도 소비: concept별 숙달) |
+| 빈 `quiz: []` 적법 | §2-4 명문화 | 26/28 파일이 퀴즈 X | **합의** |
+| `fixedChoiceOrder?` 예약 | LEARNING_LOOP §1(셔플 예외) | 축1 무이견 | **합의(예약)** |
+
+### E-2. 축1 28파일이 강화/추가하는 결정 (3파일로는 안 드러난 것)
+1. **[강화] `choiceExplanations` 신규모드 의무화** — 프리워크는 optional/TBD로 둠. 축1 근거: **L2가 27/28 파일 N/A**(레거시 전면 결손), 유일 보유 `dva-chapter-template`만 L2=2. optional로 두면 이 결손이 신규 콘텐츠에도 재생산됨 → 신규모드 mc는 `choiceExplanations` **의무화** 권장(§D G-b).
+2. **[NET-NEW · 최중요] 선행 지식 연결(L6)** — CONTRACT_PREWORK §2-4·LEARNING_LOOP 어디에도 대응 없음(3파일 스트레스는 기술 변환만 봄). 축1 근거: **L6=1이 28/28**(코퍼스 유일 구조적 약점, 평균 1.00 분산 0). 단 이건 **quiz 필드가 아니라 본문/개념블록 속성**이라 두 경로로 제안:
+   - **(a) 즉시 — 생성 프롬프트 규칙**: 각 개념 블록에 `chapterMeta.prerequisites[]`의 챕터 1개 이상을 명시 인용("0-2장의 신뢰 정책이 여기 실행역할로 적용"). **`prerequisites[]`는 v0 meta에 이미 존재** → 신규 필드 불요, **활용 규칙**만 추가하면 L6=2를 유도.
+   - **(b) 후속 — 섹션 개념 도입 시**: LEARNING_LOOP §2-3이 "섹션 개념"을 v1 유보로 둠. 섹션이 정식화되면 `section.prerequisiteRefs[]{chapterId, concept}`로 구조화(§D E1).
+   - → **최소안 = (a) 생성 규칙 즉시 채택**, (b)는 섹션 확정 시.
+3. **[이견 · 논의 필요] `recall` 타입** — CONTRACT_PREWORK는 v1 **"mc only"**, recall/flashcard는 본문잔류/예약. 축1 근거: **최대 결손이 인출연습(L1 26/28 N/A)** 이고 recall(자유서술 자가채점)이 인출 강도 최고(앵커 A1·§B B3). **그러나** LEARNING_LOOP의 Leitner 자동채점(answer 인덱스·선택지 셔플·상자 승강)은 **mc를 전제** — recall은 자가보고 채점이라 루프에 그대로 안 맞음(정당한 기술 제약).
+   - → **절충 권장**: v1은 **mc-only 유지**(루프 정합 우선). recall 콘텐츠는 (i) 표준화/생성 때 **mc로 변환 생성** + (ii) **본문 인출 카드**(retrievalCards, 채점 없는 능동 인출)로 병존. `recall` 정식 type은 **자가보고 채점 설계와 함께 v1.1**로. (→ §D Q2를 이 선으로 하향 정정.)
+
+### E-3. freq · 스키마 밖 항목
+- **freq(빈출도)**: CONTRACT_PREWORK 미결(§2-4 ③), 축1 §D S5. 실물 대다수(stage0·s3·security-1)에서 **섹션 헤더 속성** → 섹션 정식화 시 `section.freq`. 그 전엔 chapterMeta 섹션맵 또는 유보.
+- **decisionTable/caseMatrix/annotatedCode**(§D S1·S2·B10): **quiz 필드가 아님** → 본문 표현 + **문항 자동 생성 소스**. v1 스키마 밖(변환/생성 소관). CONTRACT_PREWORK §1-D의 "본문 네거티브 규정"과 함께 변환 단계에서 다룰 것.
+
+### E-4. v1 확정 결정시트 (인간 O/X — 이 표가 v1 게이트 근거)
+| # | 결정 | 권장 | 근거 | ☐ |
+|---|---|---|---|---|
+| 1 | `choiceExplanations` 신규모드 mc **의무화**? | **예** | L2 27/28 N/A → 결손 재생산 방지 | ☐ |
+| 2 | `concept: string[]` 확정? | **예** | 3문서 합의, L8 정합 | ☐ |
+| 3 | 빈 `quiz:[]` 적법 명문화? | **예** | 26/28 퀴즈X | ☐ |
+| 4 | L6 선행연결 = **생성 프롬프트 규칙**(meta.prerequisites 활용) 채택? | **예** | 코퍼스 유일 구조 약점(28/28), 신규 필드 불요 | ☐ |
+| 5 | `recall`: v1 **mc-only 유지** + recall은 **v1.1**? | **예** | Leitner 자동채점 정합, recall은 mc변환+본문카드 병존 | ☐ |
+| 6 | `freq`: 섹션 정식화 시 `section.freq`? | **예** | 섹션 헤더 속성 실증 | ☐ |
+| 7 | `fixedChoiceOrder?` optional 예약? | **예** | LEARNING_LOOP 셔플 예외 | ☐ |
+
+> **한 줄 요약**: 프리워크의 기술 v1(mc·choiceExplanations·concept[])은 그대로 두되, 축1이 **① choiceExplanations 의무화 ② L6 선행연결을 생성 규칙으로 강제(meta.prerequisites 활용) ③ recall은 v1.1로 절충**을 더한다. 신규 필드 추가는 최소(사실상 0) — 대부분 **기존 필드 활용 규칙 + 생성 프롬프트 규칙**으로 해결된다.
