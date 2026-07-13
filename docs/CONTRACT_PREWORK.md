@@ -3,17 +3,22 @@
 > **지위**: 전부 **제안**이다. 확정은 인간이 ④에서 한다. 형식 우열(낙점)은 다루지 않는다 — 그것은 축1 점수의 몫.
 > **작성**: 2026-07-13, 사전분석 세션. 입력: RUBRIC §3(스키마 v0), PLAYBOOK §3 결정 기록(jsx 하이브리드·Next.js), reports/axis2/ 7건, SCHEMA_FEEDBACK_AXIS2(14건), 실물 콘텐츠 3파일.
 >
-> **⚠ 전제 결손 보고**: `docs/CURRICULUM.md`가 리포 어느 브랜치에도 존재하지 않는다 (전 브랜치 `git log --all` 확인). 본 문서가 참조해야 할 "규약 v0 (CURRICULUM §3)"은 다음으로 재구성했다: ① RUBRIC §3 스키마 v0 (`Chapter/Section/Question`), ② PLAYBOOK §3 결정 기록("본문은 jsx 자유 표현, `meta`·`quiz`는 구조화 export"), ③ 스프린트 프롬프트가 명시한 Question 구조(scenario/choices[4]/answer/explanation). **CURRICULUM.md 원본이 로컬 등 다른 곳에 있다면 커밋해 달라 — v0 원문과 이 재구성이 다르면 본 문서의 해당 항목은 재검토 대상이다.**
+> **전제 결손 보고 (해결됨)**: 작성 당시 `docs/CURRICULUM.md`가 리포에 없어 v0를 RUBRIC §3 + PLAYBOOK §3으로 재구성해 진행했다. 이후 인간이 CURRICULUM v3.2를 develop에 커밋(e48aff2)했고, 본 문서를 **원문 v0(CURRICULUM §3) 기준으로 대조·갱신 완료**했다. 재구성과 원문의 차이 3가지와 반영 결과:
+> 1. **v0 quiz에 `scope`("mini"/"final")·`concept`(단수 문자열) 필드가 이미 존재** — §2-4는 "신규 필드 추가"가 아니라 "기존 필드의 어휘 확장·복수화" 제안으로 정정
+> 2. **v0 문항 id는 챕터-로컬("q1")** — §2-4의 챕터 접두 전역 id는 v0 변경 제안임을 명시
+> 3. **본문 내 배치 API `<Quiz ids={["q1"]} />`가 v0에 이미 명시** — §2-5는 신규 설계가 아니라 그 데이터 흐름(컨텍스트 주입) 구체화로 정정
+> 그 외(meta 필드 구성, answer[] 배열, 단일 explanation, 단일 파일 모듈)는 재구성과 일치 — §1 스트레스 테스트 결과는 전부 유효하다.
 
-**재구성한 규약 v0 (이하 "v0")**:
+**규약 v0 (CURRICULUM §3 원문 요지)**:
 
-```
-// 챕터 모듈 = jsx 파일. 본문은 자유 jsx, 아래 2개를 구조화 export
-export const meta = { id, phase(0~5), title, domain, examWeight, prerequisites[] }
-export const quiz = [ Question ]
-Question { id, scenario, choices[4], answer[](복수 가능), explanation }
-// (RUBRIC §3의 Section { id, title, objectives[], body(md), examples(md), examPoints[], miniQuiz[] }는
-//  jsx 하이브리드 결정 이후 "본문 자유 표현"에 흡수된 것으로 해석 — 이 해석 자체도 v1에서 확정 필요)
+```jsx
+// 단일 jsx 모듈이 3가지를 export
+export const meta = { id: "ch1-2", phase, title, domain, examWeight, prerequisites[] }
+export const quiz = [
+  { id: "q1", scope: "mini"|"final", concept: "동시성",   // concept은 단수 문자열
+    scenario, choices[4], answer: [2], explanation: "정답 근거 + 오답별 이유" },
+]
+export default function Chapter() { /* 자유 jsx. 문항 배치는 <Quiz ids={["q1"]} /> */ }
 ```
 
 ---
@@ -88,7 +93,7 @@ Question { id, scenario, choices[4], answer[](복수 가능), explanation }
 3. **본문 금지 목록이 없음** — "본문은 jsx 자유 표현"만으로는 1-C 같은 앱 셸 침범(자체 내비·페이저·전역 스타일·document API)을 막지 못한다. **v1에 본문 네거티브 규정 필요**: 예) 자체 내비게이션 금지, 전역 셀렉터 스타일 금지, document/window 직접 접근 금지, 외부 리소스(폰트 CDN) 금지
 4. **복수 챕터 매핑 불가** — 레거시 파일은 커리큘럼 챕터와 1:1이 아님(1-A: 3챕터, 1-B: 1.5챕터). meta에 단수 id만 있으면 표준화 때 강제 분할 또는 허위 매핑
 5. **quiz 없는 모듈의 적법성 미정** — 7파일 중 5파일이 퀴즈 성분 X(축2 태그). v0가 quiz export를 필수로 하는지, 빈 배열 허용인지, 앱이 어떻게 강건해야 하는지 미정
-6. **퀴즈 범위 참조 없음** — "여기까지가 퀴즈 N 범위"(1-C) 같은 인출 시점 설계 정보의 자리 없음 → §2-4
+6. **퀴즈 범위 참조가 거칠음** — v0 `scope`는 "mini"/"final" 2어휘뿐이라 "여기까지가 퀴즈 N 범위"(1-C) 같은 섹션 단위 인출 시점을 표현 못 함 → §2-4
 7. **빈출도(freq) 정보의 자리 없음** — 섹션 헤더(1-B·1-C)와 자기평가 문장(1-B) 양쪽에 실존. 버리기엔 학습 우선순위 정보로 가치 있음
 8. **풀이 정책과 문항 데이터의 미분리** — 자기설명 게이트(1-A)는 UX 정책. 공용 `<Quiz>`의 동작 옵션으로 승격할지, 폐기할지 결정 필요
 9. **스타일·컴포넌트 규약 부재** — 전역 스타일 스코핑 방식, 디자인 토큰 소유권(앱 vs 챕터), 공용 콜아웃(KP/Warn/Exam) 라이브러리 여부
@@ -107,7 +112,7 @@ Question { id, scenario, choices[4], answer[](복수 가능), explanation }
 - 챕터 모듈 상단에 "use client"를 쓰면 → 같은 파일의 meta를 서버가 못 읽는다
 - 반대로 meta를 읽으려고 단일 파일을 서버 그래프에 넣으면 → 내비가 전 챕터의 **본문 코드까지** 번들에 끌어들인다 (tree-shaking이 sideEffects 설정에 의존해 불안정)
 
-**제안: 챕터 모듈을 데이터/본문 2파일로 분리**하면 이 제약이 소멸하고 §2-1·§2-3이 전부 단순해진다:
+v0는 meta·quiz·본문(default export)을 **단일 jsx 파일**에 두므로 이 제약에 정면으로 걸린다 — CURRICULUM §3 주의②의 선택지 "각 챕터 모듈 상단"은 이 제약 때문에 meta 서버 소비와 양립하지 않는다. **제안: 챕터 모듈을 데이터/본문 2파일로 분리** (v0 구조 변경 제안)하면 이 제약이 소멸하고 §2-1·§2-3이 전부 단순해진다:
 
 ```
 content/chapters/{id}/
@@ -129,7 +134,7 @@ content/chapters/{id}/
 
 ### §2-2. 메타 export 명명 — `meta` vs `chapterMeta`
 
-- Next 예약어 `metadata`는 **app/ 라우트 파일에만** 적용되므로 /content 모듈의 `meta`가 기술적으로 충돌하지는 않는다. 비용은 전부 인간·도구 측: `metadata`와의 시각적 혼동, 에디터 자동완성 오도, 코드 리뷰 시 혼선
+- CURRICULUM §3 주의①이 이미 판단한 대로 기술 충돌은 없다(`metadata` 예약은 app/ 라우트 파일 한정, /content는 라우트 밖). 본 분석도 동일 결론 — 남는 비용은 전부 인간·도구 측: `metadata`와의 시각적 혼동, 에디터 자동완성 오도, 코드 리뷰 시 혼선
 - `meta`는 짧지만 grep 시 HTML `<meta>`·주석 등 노이즈가 많다. `chapterMeta`는 리포 전체에서 유일한 시그니처 — 신규 모드 구조 게이트(G1)를 `grep -L "export const chapterMeta"` 수준으로 기계화 가능
 
 **권고: `chapterMeta`.** 타이핑 비용 7자 대비 혼동 제거·게이트 기계화 이득이 크다. (대안으로 `export const chapter = { meta, quiz }` 단일 루트도 검토했으나, quiz만 소비하는 오답노트·채점 코드가 매번 한 겹 벗겨야 하고 부분 import가 안 돼 이득이 없다 — 비채택 제안으로만 기록)
@@ -147,44 +152,45 @@ content/chapters/{id}/
 
 **권고: (a).** `generateStaticParams`는 레지스트리 키에서 파생 → `app/chapters/[id]`가 전 챕터를 SSG. 내비·진도 화면은 meta.ts만 소비하므로 본문 청크를 로드하지 않는다(§2-0 분리의 직접 효익).
 
-### §2-4. `quiz` 필드 설계
+### §2-4. `quiz` 필드 설계 — v0 대비 델타로 제시
 
-스트레스 테스트 입력: 선택지별 해설(1-A), 외부 퀴즈 범위 배너(1-C), 비정형 문항 4유형(§1-D-1), 퀴즈 없는 모듈(1-B·1-C).
+스트레스 테스트 입력: 선택지별 해설(1-A), 외부 퀴즈 범위 배너(1-C), 비정형 문항 4유형(§1-D-1), 퀴즈 없는 모듈(1-B·1-C). v0에 이미 `scope`("mini"/"final")·`concept`(단수)·`answer[]`가 있으므로 아래는 **v0 변경분만** 제안한다:
 
 ```ts
-// v1 초안 제안 (전부 제안형)
+// v1 초안 제안 — v0 Question 대비 델타 (전부 제안형)
 type Question = {
-  id: string;          // 규칙: "{챕터id}-q{2자리}" 예: "s3-q01" — 전역 유일.
-                       // 오답노트·진도 localStorage 키가 챕터 밖에서 문항을 지시해야 하므로 챕터 접두 의무화 제안
-  type: "mc";          // v1은 "mc"(4지선다)만 정식. flashcard·selfcheck 등은
+  id: string;          // v0 유지: 챕터-로컬 "q1". 전역 유일성은 규약이 아니라
+                       // 앱 어댑터가 "{meta.id}:{q.id}" 합성으로 보장 (규약 무변경) — §2-5·아키텍처 초안 §3
+  type: "mc";          // [신규] v1은 "mc"(4지선다)만 정식. flashcard·selfcheck 등은
                        // 후보 어휘로 예약만 하고 본문 잔류 (§1-D-1의 인출→재인 격하 방지)
-  scope: string;       // 어휘 제안: "section:{섹션슬러그}" | "chapter" (종합)
-                       // — 1-C의 "여기까지가 퀴즈 N 범위"를 section 나열로 흡수. 자유 문자열 금지
-  concept: string[];   // 최소 1개 의무 제안 — 혼합복습(축1 L8)·오답노트 분류가 이것 없이는 불가능.
-                       // 어휘 통제는 v1에선 미도입(챕터 내 자유), 교차 챕터 어휘 사전은 v2 과제
+  scope: "mini" | "final";  // v0 유지. 섹션 단위 인출 시점은 별도 어휘가 아니라
+                       // 본문 내 <Quiz ids> 배치 위치가 표현한다 — 1-C류 "외부 퀴즈 범위 배너"는
+                       // 표준화 때 문항을 파일 안으로 들여와 배치로 해소 (scope 어휘 확장 불요)
+  concept: string[];   // [변경] 단수 문자열 → 배열. 근거: 축1 L8의 "이전 챕터 결합 문항"은 개념이 본질적으로 2개 이상.
+                       // 최소 1개 의무. 어휘 통제는 v1 미도입(챕터 내 자유), 교차 챕터 어휘 사전은 v2 과제
   scenario: string;
-  choices: [string, string, string, string];  // 4개 고정 제안 — 레거시 3지선다는 오답 1개 보충 생성
-  answer: number[];    // 복수 정답 대응 (v0 유지)
-  explanation: string;               // 정답의 근거
-  choiceExplanations?: [string, string, string, string];  // 선택지별 why — 1-A 실물·SCHEMA_FEEDBACK 1행.
+  choices: [string, string, string, string];  // v0 유지 (4개 고정) — 레거시 3지선다는 오답 1개 보충 생성
+  answer: number[];    // v0 유지
+  explanation: string;               // [의미 축소] "정답 근거 + 오답별 이유" 겸용 → 정답 근거 전용
+  choiceExplanations?: [string, string, string, string];  // [신규] 선택지별 why — 1-A 실물·SCHEMA_FEEDBACK 1행.
+                       // v0처럼 explanation 한 문자열에 겸용시키면 오답의 조건화(축1 L2 앵커)가 기계 가독성을 잃는다.
                        // v1에서 optional로 시작, 신규 모드 게이트에서 의무화 여부는 인간 결정 포인트
 };
-export const quiz: Question[];  // 빈 배열 적법 (퀴즈 성분 X 파일 다수 — 1-B·1-C). 앱은 빈 quiz에 강건해야 함
+export const quiz: Question[];  // [명문화 필요] 빈 배열 적법 (퀴즈 성분 X 파일 다수 — 1-B·1-C). 앱은 빈 quiz에 강건해야 함
 ```
 
 미해결 결정 포인트(인간 몫): ① `choiceExplanations` 의무화 시점 ② 비정형 유형(flashcard/selfcheck)을 v1.1에서 정식 type으로 승격할지 ③ freq(빈출도)를 Question이 아닌 섹션/챕터 meta 어디에 둘지.
 
-### §2-5. 본문 내 문항 배치 API — `<Quiz />` 인터페이스 초안
+### §2-5. 본문 내 문항 배치 API — `<Quiz />` 데이터 흐름 구체화
 
-본문(body.jsx)이 문항 데이터를 중복 소유하지 않고 위치만 지정하는 인터페이스:
+`<Quiz ids={["q1"]} />` 형태 자체는 **v0에 이미 명시**되어 있다. 여기서 제안하는 것은 미정으로 남아 있는 데이터 흐름 — 본문이 문항 데이터를 중복 소유하지 않고 위치만 지정하는 방식:
 
 ```tsx
 // 로더(서버) → ChapterProvider(클라)가 해당 챕터의 quiz 배열을 컨텍스트로 주입
-<Quiz ids={["s3-q01", "s3-q02"]} />        // 명시 나열 — 기본형. grep 가능, 리팩터에 강함
-<Quiz scope="section:versioning" />        // 편의형 — quiz[].scope로 필터. ids와 상호배타
-<Quiz scope="chapter" />                   // 챕터 종합(finalQuiz 상당)
+<Quiz ids={["q1", "q2"]} />     // v0 그대로 (챕터-로컬 id) — 기본형. grep 가능
+<Quiz scope="final" />          // 편의형 — quiz[].scope로 필터 (챕터 종합). ids와 상호배타
 ```
 
-- 데이터 흐름: `<Quiz>`는 props로 문항을 받지 않는다 — ChapterProvider 컨텍스트에서 ids/scope로 조회. 본문과 문항 데이터의 결합이 **문자열 id 참조**로만 존재 → 규약 v1이 바뀌어도 본문 수정 불요
+- 데이터 흐름: `<Quiz>`는 props로 문항을 받지 않는다 — ChapterProvider 컨텍스트에서 ids/scope로 조회. 본문과 문항 데이터의 결합이 **문자열 id 참조**로만 존재 → 규약 v1이 바뀌어도 본문 수정 불요. 오답노트·진도의 전역 키는 어댑터가 `{meta.id}:{q.id}`로 합성 (§2-4)
 - 채점·진도·오답노트 기록은 전부 `<Quiz>` 내부(앱 셸 책임). 자기설명 게이트(1-A) 같은 풀이 정책은 `<Quiz mode="self-explain">` 식 옵션으로 승격 가능하나 v1 기본은 미포함 — 인간 결정 포인트
 - 존재하지 않는 id 참조는 빌드/테스트 타임 검증 대상 (레지스트리 기반 정적 검사 스크립트 1개로 가능)

@@ -42,17 +42,17 @@ content/                        # 콘텐츠 영역 — 앱 세션 수정 금지 
 
 ## 3. 진도 저장 — localStorage 키 구조
 
-단일 루트 키 + 버전 필드(마이그레이션 대비). 문항 id가 전역 유일(챕터 접두)이라는 규약 제안에 의존 — 기각되면 어댑터가 접두를 합성해 동일 보장.
+단일 루트 키 + 버전 필드(마이그레이션 대비). 문항 id는 규약 v0대로 챕터-로컬("q1")이고, 전역 키는 어댑터가 `{meta.id}:{q.id}`로 합성한다 — 규약에 전역 유일성을 요구하지 않는다 (CONTRACT_PREWORK §2-4).
 
 ```ts
 "dva.progress.v1": {
   chapters: { [chapterId]: { visitedAt: string, sectionsSeen?: string[] } },
-  questions: { [questionId]: {           // 예: "s3-q01"
+  questions: { [globalQuestionKey]: {    // 예: "ch1-2:q1" (어댑터 합성)
     attempts: number, correct: number,
     lastResult: "pass"|"fail", lastAt: string,
   }},
 }
-"dva.review.v1": { [questionId]: { addedAt: string, clearedAt?: string } }  // 오답노트
+"dva.review.v1": { [globalQuestionKey]: { addedAt: string, clearedAt?: string } }  // 오답노트
 ```
 
 - 쓰기는 전부 `lib/progress/store.ts` 경유 (컴포넌트에서 localStorage 직접 접근 금지)
@@ -62,8 +62,8 @@ content/                        # 콘텐츠 영역 — 앱 세션 수정 금지 
 
 ```tsx
 <Quiz
-  ids?: string[]                 // 명시 나열 (기본형)
-  scope?: string                 // "section:…" | "chapter" — ids와 상호배타
+  ids?: string[]                 // 명시 나열 (기본형, 챕터-로컬 id — v0 그대로)
+  scope?: "mini" | "final"       // 편의형 — quiz[].scope로 필터. ids와 상호배타
   // 데이터는 props로 받지 않는다: ChapterProvider 컨텍스트에서 조회
   // 채점·진도 기록·오답노트 등록은 내부 처리 (progress store 경유)
   // 풀이 정책 옵션(자기설명 게이트 등)은 v1 미포함 — 확장 슬롯만 예약: mode?: string
@@ -74,4 +74,4 @@ content/                        # 콘텐츠 영역 — 앱 세션 수정 금지 
 
 ## 5. 이 초안이 규약 v1에 요구하는 것 (역방향 의존 명세)
 
-① 문항 id 전역 유일 ② meta의 서버 소비 가능성(§2-0) ③ quiz 빈 배열 적법 ④ scope 어휘 통제. 넷 다 CONTRACT_PREWORK §2에 제안으로 존재 — v1 확정 시 이 넷이 기각되는지만 확인하면 초안 유효성이 판정된다.
+① 챕터 id의 안정성(전역 키 합성의 접두이므로 개명 시 진도 마이그레이션 필요) ② meta의 서버 소비 가능성(§2-0 — v0 단일 파일 + "use client" 상단 조합만 배제되면 충족) ③ quiz 빈 배열 적법 ④ scope 어휘 유지("mini"/"final"). 전부 CONTRACT_PREWORK §2에 제안으로 존재 — v1 확정 시 이 넷이 기각되는지만 확인하면 초안 유효성이 판정된다.
