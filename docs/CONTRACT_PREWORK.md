@@ -157,11 +157,11 @@ content/chapters/{id}/
 스트레스 테스트 입력: 선택지별 해설(1-A), 외부 퀴즈 범위 배너(1-C), 비정형 문항 4유형(§1-D-1), 퀴즈 없는 모듈(1-B·1-C). v0에 이미 `scope`("mini"/"final")·`concept`(단수)·`answer[]`가 있으므로 아래는 **v0 변경분만** 제안한다:
 
 ```ts
-// v1 초안 제안 — v0 Question 대비 델타 (전부 제안형)
+// v1 초안 제안 — v0 Question 대비 델타. ★2026-07-14 인간 확정 반영(정본 = CONTRACT.md §3 / SCHEMA_FEEDBACK §E-4·§F): #1 choiceExplanations 의무 · #8 choices 가변
 type Question = {
   id: string;          // v0 유지: 챕터-로컬 "q1". 전역 유일성은 규약이 아니라
                        // 앱 어댑터가 "{meta.id}:{q.id}" 합성으로 보장 (규약 무변경) — §2-5·아키텍처 초안 §3
-  type: "mc";          // [신규] v1은 "mc"(4지선다)만 정식. flashcard·selfcheck 등은
+  type: "mc";          // [신규] v1은 "mc"(객관식, 선택지 수 가변)만 정식. flashcard·selfcheck 등은
                        // 후보 어휘로 예약만 하고 본문 잔류 (§1-D-1의 인출→재인 격하 방지)
   scope: "mini" | "final";  // v0 유지. 섹션 단위 인출 시점은 별도 어휘가 아니라
                        // 본문 내 <Quiz ids> 배치 위치가 표현한다 — 1-C류 "외부 퀴즈 범위 배너"는
@@ -169,10 +169,10 @@ type Question = {
   concept: string[];   // [변경] 단수 문자열 → 배열. 근거: 축1 L8의 "이전 챕터 결합 문항"은 개념이 본질적으로 2개 이상.
                        // 최소 1개 의무. 어휘 통제는 v1 미도입(챕터 내 자유), 교차 챕터 어휘 사전은 v2 과제
   scenario: string;
-  choices: [string, string, string, string];  // v0 유지 (4개 고정) — 레거시 3지선다는 오답 1개 보충 생성
+  choices: string[];   // [확정 #8, 2026-07-14] 4지 고정→가변. DVA "5개 중 2개 고르기"(복수정답·5지) 대응. 최소 4 권장, 레거시 3지선다는 오답 1개 보충
   answer: number[];    // v0 유지
   explanation: string;               // [의미 축소] "정답 근거 + 오답별 이유" 겸용 → 정답 근거 전용
-  choiceExplanations?: [string, string, string, string];  // [신규] 선택지별 why — 1-A 실물·SCHEMA_FEEDBACK 1행.
+  choiceExplanations?: string[];  // [신규·확정 #8 가변] choices와 동수. 선택지별 why — 1-A 실물. (확정 #1: 신규모드 의무 — CONTRACT.md §3)
                        // v0처럼 explanation 한 문자열에 겸용시키면 오답의 조건화(축1 L2 앵커)가 기계 가독성을 잃는다.
                        // v1에서 optional로 시작, 신규 모드 게이트에서 의무화 여부는 인간 결정 포인트
 };

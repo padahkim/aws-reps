@@ -118,4 +118,4 @@ export const quiz: Question[];      // 〔확정 #4-b〕 빈 배열 [] 적법. �
 | 명명·로딩·본문규정 | 미정 | §1·§4·§7 | 〔B〕 미확정 |
 
 > **이관 지침(인간)**: 이 파일을 검토해 [B] 항목을 CONTRACT_PREWORK와 최종 대조·확정한 뒤 DRAFT 배너를 제거하면 정본이 된다. [A] 항목은 축1 확정분이므로 변경 시 SCHEMA_FEEDBACK_AXIS1 §E-4 재개정 필요.
-> ⚠️ **정본화 시 반드시 통일**: `CONTRACT_PREWORK §2-4`는 `choices:[4]`·`choiceExplanations:[4]`로 4지 고정이 남아 있다(구식). 이 §3의 `string[]` 가변으로 통일할 것 — 아니면 DVA "5개 중 2개 고르기" 문항이 규약상 표현 불가(함정).
+> ✅ **choices 가변 통일 완료(2026-07-14, 확정 #8)**: `CONTRACT_PREWORK §2-4`도 `choices`/`choiceExplanations`를 `string[]`로 갱신함 — 이 §3와 일치. DVA "5개 중 2개 고르기"(복수정답·5지) 문항 표현 가능.
