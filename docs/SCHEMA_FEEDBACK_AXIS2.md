@@ -20,3 +20,16 @@
 | aws_api_gateway_dva.jsx | 번호 매김 절차 스텝(사용 계획 설정 순서 ①~④ 스텝 UI) | Section에 `procedure[]{step}` (순서 있는 절차) 필드 검토 | "올바른 설정 순서" 유형 문제가 실존(사용 계획·배포 등) — 순서 자체가 검증 대상 사실인데 v0 body(md)에서는 순서 구조가 산문에 묻힘 |
 | aws-lambda-dva-guide-2.jsx | "시나리오 → 정답 패턴" 9개 리스트(질문·선택지 없이 상황→권장 조치 1:1 매핑) | 기존 제안(`decisionTable[]{scenario, choice, why?}`, aws_api_gateway_dva.jsx 근거)과 동일 구조 — 신규 필드 대신 이 파일을 두 번째 근거 사례로 추가 확인. 채택 시 우선순위 상승 신호 | 두 파일이 독립적으로 같은 구조를 자체 구현 — 스키마 v1 후보로서 재현성 있는 수요 |
 | aws-lambda-dva-guide-2.jsx | 인터랙티브 슬라이더(예약 동시성 분배, 가중치 별칭 트래픽 — 드래그로 파라미터 조작 시 효과 실시간 반영) | Section에 `interactiveSlider[]{param, min, max, effect}` 필드 신규 검토 | 개념(예약 동시성이 나머지 풀에서 차감됨 등)을 수동 조작하며 체득하는 구조 — 기존 `comparisonViews`(옵션 전환)와 달리 연속값 파라미터 조작이라 별도 필드 필요. v0에 대응 없음, 앱 렌더러 복잡도 증가하므로 인간 판단 필요 |
+| aws-dva-security-guide-1.jsx | "시험 직전 10초 요약" 표 (키워드→정답 방향 2열) | 챕터 v1 스키마에 `examSummary: {keyword, answer}[]` 같은 압축 복습용 필드 도입 검토 — 축1 관점에서도 인출 연습 트리거로 유용 | 파일 말미 "⚡ 시험 직전 10초 요약" 섹션 |
+| aws-dva-security-guide-1.jsx | 서비스 비교표(KMS vs CloudHSM, SSM vs Secrets Manager)가 본문 곳곳에 자유 배치 | `Section.comparisonTable` 명시적 필드로 승격 검토 — "두 서비스 중 고르기" 유형 문제 대비 콘텐츠임을 스키마 수준에서 표시 가능 | 섹션07, 섹션10 |
+| aws-cognito-guide.jsx | `StepPlayer` 인터랙티브 단계 재생(버튼 클릭으로 플로우 단계 진행, SVG 하이라이트) | 절차형 개념(로그인 흐름·자격 증명 교환)을 위한 `Section.flowSteps[]` 필드 도입 검토 | CupFlow/AlbFlow/CipFlow + StepPlayer 컴포넌트 전반 |
+| aws-cognito-guide.jsx | 탭 기반 네비게이션(강의 섹션 번호 394~401을 탭으로 구성) | Chapter/Section 계층과 별개로 "원본 강의 번호" 같은 출처 메타 필드 검토(변환 시 챕터 매핑 추적용) | TABS 상수, 헤더의 "SECTION 394–401" 표기 |
+| aws-dva-messaging.jsx | `SECTIONS[].note` + `Freq`(1~5 별점 시험 빈출도) | Section에 `examFrequency`(1~5)와 `oneLinerSummary` 필드 검토 — 축1 L5·L7 판단 시 저자 의도(빈출도 추정치)를 구조적으로 참조 가능 | 전 섹션 일관 적용, v0 Section 스키마엔 없음 |
+| aws-dva-messaging.jsx | `Cmp`(비교표: SQS vs SNS vs Kinesis, Data Streams vs Firehose, 프로비저닝 vs 온디맨드) | 서비스 선택형 문제 대비 "결정표(decision table)" 구조를 Section과 별개 최상위 성분으로 인정 검토 | §15 SecCompare 등 3개 비교표, 기존 decisionTable 제안과 동일 계열 |
+| aws-messaging-visual-guide.jsx | `Code`(제목 있는 코드박스: CLI 명령·JSON 정책) | Section에 `codeExamples[]`(title, lang, snippet) 필드 검토 — 축1 L3(구체 예시 결합) 앵커의 "실전 지문과 닮은 예시 형태" 요건과 직결 | 8개 섹션에서 반복 사용된 일관 구조 |
+| aws-messaging-visual-guide.jsx | `META.pills[]`(홈 화면 "시험 전 30초 핵심 숫자" 요약 배열) | Chapter 최상위에 `keyNumbers[]`(짧은 수치 요약 문자열 배열) 필드 검토 | 13개 pill이 챕터 전체 수치를 압축 요약, 축1 L1·복습 설계 참조 가치 |
+| aws-vpc-guide.jsx | 클릭형 인터랙티브 SVG 다이어그램(노드 클릭 → 상세 설명 패널) | Section.examples 하위에 "interactive_diagram" 서브타입 또는 컴포넌트 참조 필드 신설 검토 | 5개 다이어그램이 모두 이 패턴 사용, 정적 md로는 클릭 인터랙션 표현 불가 |
+| aws-vpc-guide.jsx | "🎯 시험 단서 → 정답 빠른 매칭" 2열 표 | ExamTip 콜아웃 유형에 "단서-매칭표" 서브타입 추가 검토 | dynamodb-guide의 산문형 ExamTip과 달리 표 형태로 다수의 단서-정답 쌍을 압축 제시 |
+| aws-dva-monitoring.jsx | 빈출도 배지(Freq, 1~4단계 막대 아이콘 + 라벨) | Section/Question에 `examFrequency`(1~4 or enum) 필드 검토 — 기존 examFrequency 제안과 동일 계열, 재현 사례 추가 | 전 섹션 SecHead에 f={1~4} prop으로 일관 적용 |
+| aws-dva-monitoring.jsx | "시험 포인트" Tip 콜아웃(제목 가변) | Section에 `examTips[]`(string[] 또는 md) 필드 검토 — miniQuiz 없이도 시험 포인트를 명시적으로 태깅 가능 | 거의 모든 섹션 말미에 반복 등장 |
+| aws-dva-monitoring.jsx | 시나리오→정답 빠른 매핑 표(SCompare: 시험 시나리오\|정답\|비고) | 챕터 마무리용 `scenarioMap[]{scenario, answer, note}` 구조 검토 — 다지선다 없이도 시험형 인출 연습에 가까운 형태 | SCompare 섹션 전용, 다른 파일들과 유사 표 다수 관찰(누적 재현) |

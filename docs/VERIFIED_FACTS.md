@@ -130,3 +130,59 @@
 | Lambda | SnapStart 지원 런타임 (재확인) | Java 11+, Python 3.12+, .NET 8+ — nodejs24.x·ruby4.0 등 그 외 런타임·OS-only·컨테이너 이미지 미지원 | https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html | 2026-07-13 |
 | IAM | Permission Boundary 적용 대상 | 사용자·역할(user or role)에만 설정 가능, 그룹 불가. 권한을 부여하지 않고 상한만 설정 | https://docs.aws.amazon.com/help-panel/IAM/latest/console/hp-policies-permissions-boundary.html | 2026-07-13 |
 | IAM | iam:PassRole | API 호출이 아니라 IAM 액션 — 리소스가 서비스 역할로 생성/갱신될 때마다 검사됨. 서비스에 역할을 "전달"하는 사용자에게 필요 | https://aws.amazon.com/blogs/security/how-to-use-the-passrole-permission-with-iam-roles/ · https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html | 2026-07-13 |
+| KMS | 대칭 암호화 작업 요청 쿼터(리전별) | 5,500 / 10,000 / 50,000 req/s (리전에 따라, 조정 가능) | https://docs.aws.amazon.com/kms/latest/developerguide/requests-per-second.html | 2026-07-13 |
+| KMS | RSA/ECC 비대칭 암호화 작업 요청 쿼터 | RSA 전체 공유 1,000 req/s, ECC·SM2 공유 1,000 req/s (조정 가능) | https://docs.aws.amazon.com/kms/latest/developerguide/requests-per-second.html | 2026-07-13 |
+| KMS | 키 로테이션 — AWS 관리형 | 매년 자동 교체, 비활성화 불가 | https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html | 2026-07-13 |
+| KMS | 키 로테이션 — 고객 관리형 | 자동 교체는 옵션(기본 365일, RotationPeriodInDays로 90~2,560일 커스텀 가능) + 온디맨드 로테이션(수명당 최대 10회) 병행 지원 | https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html · https://aws.amazon.com/kms/faqs/ | 2026-07-13 |
+| KMS | 키 로테이션 — 가져온(Imported/EXTERNAL) 키 | 자동 스케줄 로테이션 불가하나 온디맨드 로테이션은 지원(신규 기능). 비대칭·HMAC·커스텀 키 스토어 키는 자동·온디맨드 모두 불가(수동 교체만) | https://aws.amazon.com/blogs/security/how-to-use-on-demand-rotation-for-aws-kms-imported-keys/ | 2026-07-13 |
+| KMS | Encrypt/Decrypt API 데이터 크기 한도 | 4,096바이트(4KB) | https://docs.aws.amazon.com/cli/v1/reference/kms/encrypt.html | 2026-07-13 |
+| KMS | ⚠️ FIPS 인증 레벨(현행) | **"Level 2" 구식 — 2023-05부터 FIPS 140-2 Level 3, 현재 FIPS 140-3 Level 3** (CloudHSM과 동일 레벨) | https://aws.amazon.com/blogs/security/aws-key-management-service-now-offers-fips-140-2-validated-cryptographic-modules-enabling-easier-adoption-of-the-service-for-regulated-workloads/ · https://aws.amazon.com/compliance/fips/ | 2026-07-13 |
+| CloudHSM | FIPS 인증 레벨 | FIPS 140-2 Level 3 validated HSM | https://aws.amazon.com/cloudhsm/faqs/ | 2026-07-13 |
+| EBS/EC2 | 암호화 스냅샷·AMI 교차 계정 공유 | 고객 관리형 키(CMK)로 암호화한 것만 공유 가능(AWS 관리형 키 불가) | https://aws.amazon.com/ebs/faqs/ | 2026-07-13 |
+| SSM | Parameter Store 티어 한도 | Standard: 10,000개/4KB(무료) · Advanced: 100,000개/8KB(파라미터당 월 $0.05, 파라미터 정책·계정 간 공유 지원) | https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html | 2026-07-13 |
+| Secrets Manager | KMS 암호화 | 필수(봉투 암호화, 시크릿 값 변경마다 새 데이터 키 요청) — SSM SecureString은 선택 | https://aws.amazon.com/secrets-manager/faqs/ · https://docs.aws.amazon.com/secretsmanager/latest/userguide/security-encryption.html | 2026-07-13 |
+| RDS/Secrets Manager | ManageMasterUserPassword | true 설정 시 RDS/Aurora가 Secrets Manager 시크릿 자동 생성 및 로테이션까지 자체 관리 | https://docs.aws.amazon.com/secretsmanager/latest/userguide/cfn-example_RDSsecret.html | 2026-07-13 |
+| CloudWatch Logs | KMS 키 연결 콘솔 제약 | "기존" 로그 그룹에는 콘솔로 KMS 키 연결 불가(CLI/API 필요) — associate-kms-key 사용, 반영까지 최대 5분 | https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/encrypt-log-data-kms.html | 2026-07-13 |
+| Cognito | User Pool ID/Access 토큰 기본 수명 | 기본 60분, 앱 클라이언트 설정으로 5분~1일 범위 지정 가능(Refresh 토큰 유효기간 초과 불가) | https://docs.aws.amazon.com/help-panel/cognito/latest/console/hp-token-expiration.html · https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cognito.UserPoolClientOptions.html | 2026-07-13 |
+| Cognito | Refresh 토큰 기본 수명 | 기본 30일, 60분~10년 범위 설정 가능 | https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-refresh-token.html | 2026-07-13 |
+| ALB | authenticate-cognito/oidc는 HTTPS 리스너 전용 | HTTP(비TLS) 리스너 미지원 | https://aws.amazon.com/blogs/networking-and-content-delivery/security-best-practices-when-using-alb-authentication/ | 2026-07-13 |
+| ALB | OnUnauthenticatedRequest 3옵션 | authenticate(기본, IdP 리다이렉트) / deny(HTTP 401) / allow(그대로 통과) | https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_elasticloadbalancingv2.CfnListenerRule.AuthenticateCognitoConfigProperty.html | 2026-07-13 |
+| Cognito | Hosted UI 커스텀 도메인 ACM 인증서 리전 | us-east-1(버지니아 북부) 필수 | https://aws.amazon.com/blogs/opensource/building-a-multi-tenant-kubeflow-environment-on-amazon-eks-using-amazon-cognito-and-adfs/ | 2026-07-13 |
+| SQS | 메시지 보존 기간 | 기본 4일, 설정 범위 1분(60초)~14일(1,209,600초) | https://aws.amazon.com/sqs/faqs/ | 2026-07-13 |
+| SQS | 메시지 최대 크기 | 262,144바이트(256KB), 초과 시 SQS Extended Client Library(Java)로 S3 오프로딩 | https://docs.aws.amazon.com/help-panel/AWSSimpleQueueService/latest/console/hp-createq-config-max-size.html | 2026-07-13 |
+| SQS | 가시성 타임아웃 범위 | 기본 30초, 최소 0초, 최대 12시간 | https://docs.aws.amazon.com/powershell/v5/reference/items/Edit-SQSMessageVisibility.html | 2026-07-13 |
+| SQS | 롱 폴링 최대 대기 시간 | 20초 | https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/best-practices-setting-up-long-polling.html | 2026-07-13 |
+| SQS | FIFO 처리량 기본 한도 | 배치 없이 300 msg/s, 배치 시 3,000 msg/s(큐당). ⚠️ High Throughput Mode 활성화 시 배치 없이 최대 70,000 msg/s(2023-08 확대), 리전별 상한 상이 | https://aws.amazon.com/sqs/faqs/ | 2026-07-13 |
+| SQS | Fair Queues(신규 기능) | 표준 큐에 MessageGroupId(테넌트 식별자)를 붙이면 특정 그룹의 폭주가 다른 그룹을 굶기지 않도록 공정 분배 — FIFO 큐 기능이 아니라 표준 큐 신규 기능, 소비자 코드 변경 불필요 | https://aws.amazon.com/blogs/compute/building-resilient-multi-tenant-systems-with-amazon-sqs-fair-queues/ | 2026-07-13 |
+| SNS | 구독·토픽 한도 | 토픽당 구독 최대 1,250만(표준)·100(FIFO), 계정당 토픽 최대 100,000(표준)·1,000(FIFO) | https://docs.aws.amazon.com/general/latest/gr/sns.html | 2026-07-13 |
+| Kinesis | 온디맨드 모드 기본 처리량·자동 확장 규칙 | 신규 스트림 기본 4MB/s·4,000 records/s(쓰기), 최근 30일 관측 피크 대비 최대 2배까지 자동 버스트, 15분 내 2배 초과 트래픽은 ProvisionedThroughputExceeded 발생 가능 | https://aws.amazon.com/kinesis/data-streams/faqs/ | 2026-07-13 |
+| RDS | Storage Auto Scaling 트리거 조건 | 여유공간≤10% AND 5분 이상 지속 AND 마지막 수정(or 최적화 완료)로부터 6시간 경과 — 3조건 모두 충족 시 발동, 증분은 10GiB/10%/7시간내 예측증가분 중 최댓값 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.Autoscaling.html | 2026-07-13 |
+| RDS | Multi-AZ DB 인스턴스 vs DB 클러스터 | 스탠바이 1개=DB 인스턴스 배포(읽기 불가) / 스탠바이 2개=DB 클러스터 배포(readable standby, 3개 AZ) | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html | 2026-07-13 |
+| Aurora | 성능 배수(현행) | MySQL·PostgreSQL 모두 "최대 6배(up to 6x)" — 구버전 "5배/3배" 문구는 폐기됨 | https://aws.amazon.com/rds/aurora/features/ · https://aws.amazon.com/rds/aurora/faqs/ | 2026-07-13 |
+| Aurora | 스토리지 자동 확장 상한 | 10GiB 증분, 최대 128 TiB | https://aws.amazon.com/blogs/database/is-amazon-rds-for-postgresql-or-amazon-aurora-postgresql-a-better-choice-for-me/ | 2026-07-13 |
+| Aurora | 읽기 복제본 지연 | 공식 가이드: "usually considerably less than 100ms" (100ms 미만 보장 수준), 마케팅상 "often single-digit ms" | https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Performance.html | 2026-07-13 |
+| Aurora | 페일오버 시간 | 통상 30초 이내 | https://aws.amazon.com/blogs/database/reduce-downtime-with-amazon-aurora-mysql-database-restart-time-optimizations/ | 2026-07-13 |
+| Aurora | Backtrack 지원 엔진 | Aurora MySQL 전용 (PostgreSQL 미지원) | https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Backups.html | 2026-07-13 |
+| RDS Proxy | 페일오버 시간 단축 | 최대 66% | https://aws.amazon.com/rds/proxy/ | 2026-07-13 |
+| RDS/Aurora | IAM DB 인증 토큰 유효 기간 | 15분 | https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/UsingWithRDS.IAMDBAuth.Connecting.html | 2026-07-13 |
+| ElastiCache | Memcached 백업/복원 지원 범위 | 비-서버리스 Memcached는 백업/복원 미지원. ElastiCache Serverless for Memcached만 지원(Valkey·Redis OSS는 서버리스 아니어도 지원) | https://aws.amazon.com/elasticache/faqs/ | 2026-07-13 |
+| MemoryDB | 처리량·확장 | 클러스터당 최대 1억 6천만(160 million) TPS, 최대 수백 TB, us(읽기)·ms(쓰기) 지연 | https://docs.aws.amazon.com/memorydb/latest/devguide/servicename-feature-overview.html | 2026-07-13 |
+| VPC | 리전당 기본 VPC 개수 한도 | 5개 (조정 가능, up to 수백 개) | https://docs.aws.amazon.com/vpc/latest/userguide/amazon-vpc-limits.html | 2026-07-13 |
+| VPC | 게이트웨이 엔드포인트 vs 인터페이스 엔드포인트 — 온프레미스 접근성 | 게이트웨이(S3/DynamoDB)는 VPC 내부 전용, 온프레미스·피어링 VPC에서 접근 불가. 인터페이스(PrivateLink)는 VPN·Direct Connect·피어링을 통해 온프레미스/타 VPC에서도 접근 가능 | https://aws.amazon.com/privatelink/faqs/ · https://aws.amazon.com/dynamodb/faqs/ | 2026-07-13 |
+| VPC | VPC당 엔드포인트 생성 한도 | 최대 100개 | https://aws.amazon.com/privatelink/faqs/ | 2026-07-13 |
+| VPC | 기본 VPC 개수(계정·리전당) | 리전당 1개(EC2-VPC 플랫폼 지원 시) | https://aws.amazon.com/vpc/faqs/ | 2026-07-13 |
+| CloudWatch | EC2 기본/상세 모니터링 간격 | 기본 5분(무료) / 상세 모니터링 1분(유료) | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-basic-detailed.html | 2026-07-13 |
+| CloudWatch | 지표당 디멘션 한도 | 최대 30개 | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html | 2026-07-13 |
+| CloudWatch | PutMetricData 타임스탬프 허용 범위 | 과거 2주 · 미래 2시간 (범위 밖은 거부) | https://docs.aws.amazon.com/botocore/latest/reference/services/cloudwatch/client/put_metric_data.html | 2026-07-13 |
+| CloudWatch | ⚠️ StorageResolution 파라미터 유효값 | **1(고해상도) 또는 60(표준, 기본)만 유효** — "1·5·10·30초"는 조회(period) 옵션이지 게시 값 아님 | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html | 2026-07-13 |
+| CloudWatch | ⚠️ 고해상도 지표 경보 주기 | **10초·20초·30초** ("10/30초만"은 구식) | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarm-evaluation.html | 2026-07-13 |
+| CloudWatch | 경보 상태 3종 | OK / ALARM / INSUFFICIENT_DATA | https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarm-evaluation.html | 2026-07-13 |
+| CloudWatch Logs | 메트릭 필터 디멘션 한도 | JSON/공백 구분 필터 최대 3개 | https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntaxForMetricFilters.html | 2026-07-13 |
+| CloudWatch Logs | 로그 그룹 보존 기본값·범위 | 기본 무기한(never expire), 옵션 1일~10년 | https://docs.aws.amazon.com/eks/latest/best-practices/cost-opt-observability.html · https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/security.html | 2026-07-13 |
+| CloudWatch | EC2 메모리 지표 기본 제공 여부 | 기본 지표에 없음 — CloudWatch 에이전트로 커스텀 수집 필요 | https://aws.amazon.com/blogs/mt/setup-memory-metrics-for-amazon-ec2-instances-using-aws-systems-manager/ | 2026-07-13 |
+| X-Ray | 데몬 수신 포트 | UDP 2000 (설정 변경 가능) | https://aws.amazon.com/blogs/devops/instrumenting-web-apps-using-aws-x-ray/ | 2026-07-13 |
+| X-Ray | 기본 샘플링 규칙 | 초당 첫 요청 1개 무조건 기록(reservoir) + 나머지 5%(rate) | https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html | 2026-07-13 |
+| X-Ray | 주석 vs 메타데이터 | 주석(Annotations)=인덱싱·검색·필터 가능 / 메타데이터(Metadata)=인덱싱 불가 | https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html | 2026-07-13 |
+| X-Ray | AWSXRayDaemonWriteAccess 관리형 정책 액션 | xray:PutTraceSegments·PutTelemetryRecords·GetSamplingRules·GetSamplingTargets·GetSamplingStatisticSummaries | https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AWSXRayDaemonWriteAccess.html | 2026-07-13 |
+| CloudTrail | 기본 활성화·이벤트 히스토리 보존 | 계정 생성 시 자동 활성화, 콘솔 이벤트 히스토리 최근 90일(관리 이벤트) | https://docs.aws.amazon.com/awscloudtrail/latest/userguide/view-cloudtrail-events.html | 2026-07-13 |
+| CloudTrail | 이벤트 유형별 기본 기록 여부 | 관리 이벤트=기본 기록 / 데이터 이벤트·Insights 이벤트=기본 미기록(수동 활성화 필요) | https://docs.aws.amazon.com/help-panel/awscloudtrail/latest/console/create-trail-events.html | 2026-07-13 |
