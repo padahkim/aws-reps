@@ -106,7 +106,7 @@ Question { id, scenario, choices[4], answer[](복수 가능), explanation }
   - 축1 쓰기 허용: `reports/axis1/**`, `docs/SCHEMA_FEEDBACK_AXIS1.md`
   - **둘 다 금지**: 콘텐츠 원본 수정(평가만 한다 — 수정은 별도 작업), RUBRIC.md·CURRICULUM.md 수정, 상대 축의 산출물 수정
 - **동기화 (워크트리 간 파일은 커밋으로만 넘어간다)**: 축2는 파일 3~5개 평가마다 커밋한다. 축1은 세션 시작 시와 배치 사이마다 `git merge eval/axis2` (또는 `git checkout eval/axis2 -- reports/axis2 docs/VERIFIED_FACTS.md`)로 최신 리포트를 가져온다. 축2 리포트가 아직 없는 파일은 건너뛰고 대기 큐로 보고한다
-- **완료 시**: 인간이 두 브랜치를 develop에 머지한다 (쓰기 경계를 지켰다면 충돌 없음. develop → main은 릴리스 시점에 브랜치 전략대로)
+- **완료 시**: 인간이 두 브랜치를 main에 머지한다 (쓰기 경계를 지켰다면 충돌 없음)
 - **MCP 전제**: AWS MCP는 반드시 `--scope project`로 등록해 `.mcp.json`이 리포에 커밋되어 있어야 한다. local 스코프는 경로 기준이라 워크트리(다른 디렉터리)에서 보이지 않는다. 축1은 MCP 불필요
 
 ## 7. 축2 프로토콜 — 사실·시험 정합성 (1차 패스)
@@ -123,6 +123,8 @@ Question { id, scenario, choices[4], answer[](복수 가능), explanation }
 - **성분 결손은 컬 사유가 아니다.** 좋은 설명만 있는 파일도 온전한 평가 대상. 결손은 변환 단계의 보충 생성 목록 입력일 뿐
 
 **신규 모드 → 구조 게이트** (스키마 v1 확정 이후이므로 정당): G1 스키마 위반 렌더링 불가 / G2 퀴즈 있는 섹션 절반 미만 or finalQuiz 부재 / G3 담당 범위 밖 주제 / G4 해설 없는 퀴즈 30%↑ → 하나라도 해당 시 즉시 「재작성」, MCP 중단
+
+**게이트 탈락 처리 2원칙 [인간, 2026-07-13 추가]**: 탈락 시 사유를 분류한다 — (a) **품질 미달**(요구 성분의 부재·부실) → 「재작성」 지시. (b) **규약 협소**(콘텐츠는 학습 관점에서 우수하나 확정 규약이 그 형태를 표현하지 못하는 경우 — 근거는 반드시 §8의 L 앵커 관점으로 제시) → 콘텐츠를 `content-pending/`에 보류(폐기 금지)하고 `docs/CONTRACT_CHANGE_REQUESTS.md`에 `| 챕터 | 필요한 표현 | 근거(L앵커) | 개정 제안 |`으로 기록, 판정은 「보류-개정검토」. 규약 반영 여부는 인간이 결정하며, 반영 시 보류 콘텐츠를 재심사한다. 어느 경우에도 게이트를 우회해 /content에 넣는 것은 금지.
 
 ### 7-2. 부트스트랩 (최초 1회, 산출물 이미 있으면 생략)
 1. 시험 가이드 확보: `aws___search_documentation`("DVA-C02 exam guide") → 실패 시 WebFetch `https://docs.aws.amazon.com/aws-certification/latest/examguides/developer-associate-02.html`
