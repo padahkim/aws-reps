@@ -33,3 +33,13 @@
 | aws-dva-monitoring.jsx | 빈출도 배지(Freq, 1~4단계 막대 아이콘 + 라벨) | Section/Question에 `examFrequency`(1~4 or enum) 필드 검토 — 기존 examFrequency 제안과 동일 계열, 재현 사례 추가 | 전 섹션 SecHead에 f={1~4} prop으로 일관 적용 |
 | aws-dva-monitoring.jsx | "시험 포인트" Tip 콜아웃(제목 가변) | Section에 `examTips[]`(string[] 또는 md) 필드 검토 — miniQuiz 없이도 시험 포인트를 명시적으로 태깅 가능 | 거의 모든 섹션 말미에 반복 등장 |
 | aws-dva-monitoring.jsx | 시나리오→정답 빠른 매핑 표(SCompare: 시험 시나리오\|정답\|비고) | 챕터 마무리용 `scenarioMap[]{scenario, answer, note}` 구조 검토 — 다지선다 없이도 시험형 인출 연습에 가까운 형태 | SCompare 섹션 전용, 다른 파일들과 유사 표 다수 관찰(누적 재현) |
+| aws-cicd-guide.jsx | `SECTIONS` 배열의 `freq:{lvl,txt,special}` 빈출빈도 메타 + 좌측 네비게이션 도트 시각화 | Section 스키마에 `examFrequency: {level: 0-5, label, special: bool}` 선택 필드 제안 — 여러 CI/CD 계열 파일에서 반복 등장하는 패턴 | 본문 SECTIONS 상수 |
+| aws-cicd-guide.jsx | `Frame`/`FBox`/`Flow` 조합으로 만드는 "단계 파이프라인" 다이어그램(화살표 연결) | Section.examples에 `diagram: {type:"flow", steps:[{icon,title,sub}]}` 같은 구조화 필드 제안 — 자유 마크다운보다 렌더링 일관성 확보 가능 | Intro/Commit/GitHub/Pipeline/Build 등 다수 함수 |
+| aws-dva-cicd.jsx | `sections[].lecture`(강의 회차 텍스트, 예: "360–361강") | Section에 `sourceRef`(선택, 원 강의/출처 식별자) 필드 제안 — 콘텐츠 추적성에 유용하나 v0엔 없음 | sections 배열 정의부 |
+| aws-dva-cicd.jsx | `ExamTip` 컴포넌트(시나리오형 정답 매칭 예시 다수 포함, 퀴즈는 아님) | Section에 `examPoints[]`는 v0에 이미 있으나, 이 파일처럼 "구체 시나리오 문장 + 정답 서비스"를 짧게 페어링하는 하위 구조(`{scenario, answer}`) 명시 제안 | ExamTip 사용 전체 |
+| lambda-dva-study.jsx | 자유 서술형 자가채점 퀴즈(`ChQuiz`: 정답 노출 후 스스로 맞음/틀림 표기, 누적 점수) | `Question` 스키마에 `type: "recall" \| "mcq"` 필드 추가하고 recall 타입은 `choices` 생략 허용 — 인출연습(자유 회상) 문항을 4지선다로 강제 변환하면 정보 손실 | RUBRIC §8 L1 앵커("방금 읽은 문장 되묻기" vs "적용해야 풀림")가 자유 서술형에서 더 잘 구현됨 |
+| lambda-dva-study.jsx | 파라미터 조작형 시뮬레이터(콜드/웜 스타트 애니메이션, 동시성 슬라이더, 카나리 가중치 슬라이더) | Section에 `interactive: { type, params }` 같은 필드로 "능동 조작 컴포넌트 존재" 여부를 스키마 레벨에 기록 검토 | dva-chapter-template 리포트에서도 유사 제안(diagram) 존재 — 이 파일은 애니메이션·슬라이더까지 포함해 더 강한 사례 |
+| aws-container-guide.jsx | 상태 기반 인터랙티브 단계별 데모(`RollingDemo`, `PlacementDemo`) | 스키마에 "interactiveDemo" 같은 예시 하위 유형 신설 검토 — 정적 예시보다 인출 연습 전이 효과가 클 수 있음 | RollingDemo(롤링 업데이트 min/max 시뮬레이션), PlacementDemo(배치 전략별 분포 시뮬레이션) |
+| aws-container-guide.jsx | 빈출도 정렬 "시험 직전 총정리표"(SummaryTab) | 챕터 말미 요약표를 스키마 필드로 표준화 검토(cheatsheet 유형, 기존 제안과 동일 계열) | SummaryTab 15행 표 |
+| aws-cdk-dva-guide.jsx | "문제 속 신호 → 정답 방향" 즉답표(TabExam) | 스키마에 시나리오 키워드-정답 매핑 전용 필드(quickAnswerMap 유형) 신설 검토 | TabExam의 `map` 배열(9행, 신호→정답 페어) |
+| aws-cdk-dva-guide.jsx | "출제 비중 한눈에" 랭킹표(TabExam) | 빈출도순 총정리표를 표준 cheatsheet 필드로 검토(기존 제안과 동일 계열) | TabExam의 `rank` 배열(7행) |
