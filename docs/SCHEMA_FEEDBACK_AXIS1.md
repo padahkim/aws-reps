@@ -195,21 +195,20 @@ type ChapterMeta = {
 ```ts
 type Question = {
   id: string;                       // 챕터-로컬 "q1". 전역키는 앱 어댑터가 `${meta.id}:${id}` 합성 (규약 무변경)
-  type: "mc";                       // 〔확정 #3〕 v1은 mc(4지선다)만 정식. recall은 v1.1
+  type: "mc";                       // 〔확정 #3〕 v1은 mc(객관식)만 정식 — 단일·복수정답 모두. recall은 v1.1
   scope: "mini" | "final";          // 본문 <Quiz> 배치 위치로 인출 시점 표현
   concept: string[];                // 〔확정 #4-batch〕 복수, 최소 1. LEARNING_LOOP 숙달/약점 계산이 소비
   scenario: string;
-  choices: [string, string, string, string];   // 4개 고정 (레거시 3지선다는 오답 1개 보충)
-  answer: number[];                 // 정답 인덱스(복수 가능)
+  choices: string[];                // 〔확정 #8, 2026-07-14〕 길이 가변 — DVA "5개 중 2개" 대응. 최소 4 권장, 레거시 3지선다는 오답 1개 보충
+  answer: number[];                 // 정답 인덱스 배열 — 복수정답 지원("N개 고르기")
   explanation: string;              // 정답 근거 전용
-  choiceExplanations: [string, string, string, string];
-                                    // 〔확정 #1 — 신규모드 의무〕 선택지별 "왜 틀렸나 + 어떤 상황이면 정답(wouldBeCorrectWhen)"
+  choiceExplanations: string[];     // 〔확정 #1 — 신규모드 의무〕 choices와 1:1 동일 길이. 선택지별 "왜 틀렸나 + 어떤 상황이면 정답(wouldBeCorrectWhen)"
   fixedChoiceOrder?: boolean;       // 〔확정 #4-batch〕 optional. true면 셔플 금지(순서 참조 문항)
 };
 
 export const quiz: Question[];      // 〔확정 #4-batch〕 빈 배열 [] 적법. 앱은 빈 quiz에 강건해야 함
 ```
-> v0 대비 순수 추가/변경: `type`(신규·고정 "mc") · `concept` 단수→배열 · `choiceExplanations`(신규·의무) · `fixedChoiceOrder?`(신규·optional). `explanation`은 "정답 근거 전용"으로 의미 축소(오답별 이유는 choiceExplanations로 이전).
+> v0 대비 순수 추가/변경: `type`(신규·고정 "mc") · `concept` 단수→배열 · **`choices`/`choiceExplanations` 4지 고정→`string[]` 가변(확정 #8 — DVA 복수정답·5지 대응)** · `choiceExplanations`(신규·의무, choices와 동수) · `fixedChoiceOrder?`(신규·optional). `explanation`은 "정답 근거 전용"으로 의미 축소.
 
 ### F-4. 본문 문항 배치 API 〔B: CONTRACT_PREWORK §2-5〕
 ```tsx
@@ -219,7 +218,7 @@ export const quiz: Question[];      // 〔확정 #4-batch〕 빈 배열 [] 적�
 문항 데이터는 props 아닌 ChapterProvider 컨텍스트에서 조회 → 본문-문항 결합이 문자열 id 참조뿐. 채점·진도·오답노트는 `<Quiz>` 내부(앱 셸).
 
 ### F-5. 신규 콘텐츠 생성 규칙 〔A 확정 — 게이트 후보〕
-1. **모든 mc → `choiceExplanations` 4개 완비** (확정 #1, §D G-b). 신규모드 구조 게이트에서 미비 시 반려 후보.
+1. **모든 mc → `choiceExplanations`를 `choices`와 동수로 완비** (확정 #1, §D G-b). 신규모드 구조 게이트에서 미비 시 반려 후보.
 2. **모든 개념 블록 → `prerequisites` 챕터 1개+ 명시 인용** (확정 #4, L6=2). 최선두 챕터(A4)는 예외.
 3. **recall 소재 → mc 변환 + 본문 `retrievalCards`(채점 X 능동 인출) 병존** (확정 #3).
 4. **모든 섹션 → miniQuiz ≥ 1** (§D G-a). 빈 quiz는 레거시 잔존 한정, 신규는 지양.
