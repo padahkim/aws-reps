@@ -149,6 +149,8 @@
 - **decisionTable/caseMatrix/annotatedCode**(§D S1·S2·B10): **quiz 필드가 아님** → 본문 표현 + **문항 자동 생성 소스**. v1 스키마 밖(변환/생성 소관). CONTRACT_PREWORK §1-D의 "본문 네거티브 규정"과 함께 변환 단계에서 다룰 것.
 
 ### E-4. v1 확정 결정시트 (인간 O/X — 이 표가 v1 게이트 근거)
+
+> **✅ 2026-07-14 인간 확정: 7항 전부 권장대로 채택.** 아래 표의 "권장"이 곧 확정값이다. 구체 타입 명세 = **§F**.
 | # | 결정 | 권장 | 근거 | ☐ |
 |---|---|---|---|---|
 | 1 | `choiceExplanations` 신규모드 mc **의무화**? | **예** | L2 27/28 N/A → 결손 재생산 방지 | ☐ |
@@ -160,3 +162,73 @@
 | 7 | `fixedChoiceOrder?` optional 예약? | **예** | LEARNING_LOOP 셔플 예외 | ☐ |
 
 > **한 줄 요약**: 프리워크의 기술 v1(mc·choiceExplanations·concept[])은 그대로 두되, 축1이 **① choiceExplanations 의무화 ② L6 선행연결을 생성 규칙으로 강제(meta.prerequisites 활용) ③ recall은 v1.1로 절충**을 더한다. 신규 필드 추가는 최소(사실상 0) — 대부분 **기존 필드 활용 규칙 + 생성 프롬프트 규칙**으로 해결된다.
+
+---
+
+## F. v1 명세 초안 — 축1 확정 7항(§E-4) 반영 (2026-07-14)
+
+> §E-4 7항 인간 확정(전부 권장 채택)을 구체 타입으로 명세화.
+> **범위 구분 (중요)**: **A그룹(F-2·F-3·F-5 = 퀴즈/메타 필드·생성 규칙)은 축1 확정분.** **B그룹(F-1·F-4·F-6 = 모듈 구조·명명·로딩·본문 네거티브)은 CONTRACT_PREWORK 권장을 통합한 컨테이너로, 기술 확정은 별도**(CONTRACT_PREWORK §2-1~2-3·§1-D-3 소관). 인간이 `docs/CONTRACT.md` 정본으로 이관할 때 A는 확정값, B는 기술 재확인 대상.
+
+### F-1. 모듈 구조 〔B: CONTRACT_PREWORK §2-0 권장 — 기술 확정 대상〕
+```
+content/chapters/{id}/
+  meta.ts    ← chapterMeta + quiz  (순수 데이터, "use client" 금지, 서버 안전)
+  body.jsx   ← "use client" + export default 본문 (자유 jsx, 문항 배치는 <Quiz>)
+```
+근거: §2-0 RSC 제약(meta 서버 소비 ↔ 본문 클라이언트). 명명(`chapterMeta`)·레지스트리·동적로딩은 CONTRACT_PREWORK §2-2/§2-3.
+
+### F-2. `chapterMeta` 〔A 확정 + 일부 B권장〕
+```ts
+type ChapterMeta = {
+  id: string;                       // 챕터 식별자 (예: "ch1-2")
+  phase: 0|1|2|3|4|5;
+  title: string;
+  domain: "개발"|"보안"|"배포"|"트러블슈팅";
+  examWeight: number;
+  prerequisites: string[];          // 〔확정 #4〕 L6 강제의 근거. 각 개념 블록이 이 중 1개+ 를 본문에서 명시 인용
+  // chapters?: string[];           // 〔B권장〕 복수 챕터 매핑(레거시 1:N, §1-D-4) — 기술 확정 대상
+};
+```
+
+### F-3. `quiz` — `Question` 〔A 확정〕
+```ts
+type Question = {
+  id: string;                       // 챕터-로컬 "q1". 전역키는 앱 어댑터가 `${meta.id}:${id}` 합성 (규약 무변경)
+  type: "mc";                       // 〔확정 #3〕 v1은 mc(4지선다)만 정식. recall은 v1.1
+  scope: "mini" | "final";          // 본문 <Quiz> 배치 위치로 인출 시점 표현
+  concept: string[];                // 〔확정 #4-batch〕 복수, 최소 1. LEARNING_LOOP 숙달/약점 계산이 소비
+  scenario: string;
+  choices: [string, string, string, string];   // 4개 고정 (레거시 3지선다는 오답 1개 보충)
+  answer: number[];                 // 정답 인덱스(복수 가능)
+  explanation: string;              // 정답 근거 전용
+  choiceExplanations: [string, string, string, string];
+                                    // 〔확정 #1 — 신규모드 의무〕 선택지별 "왜 틀렸나 + 어떤 상황이면 정답(wouldBeCorrectWhen)"
+  fixedChoiceOrder?: boolean;       // 〔확정 #4-batch〕 optional. true면 셔플 금지(순서 참조 문항)
+};
+
+export const quiz: Question[];      // 〔확정 #4-batch〕 빈 배열 [] 적법. 앱은 빈 quiz에 강건해야 함
+```
+> v0 대비 순수 추가/변경: `type`(신규·고정 "mc") · `concept` 단수→배열 · `choiceExplanations`(신규·의무) · `fixedChoiceOrder?`(신규·optional). `explanation`은 "정답 근거 전용"으로 의미 축소(오답별 이유는 choiceExplanations로 이전).
+
+### F-4. 본문 문항 배치 API 〔B: CONTRACT_PREWORK §2-5〕
+```tsx
+<Quiz ids={["q1","q2"]} />   // 챕터-로컬 id 참조 (기본형, grep 가능)
+<Quiz scope="final" />       // quiz[].scope 필터 (ids와 상호배타)
+```
+문항 데이터는 props 아닌 ChapterProvider 컨텍스트에서 조회 → 본문-문항 결합이 문자열 id 참조뿐. 채점·진도·오답노트는 `<Quiz>` 내부(앱 셸).
+
+### F-5. 신규 콘텐츠 생성 규칙 〔A 확정 — 게이트 후보〕
+1. **모든 mc → `choiceExplanations` 4개 완비** (확정 #1, §D G-b). 신규모드 구조 게이트에서 미비 시 반려 후보.
+2. **모든 개념 블록 → `prerequisites` 챕터 1개+ 명시 인용** (확정 #4, L6=2). 최선두 챕터(A4)는 예외.
+3. **recall 소재 → mc 변환 + 본문 `retrievalCards`(채점 X 능동 인출) 병존** (확정 #3).
+4. **모든 섹션 → miniQuiz ≥ 1** (§D G-a). 빈 quiz는 레거시 잔존 한정, 신규는 지양.
+5. **예시는 개념 블록 내부 결합** (§D G-d, L3 역설 방지).
+6. **문항 소재 = 기존 콜아웃**(시험포인트/결정표/N문형) 직접 승격.
+
+### F-6. 미확정·후속 〔B/후속〕
+- `freq`: 섹션 정식화 후 `section.freq` (확정 #4-batch, 섹션 개념은 LEARNING_LOOP §2-3 유보).
+- 본문 **네거티브 규정**(자체 내비·전역 셀렉터 스타일·document/window 직접접근·외부 폰트 CDN 금지) — CONTRACT_PREWORK §1-D-3, 신규모드 구조 게이트.
+- `type` 확장(`recall`/`flashcard`/`selfcheck`)·자가보고 채점 UX — **v1.1**.
+
+> **요약**: v1 확정분은 **quiz `type:"mc"` + `choiceExplanations` 의무 + `concept[]` + 빈 quiz 적법 + `fixedChoiceOrder?` + prerequisites 활용 생성 규칙**. 신규 필드는 `type`·`choiceExplanations`·`fixedChoiceOrder?` 3개뿐이고 나머지는 기존 필드 활용/생성 규칙. 모듈 구조·명명·로딩·본문 네거티브는 CONTRACT_PREWORK가 별도 확정.
