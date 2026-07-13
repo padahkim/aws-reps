@@ -157,7 +157,7 @@ content/chapters/{id}/
 스트레스 테스트 입력: 선택지별 해설(1-A), 외부 퀴즈 범위 배너(1-C), 비정형 문항 4유형(§1-D-1), 퀴즈 없는 모듈(1-B·1-C). v0에 이미 `scope`("mini"/"final")·`concept`(단수)·`answer[]`가 있으므로 아래는 **v0 변경분만** 제안한다:
 
 ```ts
-// v1 초안 제안 — v0 Question 대비 델타. ★2026-07-14 인간 확정 반영(정본 = CONTRACT.md §3 / SCHEMA_FEEDBACK §E-4·§F): #1 choiceExplanations 의무 · #8 choices 가변
+// v1 초안 제안 — v0 Question 대비 델타. ★2026-07-14 인간 확정(근거 = SCHEMA_FEEDBACK §E-4·§F): #1 choiceExplanations 의무 · #8 choices 가변. (CONTRACT.md = 축1 제안 이관 초안, 규약 세션이 정본화)
 type Question = {
   id: string;          // v0 유지: 챕터-로컬 "q1". 전역 유일성은 규약이 아니라
                        // 앱 어댑터가 "{meta.id}:{q.id}" 합성으로 보장 (규약 무변경) — §2-5·아키텍처 초안 §3
