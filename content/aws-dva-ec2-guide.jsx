@@ -2065,8 +2065,8 @@ export default function App() {
                 <b>gp3</b>,
                 "SSD",
                 <span>
-                  기본 3,000 IOPS / 125MB/s → 최대 <b>16,000 IOPS</b> /
-                  1,000MB/s
+                  기본 3,000 IOPS / 125MB/s → 최대 <b>80,000 IOPS</b> /
+                  2,000MB/s
                 </span>,
                 <span>
                   최신 범용. <b>IOPS·처리량을 크기와 독립적으로</b> 설정 가능.
@@ -2089,7 +2089,7 @@ export default function App() {
                 "SSD",
                 "프로비저닝 IOPS 최대 64,000 (Nitro 인스턴스)",
                 <span>
-                  고성능·저지연. 16,000 IOPS 초과 필요 시. DB 워크로드. 부팅 ✓ ·{" "}
+                  고성능·저지연. 프로비저닝 IOPS 보장·Multi-Attach 필요 시. DB 워크로드. 부팅 ✓ ·{" "}
                   <b>Multi-Attach ✓</b>
                 </span>,
               ],

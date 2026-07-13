@@ -694,7 +694,7 @@ export default function App() {
               head={["항목", "AWS KMS", "AWS CloudHSM"]}
               rows={[
                 ["테넌시", "멀티 테넌트", "싱글 테넌트 (전용 하드웨어)"],
-                ["표준", "FIPS 140-2 Level 2 (일부 Level 3)", "FIPS 140-2 Level 3"],
+                ["표준", "FIPS 140-2/140-3 Level 3 (2023-05~)", "FIPS 140-2 Level 3"],
                 ["키 관리 주체", "AWS 소프트웨어가 관리 (사용자는 API로 사용)", "전적으로 사용자 (클라이언트 소프트웨어)"],
                 ["키 종류", "AWS Owned / AWS Managed / Customer Managed", "고객 유지 키 전용"],
                 ["접근 제어·감사", "IAM + CloudTrail", "IAM은 클러스터 CRUD만 · 감사는 CloudTrail/CloudWatch"],

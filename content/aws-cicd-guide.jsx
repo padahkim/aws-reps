@@ -27,7 +27,7 @@ const ACCENT = {
 const SECTIONS = [
   { id:"intro",    n:"00", label:"CI/CD 개요",        tag:"overview",       accent:"amber",    icon:Workflow,    freq:{lvl:0,txt:"핵심 개념",special:true} },
   { id:"commit",   n:"01", label:"CodeCommit",         tag:"CodeCommit",     accent:"source",   icon:GitCommit,   freq:{lvl:3,txt:"중간"} },
-  { id:"eol",      n:"02", label:"CodeCommit 단종",    tag:"Discontinuation",accent:"grey",     icon:AlertTriangle,freq:{lvl:1,txt:"낮음 · 필수 인지"} },
+  { id:"eol",      n:"02", label:"CodeCommit 현황",    tag:"GA Returned",accent:"grey",     icon:AlertTriangle,freq:{lvl:1,txt:"낮음 · 필수 인지"} },
   { id:"github",   n:"03", label:"GitHub 연동",        tag:"GitHub",         accent:"git",      icon:Github,      freq:{lvl:2,txt:"낮음~중간"} },
   { id:"pipeline", n:"04", label:"CodePipeline",       tag:"CodePipeline",   accent:"pipe",     icon:Workflow,    freq:{lvl:4,txt:"높음"} },
   { id:"build",    n:"05", label:"CodeBuild",          tag:"CodeBuild",      accent:"build",    icon:Hammer,      freq:{lvl:4,txt:"높음"} },
@@ -159,7 +159,7 @@ function Intro() {
       <h4 className="mini-h">AWS 서비스 지도</h4>
       <div className="mapgrid">
         {[
-          { i:GitCommit, c:ACCENT.source, t:"CodeCommit", d:"소스 저장소 (Git) · 단종 예정" },
+          { i:GitCommit, c:ACCENT.source, t:"CodeCommit", d:"관리형 Git 저장소 (2025-11 GA 복귀)" },
           { i:Github, c:ACCENT.git, t:"GitHub", d:"외부 Git 저장소 연동" },
           { i:Workflow, c:ACCENT.pipe, t:"CodePipeline", d:"전체 흐름 오케스트레이션" },
           { i:Hammer, c:ACCENT.build, t:"CodeBuild", d:"컴파일 · 테스트 · 패키징" },
@@ -240,21 +240,21 @@ function Commit() {
 function Eol() {
   return (
     <>
-      <Callout kind="warn" title="CodeCommit 신규 제공 중단 (2024-07-25)">
+      <Callout kind="warn" title="CodeCommit — 신규 중단(2024) → GA 복귀(2025-11-24)">
         <p style={{ margin:0 }}>
-          2024년 7월 25일부로 AWS CodeCommit은 <b>신규 고객에게 더 이상 제공되지 않습니다.</b>
-          기존에 사용하던 고객은 <b>계속 사용 가능</b>합니다.
+          2024년 7월 25일 신규 고객 제공이 한때 중단됐으나, <b>2025년 11월 24일 GA로 복귀</b>하여
+          현재 신규 고객도 다시 CodeCommit을 생성·사용할 수 있습니다.
         </p>
       </Callout>
 
       <p className="lead">
-        AWS는 이제 <b>GitHub · GitLab · Bitbucket</b> 같은 외부 Git 제공자와의 연동을 권장합니다.
+        AWS는 <b>GitHub · GitLab · Bitbucket</b> 같은 외부 Git 제공자 연동도 폭넓게 지원합니다.
         시험 대비 관점에서 정리하면:
       </p>
 
       <Frame cap="방향 전환 — 관리형 저장소에서 외부 Git 연동으로" tight>
         <Flow>
-          <FBox icon={GitCommit} title="CodeCommit" sub="신규 제공 중단" color={ACCENT.grey} dim />
+          <FBox icon={GitCommit} title="CodeCommit" sub="GA 복귀(2025-11)" color={ACCENT.grey} />
           <FBox icon={Repeat} title="AWS 권장" sub="외부 Git 사용" color="#FFB347" />
           <FBox icon={Github} title="GitHub / GitLab / Bitbucket" sub="CodeConnections로 연동" color={ACCENT.git} wide />
         </Flow>
@@ -754,7 +754,7 @@ function Agent() {
 
 function Summary() {
   const rows = [
-    { s:"CodeCommit",  r:"소스 저장소 (Git)",         k:"SSH/HTTPS 인증 · IAM · 단종 예정",     c:ACCENT.source,   f:{lvl:3,txt:"중간"} },
+    { s:"CodeCommit",  r:"소스 저장소 (Git)",         k:"SSH/HTTPS 인증 · IAM · 2025-11 GA 복귀",     c:ACCENT.source,   f:{lvl:3,txt:"중간"} },
     { s:"GitHub",      r:"외부 Git 연동",             k:"CodeConnections · Webhook",           c:ACCENT.git,      f:{lvl:2,txt:"낮음~중간"} },
     { s:"CodePipeline",r:"오케스트레이션",            k:"Stage · Artifact(S3) · EventBridge",  c:ACCENT.pipe,     f:{lvl:4,txt:"높음"} },
     { s:"CodeBuild",   r:"빌드/테스트",               k:"buildspec.yml · Docker · SSM/Secrets", c:ACCENT.build,    f:{lvl:4,txt:"높음"} },

@@ -185,7 +185,7 @@ function StackDiagram() {
         ⟵ AWS CodePipeline : 전 단계를 오케스트레이션(자동 연결) ⟶
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        * CodeCommit은 신규 고객 사용 불가 · † Elastic Beanstalk은 Deploy +
+        * CodeCommit은 2025-11-24 GA 복귀(신규 사용 가능) · † Elastic Beanstalk은 Deploy +
         Provision을 함께 담당
       </p>
     </Diagram>
@@ -789,15 +789,15 @@ const sections = [
           </ul>
         </Card>
         <Card
-          title="⚠ 중요: CodeCommit 서비스 종료(Discontinuation)"
+          title="CodeCommit — 신규 중단(2024)에서 GA 복귀(2025-11-24)"
           accent="border-red-500/50"
         >
           <p>
             <b className="text-red-300">
-              2024년 7월 25일부터 신규 고객은 CodeCommit을 사용할 수 없습니다.
+              2024년 7월 25일 신규 고객 제공이 한때 중단됐으나 2025년 11월 24일 GA로 복귀했습니다.
             </b>{" "}
-            기존 고객은 계속 사용할 수 있지만, AWS는 GitHub · GitLab 등 외부 Git
-            공급자로의 마이그레이션을 안내하고 있습니다.
+            현재 신규 고객도 다시 사용할 수 있으며, GitHub · GitLab 등 외부 Git
+            공급자 연동도 지원됩니다.
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>강의·시험에는 여전히 등장할 수 있으나 비중은 줄어드는 추세</li>
@@ -1380,7 +1380,7 @@ const sections = [
               성능(에이전트)
             </li>
             <li>
-              <b>CodeCommit</b>: 2024-07-25부터 신규 사용 불가 → GitHub 권장
+              <b>CodeCommit</b>: 2024 신규중단 → 2025-11-24 GA 복귀(신규 사용 가능)
             </li>
           </ul>
         </Card>

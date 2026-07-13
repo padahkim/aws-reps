@@ -293,21 +293,22 @@ function EcsTab() {
         <Tx x={99} y={186} s={9.5} f={C.sub}>(앱 컨테이너)</Tx>
         <Bx x={285} y={52} w={160} h={74} />
         <Tx x={365} y={72} s={10.5} w={700}>관리용 AWS 서비스</Tx>
-        <Tx x={365} y={92} s={9.5} f={C.sub}>ECS API · CloudWatch Logs</Tx>
+        <Tx x={365} y={92} s={9.5} f={C.sub}>CloudWatch Logs 전송</Tx>
         <Tx x={365} y={108} s={9.5} f={C.sub}>ECR 이미지 pull · SSM/Secrets</Tx>
         <Bx x={285} y={160} w={160} h={60} />
         <Tx x={365} y={182} s={10.5} w={700}>앱이 쓰는 AWS 서비스</Tx>
         <Tx x={365} y={202} s={9.5} f={C.sub}>S3 · DynamoDB 등</Tx>
         <Ar x1={172} y1={92} x2={283} y2={90} c="o" />
-        <Tx x={228} y={78} s={9.5} f={C.o} w={700}>EC2 Instance Profile</Tx>
+        <Tx x={228} y={78} s={9.5} f={C.o} w={700}>Task Execution Role</Tx>
         <Ar x1={172} y1={176} x2={283} y2={190} c="b" />
         <Tx x={228} y={214} s={9.5} f={C.b} w={700}>ECS Task Role</Tx>
       </Dia>
       <Grid min={230}>
         <Card title="EC2 Instance Profile" color={C.o}>
-          <strong>EC2 Launch Type 전용</strong>. <strong>ECS Agent</strong>가 사용:
-          ECS 서비스 API 호출, CloudWatch Logs로 컨테이너 로그 전송,
-          <strong> ECR에서 이미지 pull</strong>, Secrets Manager·SSM Parameter Store의 민감 데이터 참조.
+          <strong>EC2 Launch Type 전용</strong>. <strong>ECS Agent</strong>가 컨테이너 인스턴스를
+          클러스터에 등록하고 <strong>ECS 서비스 API를 호출</strong>(태스크 폴링 등)하는 데만 사용.
+          {" "}⚠️ ECR 이미지 pull·CloudWatch 로그 전송·Secrets/SSM 조회는
+          <strong> Task Execution Role</strong>(EC2·Fargate 공통)이 담당 — 아래 태스크 정의 섹션 참조.
         </Card>
         <Card title="ECS Task Role" color={C.b}>
           <strong>태스크(앱) 자신</strong>이 쓰는 역할. 서비스마다 다른 역할을 붙일 수 있어
@@ -316,7 +317,7 @@ function EcsTab() {
         </Card>
       </Grid>
       <Tip>"태스크가 S3에 접근하지 못한다" → <strong>Task Role</strong> 확인.
-        "인스턴스가 ECR에서 이미지를 못 가져온다 / 로그가 CloudWatch에 안 올라간다" → <strong>Instance Profile</strong>(또는 Fargate라면 Task Execution Role) 확인.</Tip>
+        "ECR에서 이미지를 못 가져온다 / 로그가 CloudWatch에 안 올라간다 / 시크릿 조회 실패" → <strong>Task Execution Role</strong>(EC2·Fargate 공통) 확인.</Tip>
     </Sec>
 
     <Sec no="169강" title="로드 밸런서 통합" freq={2}>
@@ -892,7 +893,7 @@ const tdStyle = { padding: "10px 10px", fontSize: 12.5, lineHeight: 1.6,
 function SummaryTab() {
   const rows = [
     ["Fargate vs EC2 타입", "\"서버리스 · 인프라 관리 없음\" = Fargate / 인스턴스 제어 필요 = EC2", 3],
-    ["ECS IAM 역할", "Agent·실행용 = Instance Profile(Execution Role) / 앱용 = Task Role(태스크 정의에서 지정)", 3],
+    ["ECS IAM 역할", "인스턴스 등록·ECS API = Instance Profile(EC2) / 이미지 pull·로그·시크릿 = Task Execution Role(EC2·Fargate 공통) / 앱용 = Task Role", 3],
     ["서비스 오토 스케일링", "지표 3종: CPU · 메모리 · ALB 타깃당 요청 수 / 인프라 확장 = Capacity Provider", 3],
     ["동적 호스트 포트 매핑", "EC2 타입 + ALB / EC2 SG는 ALB SG로부터 모든 포트 허용", 3],
     ["Fargate 네트워킹", "태스크마다 고유 ENI(프라이빗 IP), 컨테이너 포트만 정의", 3],
