@@ -5,7 +5,9 @@
 
 ## 한 줄 요약
 
-레거시 콘텐츠 **24파일** 중 **7파일 평가 완료**(전부 "수정" 판정), **17파일 대기**. 사용자 요청으로 일시 중단.
+레거시 콘텐츠 **27파일** 중 **7파일 평가 완료**(전부 "수정" 판정), **20파일 대기**. 사용자 요청으로 일시 중단.
+
+> 파일 수 변동 이력: 원래 22 → +2(beanstalk·cloudformation, 커밋 e911b94) → +3(cdk·container·monitoring, 커밋 54f2816) = **27**. 세 차례 다 사용자가 직접 추가한 레거시 콘텐츠이며, 모두 원본 md5 대조 후 무수정 임포트. 인벤토리에서 비어 있던 챕터(4-1·4-2·4-3·4-4·5-1~5-3)를 정확히 충원함.
 
 ## 완료 (7/24) — 커밋됨
 
@@ -21,7 +23,7 @@
 
 리포트 위치: `reports/axis2/{id}.md`. 검증 캐시: `docs/VERIFIED_FACTS.md`(96행). 스키마 제안: `docs/SCHEMA_FEEDBACK_AXIS2.md`(14건).
 
-## 대기 큐 (17파일) — 미평가
+## 대기 큐 (20파일) — 미평가
 
 권장 배치 순서(주제 묶음, 3~5파일 단위로 조정 가능):
 
@@ -35,7 +37,11 @@
 | 8 | aws-dva-ec2-guide, aws-dva-elb-asg | 4-0 컴퓨팅 |
 | 9 | aws-dva-rds-aurora-elasticache, aws-vpc-guide | 5-4 / VPC(경계·사용자 결정으로 평가 유지) |
 | 10 | lambda-dva-study | 1-2 Lambda 연습(문답형) |
-| 11 (신규) | aws-elastic-beanstalk-guide, cloudformation-dva-guide | 4-2 / 4-3 (공백 챕터 충원분) |
+| 11 (충원분) | aws-elastic-beanstalk-guide, cloudformation-dva-guide | 4-2 / 4-3 |
+| 12 (충원분·신규) | aws-container-guide (998줄), aws-cdk-dva-guide (879줄) | 4-1 컨테이너 / 4-4 CDK |
+| 13 (충원분·신규) | aws-dva-monitoring (1653줄) | 5-1·5-2·5-3 관측성 (CloudWatch·X-Ray·CloudTrail) |
+
+신규 3파일 0차 스캔(2026-07-13): 모두 export default 정상·본문 충실(C1 아님). 성분 태그는 설명 O·예시 O(코드/시나리오 추정)·퀴즈 X·해설 X 예상 — 본평가에서 확정. 중복 쌍 아님(각자 유일 주제). container=Docker/ECS/ECR/Fargate/Copilot·EKS 개요, cdk=Constructs/bootstrap/유닛테스트(SAM 짝 개념), monitoring=시험 포인트 밀도 높음(22).
 
 중복 쌍(같은 주제 2파일): Lambda·IAM·API GW(완료)·메시징·CI/CD·S3(완료). 사용자 결정 = **둘 다 정식 평가**. 각 리포트에 `## 중복 관찰` 섹션으로 상대 대비 고유/겹침 단원 기록(통합 결정은 인간 몫, 판정 미반영).
 
@@ -57,6 +63,7 @@
 - Task 1.1 "상태 코드 오버라이드": API GW 2파일 모두 누락
 - DynamoDB 직렬화/역직렬화(1.3.5), 0단계 지수 백오프+Jitter·CLI 프로파일·페이지네이션
 - 커리큘럼 자체 공백(EXAM_TASK_MAP 갭 보고): Q Developer, OpenSearch, AppConfig, Amplify·Copilot
+  - 부분 해소: 컨테이너(4-1)·CDK(4-4)·관측성(5-1~5-3) 콘텐츠가 신규 임포트로 충원됨. Copilot은 aws-container-guide에 개요 포함 확인 — 평가 시 커버 수준 판정.
 
 ## 재개 방법 (다음 세션/시점)
 
