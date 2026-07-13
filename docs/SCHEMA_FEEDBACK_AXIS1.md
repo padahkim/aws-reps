@@ -52,8 +52,8 @@
 
 | # | 항목 | 문제 | 제안 | 인간 결정 |
 |---|---|---|---|---|
-| **A4** | **L6 — 최선두/기반 챕터** | 0-1(aws-dva-stage0)처럼 **역방향 선행 챕터가 구조상 없는** 최선두 파일을 L6=0/1로 처벌하면 A3(단일챕터 L8)와 동일한 "형식 결손 폭탄". 이 파일은 후행 챕터를 구체 지목(순방향 브리지)함. | **최선두(선행 챕터 없음) 파일 → L6은 후행 챕터 순방향 지목의 구체성으로 평가하거나 N/A.** | **미결** (이번엔 보수적으로 1 채점, 앵커 미승인) |
-| **A5** | **L5 — 커리큘럼 미매핑 파일** | aws-vpc-guide는 시험 out-of-scope이나 인벤토리 단계에서 보존 결정됨. 축2가 매핑 챕터 없음을 이유로 **범위이탈 근거를 명시적 유보** → L5 앵커(축2 범위이탈 근거 전제)를 적용할 근거 자체가 없음. | **미매핑(out-of-scope-but-kept) 파일 → L5 N/A, 유효 만점 제외. 파일 존치는 인벤토리/변환 단계 결정.** | **미결** (이번엔 L5 N/A 처리, 앵커 미승인) |
+| **A4** | **L6 — 최선두/기반 챕터** | 0-1(aws-dva-stage0)처럼 **역방향 선행 챕터가 구조상 없는** 최선두 파일을 L6=0/1로 처벌하면 A3(단일챕터 L8)와 동일한 "형식 결손 폭탄". | **최선두(선행 챕터 없음) 파일 → L6 N/A, 유효 만점 제외.** | **✅ 확정 (a), 2026-07-14** — stage0 L6=N/A 적용(6/8→5/6=83.3%, 판정 수정 유지) |
+| **A5** | **L5 — 커리큘럼 미매핑 파일** | aws-vpc-guide는 시험 out-of-scope이나 인벤토리 단계에서 보존 결정됨. 축2가 매핑 챕터 없음을 이유로 범위이탈 근거를 유보. | **미매핑 여부는 파일 존치(메타 결정)로 처리, L5는 파일 내부 이탈 유무만 본다 → 내부 이탈 없으면 L5=2.** | **✅ 확정 (b), 2026-07-14** — vpc L5=2 적용(5/6→7/8=87.5%, **판정 통과**). 존치=(a) 부록/보너스 격리 |
 
 ### C-3. 스키마 v1 추가 후보 (전수에서 재현 확인)
 
@@ -62,3 +62,60 @@
 | B8 | **결정표/단서-매칭표 `decisionTable`** (시험 지문 신호 → 정답 서비스/설정 2열) | aws_api_gateway_dva, aws-vpc-guide, security-guide-1, elastic-beanstalk, dva-cicd 등 다수 | 축2 SCHEMA_FEEDBACK B와 중복 재현(최강급). DVA 문제 형식(시나리오→선택)과 1:1. L1 문항의 정답·오답 원형으로 직접 승격 가능. |
 | B9 | **진리표/케이스 매트릭스 `caseMatrix`** (조건 조합 → 결과) | aws-dva-iam-guide-2(정책 평가 4문형: IAM정책×버킷정책→결과) | 조합형 문항 자동 생성 입력. |
 | B10 | **라인별 주석 코드블록 `annotatedCode`** (코드 + 라인별 해설) | iam_guide, aws-dva-iam-guide-2, cloudformation, cdk | L3=2를 스키마 수준에서 강제. |
+
+---
+
+## D. 스키마 v1 후보 통합 체크리스트 (인간 확정용 초안, 2026-07-14)
+
+> RUBRIC §5-4 "스키마 v1 확정"을 위한 축1 관점 통합 초안. 축1 B1~B10 + 축2 SCHEMA_FEEDBACK(44건) 재현 최강 후보를 병합했다.
+> **AI는 v1을 확정하지 않는다(제안만).** 인간이 `채택/보류/논의` 칸을 정하면 그것이 v1 게이트가 된다. `☐`에 O/X 표기 후 이 표가 v1 명세의 근거가 된다.
+> 지위: v0 = `Chapter{...sections[], finalQuiz[]}` / `Section{objectives[], body, examples, examPoints[], miniQuiz[]}` / `Question{scenario, choices[4], answer[], explanation}`.
+
+### D-0. 코어 (v0 계승 — 유지 권장)
+| # | 필드/구조 | 정의 | 권장 | ☐ |
+|---|---|---|---|---|
+| K1 | `Chapter{id, phase, title, domain, examWeight, prerequisites[], sections[], finalQuiz[]}` | 챕터 뼈대 | **유지** | ☐ |
+| K2 | `Section{id, title, objectives[], body(md), examPoints[]}` | 개념 블록 뼈대 | **유지** | ☐ |
+| K3 | `Question{id, scenario, choices[4], answer[], explanation}` | 4지선다 기본형 | **유지(단 아래 Q필드로 확장)** | ☐ |
+
+### D-1. 문항·해설 강화 (L1·L2·L7을 스키마로 강제)
+| # | 필드 | 정의/구조 | 강제 항목 | 근거·재현성 | 권장 | ☐ |
+|---|---|---|---|---|---|---|
+| Q1 | `choiceExplanations` = `choices[].{text, why, wouldBeCorrectWhen}` | 오답마다 "왜 틀렸나 + 어떤 상황이면 정답이었나" | **L2=2** | dva-chapter-template(구현 확인). 축1·축2 공통 제안 | **채택**(L2 앵커를 구조로 강제) | ☐ |
+| Q2 | `type: "mcq" \| "recall" \| "truefalse" \| "order"` | 문항 타입. `recall`=자유서술 자가채점(선택지 없음) | L1 강화, A1 연동(recall→L2 N/A) | lambda-dva-study(ChQuiz) | **채택** | ☐ |
+| Q3 | `recallAnswer{modelAnswer, rubricPoints[], commonTraps[]}` | recall형의 모범답안 + 채점 포인트 + 흔한 함정 | L2 N/A 보완(자가채점 품질) | lambda-dva-study | **채택** | ☐ |
+| Q4 | `selfExplainGate: bool` | 해설 열기 전 "오답이 왜 틀렸는지 설명" 강제 | 능동 인출(L1) | dva-chapter-template(QuizCard) | **채택**(렌더러 단순) | ☐ |
+| Q5 | `difficulty: "direct" \| "scenario" \| "trivia"` | 난이도/유형 태그 | **L7 자동 산출** | 전 파일 시험포인트 콜아웃이 사실상 scenario | **채택**(L7을 계산 가능하게) | ☐ |
+| Q6 | `Section.retrievalCards[] = {q, a, elaboration}` | 개념 블록마다 질문 우선 카드(탭→정답+"왜?") | **L1 밀도** | dva-chapter-template(concepts) | **채택** | ☐ |
+
+### D-2. 예시·선행연결 강화 (L3·L6을 스키마로 강제 — 코퍼스 최대 약점 대응)
+| # | 필드 | 정의/구조 | 강제 항목 | 근거·재현성 | 권장 | ☐ |
+|---|---|---|---|---|---|---|
+| E1 | `prerequisiteRefs[] = {chapterId, concept, appliedAs}` | 개념 블록이 재사용하는 **선행 챕터 명시 지목** | **L6=2** | **없음(28/28 파일 L6=1)** → 정확히 이 결손을 메움 | **채택 최우선**(L6이 코퍼스 유일 구조 약점) | ☐ |
+| E2 | `Section.annotatedCode[] = {lang, code, lineNotes[]}` | 코드 + 라인별 해설 | **L3=2** | iam_guide·iam-guide-2·cloudformation·cdk | **채택** | ☐ |
+| E3 | `Section.examples inline 강제`(개념 블록 내부 배치) | 예시를 퀴즈로 분리 금지, 개념 직후 결합 | L3(퀴즈파일 L3=1 역설 방지) | template·lambda-study 반례 | **채택**(배치 규칙) | ☐ |
+
+### D-3. 구조·비교 (L5·L7 지원, 문항 자동 생성 소스)
+| # | 필드 | 정의/구조 | 근거·재현성 | 권장 | ☐ |
+|---|---|---|---|---|---|
+| S1 | `decisionTable[] = {signal, answer, why}` | 시험 지문 신호 → 정답 매핑표 | **축1·축2 공통 최강 재현**(api_gateway_dva·vpc·security-1·beanstalk·dva-cicd 등 다수) | **채택**(문항 자동 승격 소스) | ☐ |
+| S2 | `caseMatrix{axes[], cases[]}` | 조건 조합 → 결과 진리표 | iam-guide-2(정책 평가 4문형) | **채택** | ☐ |
+| S3 | `comparisonTable{head[], rows[]}` | 두 서비스/옵션 대비표 | security-1 등 다수 | **채택** | ☐ |
+| S4 | `interleave[] = {scenario, service, contrast}` | 혼합복습(인접 헷갈리는 서비스 변별) | **L8 메커니즘** | dva-chapter-template(mixed) | **채택** | ☐ |
+| S5 | `examFrequency: 1~5` (Section/Chapter) | 빈출도 태그 | **축2 최강 재현(8+ 파일 독자 구현)** | **채택** | ☐ |
+
+### D-4. 렌더러 트레이드오프 (인간 판단 — 앱 복잡도 vs 학습가치)
+| # | 필드 | 정의 | 근거 | 권장 | ☐ |
+|---|---|---|---|---|---|
+| R1 | `interactiveSim{type, params[]}` (동시성 슬라이더·콜드/웜 타임라인·카나리 가중치·트래픽 전환·정책 평가 토글) | 파라미터 조작형 능동 학습 장치. **L3 기여(L1 아님 — 채점형 문항 아님)** | lambda-study·lambda-2·iam_guide·beanstalk·sam·cognito·container | **논의**(정적 md 미표현, 렌더러 복잡도 ↑ — v1 필수 vs 선택 결정 필요) | ☐ |
+| R2 | `clickableDiagram{nodes[], detailPanel}` | 노드 클릭→설명 패널. 이중부호화 | vpc·cognito·container 등 | **논의**(R1과 동일 트레이드오프) | ☐ |
+
+### D-5. 축1이 권하는 v1 필수 게이트 규칙 (구조 위반 시 신규모드 재작성 사유 후보)
+| # | 규칙 | 근거 항목 | 권장 |
+|---|---|---|---|
+| G-a | 모든 `Section`에 `miniQuiz` ≥1 (recall 허용) | L1 대량 N/A(26/28) 방지 | **채택** |
+| G-b | 모든 mcq는 `choiceExplanations` 필수 | L2=2 강제 | **채택** |
+| G-c | 모든 `Section`에 `prerequisiteRefs` ≥1 (최선두 챕터 예외=A4) | L6 결손(28/28) 방지 | **채택** |
+| G-d | 예시는 `Section` 내부 결합(별도 퀴즈 분리 금지) | L3 역설 방지 | **채택** |
+
+> **요약**: 코퍼스의 강점(L3·L4)은 유지하고, **최대 결손인 L6(선행연결)·퀴즈/해설(L1·L2)을 스키마 필수 필드(E1·Q1·Q6 + 게이트 G-a~G-d)로 강제**하는 것이 v1의 핵심 설계 방향. 인터랙티브(R1·R2)만 렌더러 복잡도 때문에 인간 판단이 필요.
