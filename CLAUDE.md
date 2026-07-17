@@ -14,6 +14,7 @@ AWS DVA-C02 학습 사이트. 백지에서 시작하는 독립 프로젝트다.
 
 - CRITICAL: `gh` CLI 사용 금지 (회사 계정으로 로그인되어 있음). 원격 작업은 plain `git`만 사용한다.
 - CRITICAL: API 키·시크릿을 코드/번들/리포에 노출 금지.
+- 패키지 매니저 = **npm** 고정. `package-lock.json` 커밋 필수, yarn/pnpm 혼용 금지 (세션 간 lockfile 분기 방지).
 - 커밋 메시지는 영어, conventional-commits 형식 (feat:, fix:, docs:, refactor:).
 
 ## Harness
