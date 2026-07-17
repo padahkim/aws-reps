@@ -21,6 +21,8 @@ export interface ChapterEntry {
 // .ts 확장자 명시: 검증기가 이 파일을 Node 네이티브 TS(strip-types)로 직접 로드하기 때문.
 import { chapterMeta as ch01Meta, quiz as ch01Quiz } from "./chapters/ch0-1/meta.ts";
 import { chapterMeta as ch02Meta, quiz as ch02Quiz } from "./chapters/ch0-2/meta.ts";
+import { chapterMeta as ch11Meta, quiz as ch11Quiz } from "./chapters/ch1-1/meta.ts";
+import { chapterMeta as ch12Meta, quiz as ch12Quiz } from "./chapters/ch1-2/meta.ts";
 
 export const registry: ChapterEntry[] = [
   {
@@ -30,5 +32,13 @@ export const registry: ChapterEntry[] = [
   {
     data: { chapterMeta: ch02Meta, quiz: ch02Quiz },
     loadBody: () => import("./chapters/ch0-2/body"),
+  },
+  {
+    data: { chapterMeta: ch11Meta, quiz: ch11Quiz },
+    loadBody: () => import("./chapters/ch1-1/body"),
+  },
+  {
+    data: { chapterMeta: ch12Meta, quiz: ch12Quiz },
+    loadBody: () => import("./chapters/ch1-2/body"),
   },
 ];
