@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
@@ -97,6 +98,21 @@ export function Sec({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * 다른 챕터로의 인라인 상호 참조 — 아직 안 배운 개념이 먼저 등장할 때 상세 챕터로 잇는다.
+ * (규약이 금지하는 "자체 내비게이션"은 목차·페이저류 UI — 본문 속 개념 링크는 해당 없음.)
+ */
+export function ChLink({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <Link
+      href={`/chapters/${id}`}
+      style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 3 }}
+    >
+      {children}
+    </Link>
   );
 }
 

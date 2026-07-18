@@ -44,8 +44,17 @@ export default async function ChapterPage({
         </h1>
         <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
           {meta.phase} · {meta.domain} · 출제빈도 {meta.examWeight}/5
-          {meta.prerequisites.length > 0 &&
-            ` · 선행: ${meta.prerequisites.join(", ")}`}
+          {meta.prerequisites.length > 0 && (
+            <>
+              {" · 선행: "}
+              {meta.prerequisites.map((pre, i) => (
+                <span key={pre}>
+                  {i > 0 && ", "}
+                  <Link href={`/chapters/${pre}`}>{pre}</Link>
+                </span>
+              ))}
+            </>
+          )}
         </p>
       </header>
       <Body />

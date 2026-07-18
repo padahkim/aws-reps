@@ -2,6 +2,7 @@
 
 import {
   C,
+  ChLink,
   Checklist,
   Code,
   ExamLi,
@@ -21,8 +22,9 @@ export default function Ch02Body() {
   return (
     <>
       <P>
-        IAM(Identity and Access Management)은 AWS의 <b>출입 통제 시스템</b>입니다. ch0-1에서 본
-        것처럼 모든 도구는 결국 같은 API를 부르고 요청마다 SigV4로 서명되는데 — 서명 검증(인증)을
+        IAM(Identity and Access Management)은 AWS의 <b>출입 통제 시스템</b>입니다.{" "}
+        <ChLink id="ch0-1">ch0-1</ChLink>에서 본 것처럼 모든 도구는 결국 같은 API를 부르고
+        요청마다 SigV4로 서명되는데 — 서명 검증(인증)을
         통과한 다음 단계로, 모든 API 호출은 실행 전에 &ldquo;이 주체가 이 행동을 이 리소스에 해도
         되는가?&rdquo;를 IAM에게 검사받습니다. 구성 요소는 딱 두 종류로 나눠서 보면 쉽습니다:{" "}
         <b>주체(Identity)</b>와 <b>권한(Policy)</b>.
@@ -120,8 +122,9 @@ function IamSection() {
       <P>
         EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를 코드나 서버에 박아두면 유출 시
         영구적으로 악용됩니다. 대신 <b>인스턴스에 롤을 부여</b>하면 SDK가 임시 자격증명을
-        자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 — ch0-1의
-        자격증명 탐색 체인 마지막 단계(붙어 있는 IAM 롤)가 바로 이것입니다.{" "}
+        자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 —{" "}
+        <ChLink id="ch0-1">ch0-1의 자격증명 탐색 체인</ChLink> 마지막 단계(붙어 있는 IAM 롤)가
+        바로 이것입니다.{" "}
         <b>&ldquo;AWS 위에서 도는 코드에는 키 대신 롤&rdquo;</b> — 이 한 문장이 DVA 전체를
         관통하는 정답 패턴입니다.
       </P>

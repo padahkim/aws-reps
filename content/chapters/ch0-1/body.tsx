@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import {
   C,
+  ChLink,
   Checklist,
   Code,
   ExamLi,
@@ -70,7 +71,8 @@ function RegionAzSection() {
     >
       <P>
         AWS는 전 세계에 데이터센터를 깔아 두고, 이를{" "}
-        <b>리전(Region) → 가용영역(AZ) → 데이터센터</b>의 계층으로 묶어서 제공합니다.
+        <b>리전(Region) → 가용영역(AZ, Availability Zone) → 데이터센터</b>의 계층으로 묶어서
+        제공합니다.
       </P>
 
       <Fig caption="계층 구조: 리전 ⊃ 가용영역(AZ) ⊃ 데이터센터. 엣지 로케이션은 이와 별개의 촘촘한 캐시 거점망.">
@@ -107,7 +109,8 @@ function RegionAzSection() {
       <SubTitle>서비스의 &ldquo;범위&rdquo; 감각</SubTitle>
       <ul style={{ margin: "0.5rem 0 0.5rem 1.25rem" }}>
         <li style={{ margin: "6px 0" }}>
-          <b>글로벌 서비스</b>: IAM, Route 53, CloudFront — 리전을 골라도 전체에 적용
+          <b>글로벌 서비스</b>: <ChLink id="ch0-2">IAM</ChLink>, Route 53, CloudFront — 리전을
+          골라도 전체에 적용
         </li>
         <li style={{ margin: "6px 0" }}>
           <b>리전 서비스</b>: S3, DynamoDB, Lambda — 리전 단위로 존재 (대부분이 여기 해당)
@@ -269,7 +272,8 @@ function ApiSection() {
             "임시 자격증명",
             "키 쌍 + 세션 토큰 (STS 발급)",
             <>
-              롤을 맡으면 자동 발급. 만료 시간이 있어 안전 → <b>권장 방식</b>
+              <ChLink id="ch0-2">롤</ChLink>을 맡으면 자동 발급. 만료 시간이 있어 안전 →{" "}
+              <b>권장 방식</b>
             </>,
           ],
         ]}
@@ -285,13 +289,18 @@ function ApiSection() {
         </li>
       </ul>
       <Note>
-        그래서 EC2에 롤만 붙여두면 코드는 자격증명을 전혀 몰라도 동작합니다. &ldquo;같은 코드가
-        로컬에서는 설정 파일, EC2에서는 롤로 인증된다&rdquo; — 이 체인 개념이 시험에 나옵니다.
+        여기서 <b>롤(Role)</b>이란 고정 자격증명 없이 필요할 때 &ldquo;빌려 쓰는&rdquo; IAM
+        신원입니다 — 자세한 개념은 <ChLink id="ch0-2">ch0-2 IAM</ChLink>에서 다룹니다. EC2에
+        롤만 붙여두면 코드는 자격증명을 전혀 몰라도 동작합니다. &ldquo;같은 코드가 로컬에서는
+        설정 파일, EC2에서는 롤로 인증된다&rdquo; — 이 체인 개념이 시험에 나옵니다.
       </Note>
 
       <ExamPoint>
         <ExamLi>
-          &ldquo;애플리케이션에 자격증명을 가장 안전하게 제공하는 방법은?&rdquo; → <b>IAM 롤</b>{" "}
+          &ldquo;애플리케이션에 자격증명을 가장 안전하게 제공하는 방법은?&rdquo; →{" "}
+          <b>
+            <ChLink id="ch0-2">IAM 롤</ChLink>
+          </b>{" "}
           (하드코딩·환경변수·설정파일 배포는 오답)
         </ExamLi>
         <ExamLi>
