@@ -53,6 +53,27 @@ export default function Home() {
           </section>
         ))
       )}
+
+      {/*
+        dev 전용 원본 검수 도구(/_source) 진입점.
+        production 에서는 이 분기가 죽은 코드로 제거되고, prebuild 가 /_source 라우트 자체를
+        지우므로 배포본엔 링크도 대상도 남지 않는다.
+        next/link 가 아니라 <a> 인 이유: 빌드 시점엔 /_source 가 존재하지 않아 타입드 라우트가
+        모르는 경로가 된다. 전체 새로고침이라 dev 검수 용도엔 충분하다.
+      */}
+      {process.env.NODE_ENV === "development" && (
+        <footer
+          style={{
+            marginTop: "3rem",
+            paddingTop: "1rem",
+            borderTop: "1px dashed var(--border)",
+            fontSize: "0.85rem",
+            color: "var(--muted)",
+          }}
+        >
+          <a href="/_source">원본 소스 검수 (/_source)</a> · dev 전용
+        </footer>
+      )}
     </>
   );
 }
