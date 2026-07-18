@@ -5,6 +5,10 @@
 /.next/
 /out/
 
+# dev 검수 도구(/_source)의 생성된 라우트 — scripts/gen-source-routes.mjs 산출물.
+# 손으로 쓴 소스는 app/_source/ 에 있다 (커밋됨). predev 가 만들고 prebuild 가 지운다.
+/app/%5Fsource/
+
 # misc
 .DS_Store
 *.tsbuildinfo

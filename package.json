@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/gen-source-routes.mjs",
     "dev": "next dev",
+    "source:gen": "node scripts/gen-source-routes.mjs",
     "validate": "node scripts/validate-content.mts",
     "validate:test": "node scripts/validate-content.test.mts",
-    "prebuild": "npm run validate",
+    "prebuild": "npm run validate && node scripts/gen-source-routes.mjs --clean",
     "build": "next build",
     "typecheck": "tsc --noEmit"
   },
