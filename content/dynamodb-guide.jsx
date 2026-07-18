@@ -886,7 +886,7 @@ const S_cond = () => (
 <span className="kw">PutItem</span> ... <span className="fn">ConditionExpression</span>=<span className="st">"attribute_not_exists(user_id)"</span>{"\n\n"}
 <span className="cm"># 재고가 0보다 클 때만 차감</span>{"\n"}
 <span className="kw">UpdateItem</span> SET stock = stock - <span className="st">1</span>{"\n"}
-  <span className="fn">ConditionExpression</span>=<span className="st">"stock > :zero"</span>
+  <span className="fn">ConditionExpression</span>=<span className="st">"stock &gt; :zero"</span>
     </div>
     <h2 className="h2"><span className="bar" />주요 조건 함수</h2>
     <div className="grid g2">
