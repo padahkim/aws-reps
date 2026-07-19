@@ -8,7 +8,7 @@
     "source:gen": "node scripts/gen-source-routes.mjs",
     "validate": "node scripts/validate-content.mts",
     "validate:test": "node scripts/validate-content.test.mts",
-    "prebuild": "npm run validate && node scripts/gen-source-routes.mjs --clean",
+    "prebuild": "npm run validate && node scripts/gen-source-routes.mjs --build",
     "build": "next build",
     "typecheck": "tsc --noEmit"
   },

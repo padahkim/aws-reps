@@ -7,8 +7,9 @@
 //                   %5F 는 리터럴 "_" 로 디코드돼 /_source 경로를 만든다.
 //
 //   predev  가 이 스크립트를 돌려 라우트를 만들고 (npm run dev 하면 자동),
-//   prebuild 가 --clean 으로 지워서 production 빌드에서 /_source 를 통째로 제외한다.
-//   → 로컬 검수는 그대로, 배포본에는 날것 원본(9MB)이 실리지 않는다.
+//   prebuild 가 --build 로 호출한다: Vercel preview(develop push) 빌드에서만 라우트를
+//   유지하고, 그 외(production·로컬 build)는 --clean 과 동일하게 통째로 제외한다.
+//   → 로컬·preview 검수는 되고, 실유저 배포본(main)에는 날것 원본(9MB)이 실리지 않는다.
 //
 // 원본이 추가/삭제되면 `node scripts/gen-source-routes.mjs` 를 다시 돌린다.
 //
@@ -23,8 +24,14 @@ const contentDir = join(root, "content");
 const srcDir = join(root, "app", "_source"); // 손으로 쓴 소스 (커밋됨)
 const routesDir = join(root, "app", "%5Fsource"); // 생성된 라우트 (gitignore)
 
-// --clean: 생성된 라우트를 지운다 (prebuild 에서 호출 → 빌드에서 /_source 제외).
-if (process.argv.includes("--clean")) {
+// --clean: 생성된 라우트를 무조건 지운다 (수동 정리용).
+// --build: 빌드용 분기 — VERCEL_ENV=preview 면 라우트를 생성해 /_source 를 배포에 포함,
+//          아니면 --clean 과 동일 (production 과 로컬 build 에서 제외).
+const isPreview = process.env.VERCEL_ENV === "preview";
+if (
+  process.argv.includes("--clean") ||
+  (process.argv.includes("--build") && !isPreview)
+) {
   rmSync(routesDir, { recursive: true, force: true });
   console.log("정리 완료: app/%5Fsource 제거 (production 빌드에서 /_source 제외)");
   process.exit(0);
