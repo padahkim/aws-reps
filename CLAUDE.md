@@ -7,16 +7,16 @@ AWS DVA-C02 학습 사이트. 백지에서 시작하는 독립 프로젝트다.
 - `main`: 릴리스 트렁크 (기본 브랜치). 직접 커밋 금지, `develop`→`main` 머지로만 갱신 — 릴리스 시점, 그리고 하네스(CLAUDE.md·`.claude/`·`scripts/`) 변경 전파 시 (앱이 새 세션 워크트리를 main에서 분기하므로 main이 낡으면 새 세션이 옛 규칙을 로드한다).
 - `develop`: 통합 브랜치. 모든 작업의 유일한 머지 대상. 작업 시작 전 `git fetch origin`으로 `origin/develop`과 일치를 확인한다 (다른 PC 작업 가능성).
 - 작업 브랜치(`feat/*`·`fix/*`·`docs/*`·`chore/*`)는 최신 `develop`에서 분기한다. 앱이 자동 생성한 `claude/*` 워크트리 브랜치는 베이스가 낡았을 수 있으니 그 위에서 작업 금지 — `git switch -c feat/<주제> develop`으로 갈아탄다. 한 브랜치 = 한 주제.
-- **착지 필수**: 세션 종료 전, 검증된 작업은 `/land` 스킬로 `develop`에 머지·push한다 (절차는 `.claude/skills/land/SKILL.md`). 머지가 이르면 브랜치만 push하고 "머지 대기 + 이유"를 보고한다. **머지도 보고도 없는 방치 금지** (schema.ts 고립 사고 재발 방지).
+- **착지 필수**: 세션 종료 전, 작업을 `/land` 스킬로 착지시킨다 (절차는 `.claude/skills/land/SKILL.md`). 검증된 일상 작업은 즉시 착지(develop 직접 머지·push), 리뷰가 필요한 변경(미검증·하네스·대규모/의존성/배포)은 PR 착지 — 브랜치 push 후 PR을 만들고 사용자 승인을 기다린다. **머지도 보고도 없는 방치 금지** (schema.ts 고립 사고 재발 방지).
 - 예외: 오탈자·한두 줄 수준의 단일 커밋은 `develop` 직접 커밋을 허용한다.
 
 ## Process rules
 
-- CRITICAL: `gh` CLI 사용 금지 (회사 계정으로 로그인되어 있음). 원격 작업은 plain `git`만 사용한다.
+- CRITICAL: `gh` CLI는 **기본 차단** — 홈 마커(`~/.claude/aws-reps-allow-gh`)가 있고 gh 활성 계정이 개인 계정(padahkim)인 머신에서만 허용한다 (git_guard가 강제). 회사 머신은 아무 설정도 하지 않으면 차단이 유지되며, 그 경우 원격 작업은 plain `git`만 사용한다.
 - CRITICAL: API 키·시크릿을 코드/번들/리포에 노출 금지.
 - 패키지 매니저 = **npm** 고정. `package-lock.json` 커밋 필수, yarn/pnpm 혼용 금지 (세션 간 lockfile 분기 방지).
 - 커밋 메시지는 영어, conventional-commits 형식 (feat:, fix:, docs:, refactor:).
 
 ## Harness
 
-- `.claude/settings.json`(커밋됨)이 PreToolUse 훅 `scripts/git_guard.py`를 등록한다 — gh CLI와 파괴적 명령(rm -rf, git push --force, git reset --hard 등)을 차단한다.
+- `.claude/settings.json`(커밋됨)이 PreToolUse 훅 `scripts/git_guard.py`를 등록한다 — gh CLI(위 조건 미충족 시)와 파괴적 명령(rm -rf, git push --force, git reset --hard 등)을 차단한다.
