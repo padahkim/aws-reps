@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllChapters, getChapter } from "@/lib/content";
+import ChapterQuiz from "./chapter-quiz";
 
 // 레지스트리에 없는 id는 404. 단 output: "export"의 dev 서버는 미등록 param을 이 설정과
 // 무관하게 자체 500으로 거부한다 (dev 전용 — 배포본은 정적 파일이 없어 호스트 404).
@@ -58,6 +59,8 @@ export default async function ChapterPage({
         </p>
       </header>
       <Body />
+      {/* 빈 quiz(ch0류)는 섹션 자체를 렌더하지 않는다 — schema.ts "빈 quiz 강건성" */}
+      {entry.data.quiz.length > 0 && <ChapterQuiz quiz={entry.data.quiz} />}
     </article>
   );
 }

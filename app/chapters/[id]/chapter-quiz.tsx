@@ -1,0 +1,245 @@
+"use client";
+
+import { useState } from "react";
+import type { Question } from "@/lib/content";
+
+/**
+ * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
+ * 단일 정답: 선택지 클릭 즉시 채점. 복수 정답: 토글 선택 후 채점 버튼.
+ * 채점 후: 정답/오답 배너 + 선택지별 해설(choiceExplanations) + 해설 본문 + 공식 문서 링크.
+ * 빈 quiz는 호출부(page.tsx)가 섹션 자체를 렌더하지 않는다.
+ */
+
+// 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 배경·글자색 쌍 고정으로 다크 모드에서도 읽힘.
+// (앱은 content/를 lib/content.ts로만 소비하므로 ui.tsx를 직접 import 하지 않고 값을 복제한다.)
+const PAL = {
+  ink: "#171E26",
+  teal: "#0E7C7B",
+  tealSoft: "#DCF0EF",
+  red: "#B9432C",
+  redSoft: "#F8E4DF",
+  amberText: "#9A5B06",
+  amberSoft: "#FDEBD3",
+} as const;
+
+const DIFFICULTY_LABEL: Record<NonNullable<Question["difficulty"]>, string> = {
+  easy: "하 ●○○",
+  medium: "중 ●●○",
+  hard: "상 ●●●",
+};
+
+function sameSet(a: number[], b: number[]): boolean {
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
+}
+
+function QuizItem({ index, question: q }: { index: number; question: Question }) {
+  const [selected, setSelected] = useState<number[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const multi = q.answer.length > 1;
+  const correct = submitted && sameSet(selected, q.answer);
+
+  function pick(idx: number) {
+    if (submitted) return;
+    if (!multi) {
+      setSelected([idx]);
+      setSubmitted(true);
+    } else {
+      setSelected((prev) =>
+        prev.includes(idx) ? prev.filter((v) => v !== idx) : [...prev, idx],
+      );
+    }
+  }
+
+  function reset() {
+    setSelected([]);
+    setSubmitted(false);
+  }
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: 14,
+        padding: "1.1rem 1.1rem 1rem",
+        margin: "1.25rem 0",
+      }}
+    >
+      {/* 문항 헤더: 번호 + 제목 + 난이도 */}
+      <div style={{ display: "flex", gap: "0.6rem", alignItems: "baseline", flexWrap: "wrap" }}>
+        <span style={{ fontWeight: 900, color: "var(--accent)" }}>Q{index + 1}</span>
+        {q.title && <strong style={{ fontSize: "0.95rem" }}>{q.title}</strong>}
+        {q.difficulty && (
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              borderRadius: 99,
+              padding: "2px 10px",
+              background: PAL.amberSoft,
+              color: PAL.amberText,
+            }}
+          >
+            {DIFFICULTY_LABEL[q.difficulty]}
+          </span>
+        )}
+      </div>
+
+      <p style={{ margin: "0.7rem 0 0.9rem" }}>{q.scenario}</p>
+
+      {/* 선택지 */}
+      <div role={multi ? "group" : "radiogroup"} style={{ display: "grid", gap: "0.5rem" }}>
+        {q.choices.map((choice, idx) => {
+          const isAnswer = q.answer.includes(idx);
+          const isSelected = selected.includes(idx);
+          let bg = "transparent";
+          let fg = "var(--fg)";
+          let border = "1px solid var(--border)";
+          if (submitted && isAnswer) {
+            bg = PAL.tealSoft; fg = PAL.ink; border = `1px solid ${PAL.teal}`;
+          } else if (submitted && isSelected && !isAnswer) {
+            bg = PAL.redSoft; fg = PAL.ink; border = `1px solid ${PAL.red}`;
+          } else if (!submitted && isSelected) {
+            border = "1px solid var(--accent)";
+          }
+          return (
+            <div key={idx}>
+              <button
+                type="button"
+                onClick={() => pick(idx)}
+                disabled={submitted}
+                aria-pressed={isSelected}
+                style={{
+                  display: "flex",
+                  gap: "0.55rem",
+                  width: "100%",
+                  textAlign: "left",
+                  font: "inherit",
+                  fontSize: "0.92rem",
+                  lineHeight: 1.5,
+                  padding: "0.6rem 0.75rem",
+                  borderRadius: 10,
+                  cursor: submitted ? "default" : "pointer",
+                  background: bg,
+                  color: fg,
+                  border,
+                }}
+              >
+                <span style={{ fontWeight: 700, flexShrink: 0 }}>
+                  {submitted && isAnswer ? "✓" : submitted && isSelected ? "✗" : multi && isSelected ? "☑" : String.fromCharCode(65 + idx)}
+                </span>
+                <span>{choice}</span>
+              </button>
+              {/* 채점 후 선택지별 해설 */}
+              {submitted && q.choiceExplanations?.[idx] && (
+                <p
+                  style={{
+                    margin: "0.25rem 0 0.35rem",
+                    padding: "0 0.75rem",
+                    fontSize: "0.83rem",
+                    color: submitted && isAnswer ? PAL.teal : "var(--muted)",
+                  }}
+                >
+                  {q.choiceExplanations[idx]}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 복수 정답: 채점 버튼 */}
+      {multi && !submitted && (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem" }}>
+          <button
+            type="button"
+            onClick={() => setSubmitted(true)}
+            disabled={selected.length === 0}
+            style={{
+              font: "inherit",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              padding: "0.45rem 1.2rem",
+              borderRadius: 10,
+              border: "none",
+              cursor: selected.length === 0 ? "default" : "pointer",
+              background: selected.length === 0 ? "var(--border)" : "var(--accent)",
+              color: selected.length === 0 ? "var(--muted)" : "#fff",
+            }}
+          >
+            채점하기
+          </button>
+          <span style={{ fontSize: "0.83rem", color: "var(--muted)" }}>
+            정답 {q.answer.length}개 · {selected.length}개 선택됨
+          </span>
+        </div>
+      )}
+
+      {/* 채점 결과 + 해설 */}
+      {submitted && (
+        <div style={{ marginTop: "0.9rem" }}>
+          <div
+            style={{
+              fontWeight: 900,
+              fontSize: "0.95rem",
+              borderRadius: 10,
+              padding: "0.55rem 0.8rem",
+              background: correct ? PAL.tealSoft : PAL.redSoft,
+              color: correct ? PAL.teal : PAL.red,
+            }}
+          >
+            {correct ? "정답입니다" : `오답입니다 — 정답: ${q.answer.map((a) => String.fromCharCode(65 + a)).join(", ")}`}
+          </div>
+          <div style={{ marginTop: "0.6rem", fontSize: "0.9rem" }}>
+            {q.explanation.split("\n\n").map((para, i) => (
+              <p key={i} style={{ margin: "0.5rem 0" }}>{para}</p>
+            ))}
+          </div>
+          {q.references && q.references.length > 0 && (
+            <ul style={{ margin: "0.5rem 0 0 1.1rem", padding: 0, fontSize: "0.83rem" }}>
+              {q.references.map((ref) => (
+                <li key={ref.url}>
+                  <a href={ref.url} target="_blank" rel="noreferrer">{ref.title}</a>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={reset}
+            style={{
+              font: "inherit",
+              fontSize: "0.83rem",
+              marginTop: "0.7rem",
+              padding: "0.35rem 0.9rem",
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--muted)",
+              cursor: "pointer",
+            }}
+          >
+            다시 풀기
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ChapterQuiz({ quiz }: { quiz: Question[] }) {
+  return (
+    <section style={{ marginTop: "3rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
+      <h2 style={{ fontSize: "1.25rem", fontWeight: 900 }}>챕터 퀴즈</h2>
+      <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 4 }}>
+        {quiz.length}문항 · 선택지를 고르면 즉시 채점됩니다. 복수 정답 문항은 모두 고른 뒤 채점하세요.
+      </p>
+      {quiz.map((q, i) => (
+        <QuizItem key={q.id} index={i} question={q} />
+      ))}
+    </section>
+  );
+}

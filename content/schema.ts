@@ -32,6 +32,12 @@ export interface ChapterMeta {
   prerequisites: string[];        // 선행 챕터 id. 각 개념블록이 이걸 명시 인용 = L6 강제. 없으면 []
 }
 
+/** 해설이 근거로 삼는 AWS 공식 문서 링크 (aws-cloud-drills 임포트 유래). */
+export interface ReferenceLink {
+  title: string;
+  url: string;
+}
+
 export interface Question {
   id: string;                     // 챕터-로컬 "q1". 전역 키는 앱이 `${meta.id}:${q.id}`로 합성
   scope: "mini" | "final";        // 본문 인라인(mini) vs 챕터 종합(final)
@@ -39,8 +45,12 @@ export interface Question {
   scenario: string;
   choices: string[];              // 2개 이상 — 4지·5지·복수정답 모두 수용 (PREWORK 4지고정 완화)
   answer: number[];               // 정답 인덱스. 복수 가능
-  explanation: string;            // 정답 근거 전용
+  explanation: string;            // 정답 근거 전용. "\n\n" = 문단 구분 (렌더러가 분할)
   choiceExplanations?: string[];  // 선택지별 why (있으면 choices와 길이 일치) — 축1 L2 앵커
+  // ── optional 확장 (이슈 #6: 임포트 시 정보 손실 최소화 — 없으면 UI가 그냥 생략) ──
+  title?: string;                 // 문항 한 줄 제목
+  difficulty?: "easy" | "medium" | "hard";  // 난이도 (하·중·상)
+  references?: ReferenceLink[];   // AWS 공식 문서 링크
 }
 
 /** 각 챕터의 meta.ts가 export 하는 계약. */
