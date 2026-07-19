@@ -1,4 +1,4 @@
-import type { ChapterMeta } from "../../schema";
+import type { ChapterMeta, SectionMeta } from "../../schema";
 
 /**
  * 원본: content/aws-lambda-dva-guide.jsx(28섹션·최상세본)를 뼈대로,
@@ -23,3 +23,30 @@ export const chapterMeta: ChapterMeta = {
 };
 
 export { quiz } from "./drills.ts";
+
+/**
+ * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).
+ * 순서 = 본문 섹션 순서 = 섹션 페이지 URL 번호(1-based) 순서.
+ */
+export const sections: SectionMeta[] = [
+  { num: "01", title: "서버리스와 Lambda 개요", sub: "EC2와의 차이, 과금 모델, 런타임", freq: "mid", freqLabel: "빈출 ★★☆ · 전제 개념" },
+  { num: "02", title: "호출 ① 동기식 (+ ALB 통합)", sub: "결과를 기다린다 — 오류 처리는 호출자 책임", freq: "hi", freqLabel: "최빈출 ★★★ · 호출 3유형 구분" },
+  { num: "03", title: "호출 ② 비동기식 & DLQ", sub: "이벤트 큐 · 재시도 3회 · S3/EventBridge 트리거", freq: "hi", freqLabel: "최빈출 ★★★ · 재시도 정책 암기 필수" },
+  { num: "04", title: "호출 ③ 이벤트 소스 매핑 (ESM)", sub: "Kinesis · DynamoDB Streams · SQS — Lambda가 폴링한다", freq: "hi", freqLabel: "최빈출 ★★★ · 오류 처리와 스케일링" },
+  { num: "05", title: "이벤트 & 컨텍스트 객체", sub: "handler(event, context) — 데이터 vs 메타데이터", freq: "lo", freqLabel: "보통 ★☆☆ · 구분 문제" },
+  { num: "06", title: "Lambda Destinations", sub: "성공/실패 결과 라우팅 — DLQ와의 비교", freq: "mid", freqLabel: "빈출 ★★☆ · DLQ 비교 단골" },
+  { num: "07", title: "권한 — 실행 역할 vs 리소스 기반 정책", sub: "권한이 나가느냐, 들어오느냐", freq: "hi", freqLabel: "최빈출 ★★★ · 방향 구분이 정답 키" },
+  { num: "08", title: "환경 변수", sub: "4KB 한도 · KMS 암호화", freq: "lo", freqLabel: "보통 ★☆☆ · 설정 관리" },
+  { num: "09", title: "모니터링 & X-Ray 추적", sub: "CloudWatch 지표와 X-Ray 환경 변수", freq: "mid", freqLabel: "빈출 ★★☆ · 환경 변수 그대로 출제" },
+  { num: "10", title: "Lambda@Edge & CloudFront Functions", sub: "엣지에서 요청/응답 변형 — 비교표 암기", freq: "mid", freqLabel: "빈출 ★★☆ · 선택 기준 문제" },
+  { num: "11", title: "VPC의 Lambda", sub: "ENI · 퍼블릭 서브넷 함정 · NAT", freq: "hi", freqLabel: "최빈출 ★★★ · 초빈출 함정 포함" },
+  { num: "12", title: "함수 성능 — 메모리·타임아웃·실행 컨텍스트", sub: "RAM↑ = vCPU↑ · 1,769MB = 1 vCPU", freq: "hi", freqLabel: "최빈출 ★★★ · 수치와 코드 패턴" },
+  { num: "13", title: "동시성 & 콜드 스타트", sub: "Reserved vs Provisioned · 스로틀 동작", freq: "hi", freqLabel: "최빈출 ★★★ · 시나리오 단골" },
+  { num: "14", title: "레이어 & 스토리지 옵션 (EFS 포함)", sub: "종속성 재사용과 4가지 스토리지 비교", freq: "mid", freqLabel: "빈출 ★★☆ · 비교표 통째로 출제" },
+  { num: "15", title: "배포 — 종속성 · CloudFormation · 컨테이너 이미지", sub: "zip 50MB · S3ObjectVersion 함정 · Runtime API", freq: "mid", freqLabel: "빈출 ★★☆ · CFN 함정 주의" },
+  { num: "16", title: "버전 & Alias", sub: "불변 버전 · 가변 별칭 · 가중치 카나리", freq: "hi", freqLabel: "최빈출 ★★★ · 그대로 암기" },
+  { num: "17", title: "CodeDeploy 트래픽 전환", sub: "Linear · Canary · AllAtOnce + 자동 롤백", freq: "mid", freqLabel: "빈출 ★★☆ · 전략 이름 구분" },
+  { num: "18", title: "Lambda 함수 URL", sub: "게이트웨이 없이 전용 HTTPS 엔드포인트", freq: "lo", freqLabel: "보통 ★☆☆ · AuthType 구분" },
+  { num: "19", title: "익스텐션 · 테스트 · 준실시간 변환 (보충)", sub: "원본 미커버 항목 — Task 1.2 키워드 보강", freq: "lo", freqLabel: "보통 ★☆☆ · 커버리지 보강" },
+  { num: "20", title: "한도 총정리 & 시나리오 → 정답 패턴", sub: "숫자 암기표 — 리전당 적용", freq: "hi", freqLabel: "최빈출 ★★★ · 숫자 그대로 출제" },
+];

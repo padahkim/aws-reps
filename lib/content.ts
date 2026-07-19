@@ -4,7 +4,7 @@
  */
 import { registry, type ChapterEntry } from "@/content/registry";
 
-export type { ChapterMeta, Question, ChapterData, Domain } from "@/content/schema";
+export type { ChapterMeta, Question, ChapterData, Domain, SectionMeta } from "@/content/schema";
 export type { ChapterEntry };
 
 export function getAllChapters(): ChapterEntry[] {
@@ -13,6 +13,11 @@ export function getAllChapters(): ChapterEntry[] {
 
 export function getChapter(id: string): ChapterEntry | undefined {
   return registry.find((entry) => entry.data.chapterMeta.id === id);
+}
+
+/** 섹션 페이지 총수 = 본문 섹션 + (quiz 있으면) 챕터 퀴즈 1 (규약 v2 — 퀴즈는 마지막 섹션). */
+export function sectionCount(entry: ChapterEntry): number {
+  return entry.data.sections.length + (entry.data.quiz.length > 0 ? 1 : 0);
 }
 
 /** phase 라벨별 그룹핑 — 레지스트리(=커리큘럼) 순서 유지. */

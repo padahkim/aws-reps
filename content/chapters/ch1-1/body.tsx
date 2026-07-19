@@ -14,6 +14,7 @@ import {
   SubTitle,
   Table,
 } from "../ui";
+import { sections } from "./meta";
 
 const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
@@ -58,9 +59,39 @@ function WarnBox({ children }: { children: ReactNode }) {
   );
 }
 
-export default function Ch11Body() {
+/** 섹션 컴포넌트 목록 — 순서 = meta.sections (불일치는 아래 assert가 빌드 프리렌더에서 잡는다). */
+const SECTIONS = [
+  OverviewSection,
+  PolicySection,
+  WebsiteSection,
+  VersioningSection,
+  ReplicationSection,
+  StorageClassSection,
+  LifecycleSection,
+  EventsSection,
+  PerformanceSection,
+  TagsSection,
+  EncryptionSection,
+  DefaultEncryptionSection,
+  CorsSection,
+  MfaDeleteSection,
+  AccessLogsSection,
+  PresignedSection,
+  AccessPointSection,
+  ObjectLambdaSection,
+];
+
+if (SECTIONS.length !== sections.length) {
+  throw new Error(`ch1-1: 본문 섹션 ${SECTIONS.length}개 ≠ meta.sections ${sections.length}개`);
+}
+
+/** 규약 v2 — section 인덱스(0-based)의 섹션 하나만 렌더. 인트로/체크리스트는 첫/마지막 섹션에. */
+export default function Ch11Body({ section }: { section: number }) {
+  const S = SECTIONS[section];
+  if (!S) throw new Error(`ch1-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
     <>
+      {section === 0 && (
       <P>
         S3는 &ldquo;무한 확장&rdquo;으로 불리는 객체 스토리지이자 AWS 전반의 기반입니다 — 백업·재해
         복구·아카이브·데이터 레이크·정적 웹사이트·소프트웨어 배포가 전부 S3 위에서 돌아갑니다.
@@ -68,26 +99,9 @@ export default function Ch11Body() {
         알림, 성능 최적화</b>가 반복 출제됩니다. 이 챕터는 개념 이해 중심이며 실습은 포함하지
         않습니다.
       </P>
-
-      <OverviewSection />
-      <PolicySection />
-      <WebsiteSection />
-      <VersioningSection />
-      <ReplicationSection />
-      <StorageClassSection />
-      <LifecycleSection />
-      <EventsSection />
-      <PerformanceSection />
-      <TagsSection />
-      <EncryptionSection />
-      <DefaultEncryptionSection />
-      <CorsSection />
-      <MfaDeleteSection />
-      <AccessLogsSection />
-      <PresignedSection />
-      <AccessPointSection />
-      <ObjectLambdaSection />
-
+      )}
+      <S />
+      {section === SECTIONS.length - 1 && (
       <Checklist
         title="체크리스트 — 이 문장이 술술 나오면 통과"
         items={[
@@ -125,6 +139,7 @@ export default function Ch11Body() {
           },
         ]}
       />
+      )}
     </>
   );
 }
@@ -181,13 +196,7 @@ function OverviewSvg() {
 
 function OverviewSection() {
   return (
-    <Sec
-      num="01"
-      title="S3 개요 — 버킷·객체·Key"
-      sub="키/prefix 구조, 크기 한도, 버킷 네이밍"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 기초지만 함정 선지의 재료"
-    >
+    <Sec {...sections[0]}>
       <P>
         데이터는 <b>버킷</b>(최상위 컨테이너)에 <b>객체</b>(파일)로 저장됩니다. 버킷 이름은 모든
         계정을 통틀어 <b>전역적으로 고유</b>해야 하고, 버킷 자체는 특정 <b>리전</b>에
@@ -303,13 +312,7 @@ function PolicySvg() {
 
 function PolicySection() {
   return (
-    <Sec
-      num="02"
-      title="S3 보안 · 버킷 정책"
-      sub="정책 평가 로직과 크로스 계정이 핵심"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 거의 매 시험"
-    >
+    <Sec {...sections[1]}>
       <P>
         S3 접근 제어는 <b>사용자 기반(IAM 정책)</b>과 <b>리소스 기반(버킷 정책, ACL)</b>으로
         나뉩니다. ACL은 현재 기본 비활성화가 권장되며, 시험의 중심은 <b>버킷 정책</b>입니다.
@@ -366,13 +369,7 @@ function PolicySection() {
 
 function WebsiteSection() {
   return (
-    <Sec
-      num="03"
-      title="S3 정적 웹사이트"
-      sub="엔드포인트 형식과 403 트러블슈팅"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 403 시나리오 위주"
-    >
+    <Sec {...sections[2]}>
       <P>
         S3는 정적 콘텐츠(HTML/CSS/JS/이미지)를 서버 없이 웹사이트로 호스팅합니다. 인덱스
         문서·에러 문서를 지정하며, 엔드포인트는 리전에 따라 두 형식이 있습니다:
@@ -397,13 +394,7 @@ function WebsiteSection() {
 
 function VersioningSection() {
   return (
-    <Sec
-      num="04"
-      title="S3 버전 관리"
-      sub="Delete Marker 동작과 null 버전"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 복구 시나리오 단골"
-    >
+    <Sec {...sections[3]}>
       <P>
         <b>버킷 수준</b>에서 활성화하며, 같은 Key로 덮어쓸 때마다 새 버전이 쌓입니다. 의도치 않은
         삭제·덮어쓰기로부터 보호하고 이전 상태로 롤백할 수 있어 사실상 모든 버킷에 권장됩니다.
@@ -486,13 +477,7 @@ function ReplicationSvg() {
 
 function ReplicationSection() {
   return (
-    <Sec
-      num="05"
-      title="S3 복제 (CRR / SRR)"
-      sub="버전 관리 전제 · 기존 객체 미복제 · 체이닝 불가"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 3대 함정이 그대로 선지"
-    >
+    <Sec {...sections[4]}>
       <P>
         버킷 간 객체를 <b>비동기</b>로 자동 복사합니다. 교차 리전(CRR)과 동일 리전(SRR)이 있고,
         다른 AWS 계정 간에도 가능합니다. 필수 조건은 <b>원본·대상 버킷 모두 버전 관리 활성화</b> +
@@ -518,13 +503,7 @@ function ReplicationSection() {
 
 function StorageClassSection() {
   return (
-    <Sec
-      num="06"
-      title="S3 스토리지 클래스"
-      sub="용도·검색 속도·최소 저장 기간"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 시나리오 매칭"
-    >
+    <Sec {...sections[5]}>
       <P>
         <b>내구성(Durability)은 모든 클래스에서 11-nine(99.999999999%)으로 동일</b>합니다. 차이는
         가용성·검색 시간·최소 저장 기간·비용입니다. 객체 생성 시 선택하거나 수명 주기 규칙으로
@@ -596,13 +575,7 @@ function StorageClassSection() {
 
 function LifecycleSection() {
   return (
-    <Sec
-      num="07"
-      title="수명 주기 규칙 + S3 Analytics"
-      sub="Transition/Expiration 구분과 Analytics 적용 범위"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 비용 절감 시나리오"
-    >
+    <Sec {...sections[6]}>
       <P>
         객체를 자동으로 다른 클래스로 <b>전환(Transition)</b>하거나 <b>만료(Expiration,
         삭제)</b>시키는 규칙입니다. prefix(<Code>s3://bucket/mp3/*</Code>)나 객체 태그로 적용
@@ -644,13 +617,7 @@ function LifecycleSection() {
 
 function EventsSection() {
   return (
-    <Sec
-      num="08"
-      title="S3 이벤트 알림"
-      sub="대상의 리소스 정책과 EventBridge 통합"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 권한 방식이 함정"
-    >
+    <Sec {...sections[7]}>
       <P>
         <Code>s3:ObjectCreated:*</Code>, <Code>s3:ObjectRemoved:*</Code>, 복원·복제 이벤트 등을{" "}
         <b>SNS·SQS·Lambda</b>로 전달합니다. 대표 사례: 이미지 업로드 → Lambda로 썸네일 자동 생성.
@@ -681,13 +648,7 @@ function EventsSection() {
 
 function PerformanceSection() {
   return (
-    <Sec
-      num="09"
-      title="S3 퍼포먼스"
-      sub="기준 성능 수치와 3가지 최적화 기법"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 수치 암기 필수"
-    >
+    <Sec {...sections[8]}>
       <P>
         기준 성능: <b>prefix당 초당 3,500 PUT/COPY/POST/DELETE · 5,500 GET/HEAD</b>. prefix 수는
         무제한이므로 여러 prefix에 분산하면 그만큼 확장됩니다.
@@ -727,13 +688,7 @@ function PerformanceSection() {
 
 function TagsSection() {
   return (
-    <Sec
-      num="10"
-      title="객체 태그 & 메타데이터"
-      sub="직접 검색 불가 — 외부 인덱스 패턴"
-      freq="lo"
-      freqLabel="가끔 ★☆☆ · 함정 선지로 등장"
-    >
+    <Sec {...sections[9]}>
       <P>
         <b>사용자 정의 메타데이터</b>는 반드시 <Code>x-amz-meta-</Code> 접두사의 key-value로
         지정하며 객체와 함께 저장·반환됩니다(업로드 후 수정 불가 — 복사로만 변경).{" "}
@@ -796,13 +751,7 @@ function EncryptionSvg() {
 
 function EncryptionSection() {
   return (
-    <Sec
-      num="11"
-      title="S3 암호화"
-      sub="SSE 4종 + 클라이언트 측 — 키 소유와 암호화 위치로 구분"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · S3 최다 출제 주제"
-    >
+    <Sec {...sections[10]}>
       <P>
         <b>누가 키를 소유하고, 어디서 암호화가 일어나는지</b>로 구분하면 헷갈리지 않습니다.
       </P>
@@ -887,13 +836,7 @@ function EncryptionSection() {
 
 function DefaultEncryptionSection() {
   return (
-    <Sec
-      num="12"
-      title="S3 기본 암호화"
-      sub="자동 SSE-S3와 암호화 강제 패턴"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 강제 패턴이 포인트"
-    >
+    <Sec {...sections[11]}>
       <P>
         2023년 1월부터 <b>모든 새 객체는 자동으로 SSE-S3 암호화</b>됩니다(기존 객체 소급 없음).
         버킷 기본값을 SSE-KMS 등으로 바꿀 수 있으며, 헤더 없이 업로드하면 기본 설정이 적용됩니다.
@@ -917,13 +860,7 @@ function DefaultEncryptionSection() {
 
 function CorsSection() {
   return (
-    <Sec
-      num="13"
-      title="S3 CORS"
-      sub="preflight와 설정 위치(요청받는 쪽)"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · DVA 단골"
-    >
+    <Sec {...sections[12]}>
       <P>
         CORS는 <b>브라우저의 보안 메커니즘</b>으로, 웹페이지의 오리진과 다른 오리진의 자원 요청을
         통제합니다. <b>오리진 = scheme(프로토콜) + host(도메인) + port</b> — 하나라도 다르면 교차
@@ -949,13 +886,7 @@ function CorsSection() {
 
 function MfaDeleteSection() {
   return (
-    <Sec
-      num="14"
-      title="S3 MFA Delete"
-      sub="버전 관리 전제 · 루트 전용 · 콘솔 불가"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 조건 3종 세트"
-    >
+    <Sec {...sections[13]}>
       <P>
         파괴적 작업에 MFA 코드를 요구해 실수·악의적 삭제를 막습니다.
       </P>
@@ -984,13 +915,7 @@ function MfaDeleteSection() {
 
 function AccessLogsSection() {
   return (
-    <Sec
-      num="15"
-      title="S3 액세스 로그"
-      sub="같은 리전·같은 계정 + 무한 루프 금지"
-      freq="lo"
-      freqLabel="가끔 ★☆☆ · 무한 루프 함정"
-    >
+    <Sec {...sections[14]}>
       <P>
         감사 목적으로 버킷에 대한 <b>모든 요청(허용·거부 불문)</b>을 다른 S3 버킷에 기록합니다.
         Athena 등으로 분석할 수 있으며, 로깅 대상 버킷과 로깅 버킷은 <b>같은 리전·같은 계정</b>
@@ -1008,13 +933,7 @@ function AccessLogsSection() {
 
 function PresignedSection() {
   return (
-    <Sec
-      num="16"
-      title="미리 서명된 URL (Presigned URL)"
-      sub="생성자 권한 상속 · 만료 시간"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 임시 접근의 정답"
-    >
+    <Sec {...sections[15]}>
       <P>
         버킷을 프라이빗으로 유지하면서 특정 객체에 임시 접근(GET=다운로드, PUT=업로드)을 부여하는
         서명 링크입니다. URL을 받은 사람은 <b>URL을 생성한 주체의 권한을 상속</b>합니다 — IAM
@@ -1048,13 +967,7 @@ function PresignedSection() {
 
 function AccessPointSection() {
   return (
-    <Sec
-      num="17"
-      title="S3 액세스 포인트"
-      sub="용도별 정책 분리 + VPC Origin"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 대규모 접근 관리"
-    >
+    <Sec {...sections[16]}>
       <P>
         버킷 하나에 팀·용도별 접근 규칙이 늘어나 버킷 정책이 비대해질 때, <b>액세스 포인트별
         정책</b>으로 관리를 분리·단순화합니다. 각 액세스 포인트는 자체 <b>DNS 이름</b>과{" "}
@@ -1074,13 +987,7 @@ function AccessPointSection() {
 
 function ObjectLambdaSection() {
   return (
-    <Sec
-      num="18"
-      title="S3 Object Lambda"
-      sub="반환 직전 변환 — 원본은 하나만"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 구성 순서 문제"
-    >
+    <Sec {...sections[17]}>
       <P>
         객체를 호출자에게 반환하기 <b>직전에 Lambda로 변환</b>합니다. 변환본을 위한 별도 버킷
         복제가 필요 없습니다. 구성 순서:{" "}

@@ -38,8 +38,41 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
   // 실존 챕터 id 집합 (prerequisites 참조 검증용)
   const knownIds = new Set(chapters.map((c) => c.chapterMeta.id));
 
-  for (const { chapterMeta, quiz } of chapters) {
+  for (const { chapterMeta, quiz, sections } of chapters) {
     const cid = chapterMeta.id;
+
+    // ── 섹션 규약 (v2): 최소 1개, 제목 비지 않음, num 챕터 내 유일 ──────
+    if (sections.length === 0) {
+      problems.push({
+        chapterId: cid,
+        code: "SECTIONS_EMPTY",
+        message: `sections 가 비어 있음 — 섹션 최소 1개 필요 (규약 v2)`,
+      });
+    }
+    const numSeen = new Set<string>();
+    sections.forEach((s, i) => {
+      if (s.title.trim() === "") {
+        problems.push({
+          chapterId: cid,
+          code: "SECTION_TITLE_EMPTY",
+          message: `sections[${i}]: title 이 비어 있음`,
+        });
+      }
+      if (s.num.trim() === "") {
+        problems.push({
+          chapterId: cid,
+          code: "SECTION_NUM_EMPTY",
+          message: `sections[${i}]: num 이 비어 있음`,
+        });
+      } else if (numSeen.has(s.num)) {
+        problems.push({
+          chapterId: cid,
+          code: "SECTION_NUM_DUP",
+          message: `sections[${i}]: num "${s.num}" 이 챕터 내에서 중복`,
+        });
+      }
+      numSeen.add(s.num);
+    });
 
     // ── prerequisites 는 실존 챕터 id 만 참조 ──────────────────────────
     for (const pre of chapterMeta.prerequisites) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getAllChapters, groupByPhase } from "@/lib/content";
+import { getAllChapters, groupByPhase, sectionCount } from "@/lib/content";
+import { HomeProgress } from "./home-progress";
 
 export default function Home() {
   const chapters = getAllChapters();
@@ -39,16 +40,23 @@ export default function Home() {
               {phase}
             </h2>
             <ul style={{ listStyle: "none", display: "grid", gap: "0.5rem" }}>
-              {entries.map(({ data: { chapterMeta: meta } }) => (
-                <li key={meta.id}>
-                  <Link href={`/chapters/${meta.id}`}>
-                    {meta.id} · {meta.title}
-                  </Link>{" "}
-                  <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-                    {meta.domain} · 출제빈도 {meta.examWeight}/5
-                  </span>
-                </li>
-              ))}
+              {entries.map((entry) => {
+                const meta = entry.data.chapterMeta;
+                return (
+                  <li key={meta.id}>
+                    <Link href={`/chapters/${meta.id}`}>
+                      {meta.id} · {meta.title}
+                    </Link>{" "}
+                    <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
+                      {meta.domain} · 출제빈도 {meta.examWeight}/5
+                    </span>
+                    {/* 읽음 진도 (이슈 #7 확정: 진도 바 + % 병기) */}
+                    <div style={{ marginTop: 2 }}>
+                      <HomeProgress chapterId={meta.id} total={sectionCount(entry)} />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))

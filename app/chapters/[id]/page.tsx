@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllChapters, getChapter } from "@/lib/content";
-import ChapterQuiz from "./chapter-quiz";
+import { SectionToc, type TocItem } from "./section-toc";
 
 // 레지스트리에 없는 id는 404. 단 output: "export"의 dev 서버는 미등록 param을 이 설정과
 // 무관하게 자체 500으로 거부한다 (dev 전용 — 배포본은 정적 파일이 없어 호스트 404).
@@ -16,6 +16,7 @@ export function generateStaticParams() {
   return params.length > 0 ? params : [{ id: "__empty" }];
 }
 
+/** 챕터 첫 화면 = 섹션 목차 (이슈 #7). 본문은 /chapters/{id}/{n} 섹션 페이지로 이동했다. */
 export default async function ChapterPage({
   params,
 }: {
@@ -25,8 +26,21 @@ export default async function ChapterPage({
   const entry = getChapter(id);
   if (!entry) notFound();
 
-  const meta = entry.data.chapterMeta;
-  const Body = (await entry.loadBody()).default;
+  const { chapterMeta: meta, sections, quiz } = entry.data;
+  const items: TocItem[] = [
+    ...sections.map((s, i) => ({ sec: i + 1, num: s.num, title: s.title, sub: s.sub })),
+    // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다)
+    ...(quiz.length > 0
+      ? [
+          {
+            sec: sections.length + 1,
+            num: "Q",
+            title: "챕터 퀴즈",
+            sub: `${quiz.length}문항 · 전 섹션 종합`,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <article>
@@ -58,9 +72,7 @@ export default async function ChapterPage({
           )}
         </p>
       </header>
-      <Body />
-      {/* 빈 quiz(ch0류)는 섹션 자체를 렌더하지 않는다 — schema.ts "빈 quiz 강건성" */}
-      {entry.data.quiz.length > 0 && <ChapterQuiz quiz={entry.data.quiz} />}
+      <SectionToc chapterId={meta.id} items={items} />
     </article>
   );
 }

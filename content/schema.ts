@@ -1,11 +1,23 @@
 /**
- * 규약 v1 (CONFIRMED) — 챕터 모듈 계약. 이 파일이 단일 진실.
+ * 규약 v2 (CONFIRMED) — 챕터 모듈 계약. 이 파일이 단일 진실.
  * CONTRACT_PROPOSAL(종이 제안서) 대체. 열린 결정은 "가장 단순"으로 종결하고, 빌드가 교정한다.
  * 근거: axis1 §3(형식은 점수를 거의 안 움직임) + CONTRACT_PREWORK §2-0(RSC 제약).
+ * v2 (이슈 #7): 본문을 Sec 단위 섹션 페이지로 분할 — 섹션 헤더 데이터가 meta로 이동.
  *
  * 파일 구조 (PREWORK §2-0 — "use client" 챕터가 meta 서버소비를 막는 문제 해소):
- *   content/chapters/{id}/meta.ts   — chapterMeta + quiz (순수 데이터, "use client" 금지)
+ *   content/chapters/{id}/meta.ts   — chapterMeta + quiz + sections (순수 데이터, "use client" 금지)
  *   content/chapters/{id}/body.tsx  — "use client" + default 본문 컴포넌트
+ *
+ * 섹션 규약 (v2 — 이슈 #7, 앱이 섹션별 정적 라우트 /chapters/{id}/{n} 을 생성):
+ *   • meta.ts 의 sections: SectionMeta[] 가 섹션 목록의 단일 진실 — 목차·라우트 수·검증기가 소비
+ *   • body.tsx 의 default export 는 { section: number } prop 을 받아 해당 인덱스(0-based)의
+ *     섹션 "하나만" 렌더한다. RSC 는 클라이언트 모듈의 배열 export 를 인덱싱할 수 없으므로
+ *     (client reference 는 dot-접근 불가) 컴포넌트 배열 export 가 아니라 prop 방식을 쓴다.
+ *   • 본문 섹션 헤더는 반드시 <Sec {...sections[i]}> 로 meta 를 스프레드한다 — 헤더 중복 정의 금지
+ *   • body 는 모듈 평가 시점에 내부 섹션 수 ≠ meta.sections.length 면 throw 한다
+ *     — output: "export" 프리렌더가 모든 섹션 페이지를 렌더하므로 불일치는 빌드 실패로 드러난다
+ *   • 챕터 인트로는 첫 섹션 페이지 상단, 말미 체크리스트는 마지막 섹션 페이지 하단에 렌더
+ *   • quiz 가 비어있지 않으면 앱이 "챕터 퀴즈"를 마지막 섹션 페이지(N+1)로 덧붙인다
  *
  * 본문 네거티브 규정 (PREWORK §1-D-3 — 위반 시 앱 셸과 충돌. S3 원본이 딱 위반):
  *   ✗ 자체 내비게이션/사이드바/페이저     ✗ 전역 셀렉터 스타일(<style>, body/table…)
@@ -30,6 +42,19 @@ export interface ChapterMeta {
   domain: Domain;
   examWeight: 1 | 2 | 3 | 4 | 5;  // 출제 빈도. 기존 FreqBadge 레벨과 정렬
   prerequisites: string[];        // 선행 챕터 id. 각 개념블록이 이걸 명시 인용 = L6 강제. 없으면 []
+}
+
+/**
+ * 섹션 헤더 데이터 (규약 v2) — 본문 <Sec> 헤더·목차·섹션 라우트가 공유하는 단일 진실.
+ * 배열 순서 = 본문 섹션 순서 = 섹션 페이지 URL 번호(1-based) 순서.
+ * 필드는 content/chapters/ui.tsx 의 Sec props 와 1:1 — body 가 그대로 스프레드한다.
+ */
+export interface SectionMeta {
+  num: string;                    // 본문 표기 번호 "01".."NN" — 챕터 내 유일
+  title: string;
+  sub: string;                    // 부제 한 줄
+  freq: "hi" | "mid" | "lo";      // 빈출 배지 (★★★/★★☆/★☆☆)
+  freqLabel: string;              // 배지 옆 표기 문구
 }
 
 /** 해설이 근거로 삼는 AWS 공식 문서 링크 (aws-cloud-drills 임포트 유래). */
@@ -57,4 +82,5 @@ export interface Question {
 export interface ChapterData {
   chapterMeta: ChapterMeta;
   quiz: Question[];               // 빈 배열 적법 — 앱은 빈 quiz에 강건해야 한다
+  sections: SectionMeta[];        // 최소 1개 — 단일 섹션 챕터(ch0-2류) 적법, 빈 배열은 위반
 }

@@ -1,4 +1,4 @@
-import type { ChapterMeta, Question } from "../../schema";
+import type { ChapterMeta, Question, SectionMeta } from "../../schema";
 
 /**
  * 원본: content/aws-dva-stage0.html (0단계 — AWS의 문법) 중 02 IAM 기초 섹션.
@@ -16,3 +16,11 @@ export const chapterMeta: ChapterMeta = {
 
 // 원본에 퀴즈 성분 없음 (축2 리포트: 말미 체크리스트는 자기평가 문장 — 본문에 잔류).
 export const quiz: Question[] = [];
+
+/**
+ * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).
+ * 순서 = 본문 섹션 순서 = 섹션 페이지 URL 번호(1-based) 순서.
+ */
+export const sections: SectionMeta[] = [
+  { num: "01", title: "IAM 기초", sub: "“누가(Who) 무엇을(What) 할 수 있는가(Can do)”", freq: "hi", freqLabel: "빈출 ★★★ · DVA 최다 빈출 주제 중 하나" },
+];

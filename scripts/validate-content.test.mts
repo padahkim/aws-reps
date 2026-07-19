@@ -6,7 +6,7 @@
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
 import { validateChapters, type Problem } from "./validate-content.mts";
-import type { ChapterData, Question } from "../content/schema.ts";
+import type { ChapterData, Question, SectionMeta } from "../content/schema.ts";
 
 let failures = 0;
 
@@ -27,8 +27,16 @@ function question(over: Partial<Question> = {}): Question {
   };
 }
 
-function ch(chapterMeta: ReturnType<typeof meta>, quiz: Question[] = []): ChapterData {
-  return { chapterMeta, quiz };
+function section(over: Partial<SectionMeta> = {}): SectionMeta {
+  return { num: "01", title: "t", sub: "s", freq: "mid", freqLabel: "f", ...over };
+}
+
+function ch(
+  chapterMeta: ReturnType<typeof meta>,
+  quiz: Question[] = [],
+  sections: SectionMeta[] = [section()]
+): ChapterData {
+  return { chapterMeta, quiz, sections };
 }
 
 function codes(problems: Problem[]): Set<string> {
@@ -82,6 +90,16 @@ expectCaught("answer 빈 배열", [ch(meta("1-1"), [question({ answer: [] })])],
 expectCaught("answer 중복 인덱스", [ch(meta("1-1"), [question({ answer: [1, 1] })])], "ANSWER_DUPLICATE");
 expectCaught("prereq 자기참조", [ch(meta("1-1", ["1-1"]))], "PREREQ_SELF");
 
+// 섹션 규약 (v2)
+expectCaught("sections 빈 배열", [ch(meta("1-1"), [], [])], "SECTIONS_EMPTY");
+expectCaught("섹션 title 공백", [ch(meta("1-1"), [], [section({ title: "  " })])], "SECTION_TITLE_EMPTY");
+expectCaught("섹션 num 공백", [ch(meta("1-1"), [], [section({ num: "" })])], "SECTION_NUM_EMPTY");
+expectCaught(
+  "섹션 num 중복",
+  [ch(meta("1-1"), [], [section(), section({ title: "t2" })])],
+  "SECTION_NUM_DUP"
+);
+
 console.log("\n── 통과해야 하는 적법 입력 ──");
 
 // 빈 레지스트리
@@ -90,13 +108,17 @@ expectClean("빈 레지스트리", []);
 // 빈 quiz 는 적법 (schema: 빈 배열 적법)
 expectClean("빈 quiz", [ch(meta("1-1"))]);
 
-// 완전한 정상 챕터 — 복수정답 + choiceExplanations 일치 + 실존 prereq
-expectClean("정상 챕터(복수정답·prereq·choiceExpl)", [
+// 완전한 정상 챕터 — 복수정답 + choiceExplanations 일치 + 실존 prereq + 다중 섹션
+expectClean("정상 챕터(복수정답·prereq·choiceExpl·다중 섹션)", [
   ch(meta("1-1")),
-  ch(meta("1-2", ["1-1"]), [
-    question({ id: "q1", answer: [0, 2], choiceExplanations: ["w", "x", "y", "z"] }),
-    question({ id: "q2", scope: "final", concept: ["a", "b"] }),
-  ]),
+  ch(
+    meta("1-2", ["1-1"]),
+    [
+      question({ id: "q1", answer: [0, 2], choiceExplanations: ["w", "x", "y", "z"] }),
+      question({ id: "q2", scope: "final", concept: ["a", "b"] }),
+    ],
+    [section(), section({ num: "02", title: "t2" })]
+  ),
 ]);
 
 console.log("");
