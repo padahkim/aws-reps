@@ -91,13 +91,31 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 
 - `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제.
 
+## 보드 갱신
+
+착지 결과를 Projects 보드 "aws-reps 로드맵"(프로젝트 #1)에 반영한다 — CLAUDE.md Task management의 보드 규칙의 실행 지점이 여기다.
+
+- **즉시 착지 완료 / PR 머지 완료(B-3)** → 해당 이슈를 `Done`으로.
+- **PR 착지 대기(B-1까지)** → `In Progress` 유지.
+
+```bash
+N=<이슈 번호>; TARGET=Done   # 또는 "In Progress"
+PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
+IT=$(gh project item-list 1 --owner "@me" --limit 50 --format json | python3 -c "import json,sys;print(next(i['id'] for i in json.load(sys.stdin)['items'] if i['content'].get('number')==$N))")
+FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='Status');import os;print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
+gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }"
+```
+
+- 새 이슈를 이 세션에서 등록했는데 보드에 없다면 `gh project item-add 1 --owner "@me" --url <이슈 URL>`로 추가한다.
+- gh 차단 머신에서는 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션 시작 시 동기화한다.
+
 ## 하네스 변경 시 — main 전파
 
 착지한 변경에 CLAUDE.md · `.claude/` · `scripts/` 가 포함되면, develop 착지 직후 `develop`→`main` 머지·push까지 한다 (CLAUDE.md Branch strategy 참조 — 새 세션 워크트리가 main에서 분기하므로).
 
 ## 보고
 
-develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
+develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과, 보드 갱신 결과(또는 "보드 미갱신")를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
 
 ## 주의
 
