@@ -30,6 +30,7 @@ import type { Question } from "../content/schema.ts";
 const SUBJECT_TO_CHAPTER: Record<string, string> = {
   s3: "ch1-1",
   lambda: "ch1-2",
+  "aws-basics": "ch0-1",
 };
 
 interface DrillsQuestion {
