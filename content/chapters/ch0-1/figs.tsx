@@ -325,92 +325,65 @@ export function AiDivisionSvg() {
   );
 }
 
-/** §00 — DVA→SAA 겹침 벤 다이어그램 + 타 클라우드 개념 전이 경로. */
-export function CertPathSvg() {
+/** §00 — AI가 보는 범위(코드·에러·로그)와 그 바깥의 시스템 맥락. */
+export function BlindSpotSvg() {
+  const ctx = (x: number, title: string, l1: string, l2: string, incident: string) => (
+    <>
+      <rect x={x} y={196} width={216} height={104} rx={12} fill={C.amberSoft} stroke={C.amber} strokeWidth={2} />
+      <text x={x + 108} y={224} fontSize={13} fontWeight={900} fill={C.amberText} textAnchor="middle">
+        {title}
+      </text>
+      <text x={x + 108} y={248} fontSize={11} fill={C.inkSoft} textAnchor="middle">
+        {l1}
+      </text>
+      <text x={x + 108} y={266} fontSize={11} fill={C.inkSoft} textAnchor="middle">
+        {l2}
+      </text>
+      <text x={x + 108} y={288} fontSize={10.5} fill={C.red} textAnchor="middle" fontWeight={700}>
+        {incident}
+      </text>
+    </>
+  );
+
   return (
-    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
-      {/* 채우기 (겹침 영역은 위에 덧그림) */}
-      <rect x={30} y={50} width={320} height={180} rx={14} fill={C.blueSoft} />
-      <rect x={240} y={50} width={320} height={180} rx={14} fill={C.tealSoft} />
-      <rect x={240} y={50} width={110} height={180} fill={C.amberSoft} stroke={C.amber} strokeWidth={1.5} strokeDasharray="5 4" />
-      {/* 윤곽선 */}
-      <rect x={30} y={50} width={320} height={180} rx={14} fill="none" stroke={C.blue} strokeWidth={2.5} />
-      <rect x={240} y={50} width={320} height={180} rx={14} fill="none" stroke={C.teal} strokeWidth={2.5} />
-
-      {/* DVA (왼쪽 고유 영역) */}
-      <text x={135} y={92} fontSize={16} fontWeight={900} fill={C.blue} textAnchor="middle">
-        DVA
-      </text>
-      <text x={135} y={112} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        Developer Associate
-      </text>
-      <text x={135} y={146} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        Lambda · API · 배포
-      </text>
-      <text x={135} y={166} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        디버깅 — 개발자가
-      </text>
-      <text x={135} y={186} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        실무에서 만지는 영역
-      </text>
-      <text x={135} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        ① 지금 여기
+    <svg viewBox="0 0 760 390" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* 바깥: 시스템 전체 */}
+      <rect x={20} y={20} width={720} height={310} rx={16} fill="#FFFFFF" stroke={C.line} strokeWidth={2} strokeDasharray="7 5" />
+      <text x={44} y={50} fontSize={14} fontWeight={900} fill={C.ink}>
+        🗺 시스템 전체 — 사람이 그려야 하는 그림
       </text>
 
-      {/* 겹침 */}
-      <text x={295} y={120} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        시험 범위
+      {/* 안쪽: AI의 시야 */}
+      <rect x={44} y={68} width={672} height={104} rx={12} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
+      <text x={68} y={96} fontSize={13} fontWeight={900} fill={C.blue}>
+        🤖 AI에게 보여준 것
       </text>
-      <text x={295} y={138} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        절반 안팎
+      {[
+        { x: 300, label: "코드" },
+        { x: 420, label: "에러 메시지" },
+        { x: 566, label: "로그" },
+      ].map((b) => (
+        <g key={b.x}>
+          <rect x={b.x} y={80} width={b.label.length > 4 ? 130 : 100} height={34} rx={8} fill="#FFFFFF" stroke={C.blue} strokeWidth={1.5} />
+          <text x={b.x + (b.label.length > 4 ? 65 : 50)} y={102} fontSize={11.5} fill={C.blue} textAnchor="middle" fontFamily={MONO}>
+            {b.label}
+          </text>
+        </g>
+      ))}
+      <text x={68} y={140} fontSize={11.5} fill={C.inkSoft}>
+        이 범위 안에서는 정확하다 — 문법도, 에러 해석도 틀리지 않는다.
       </text>
-      <text x={295} y={156} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        겹침
-      </text>
-      <text x={295} y={182} fontSize={10} fill={C.inkSoft} textAnchor="middle">
-        IAM · S3 · 서버리스
-      </text>
-
-      {/* SAA (오른쪽 고유 영역) */}
-      <text x={455} y={92} fontSize={16} fontWeight={900} fill={C.teal} textAnchor="middle">
-        SAA
-      </text>
-      <text x={455} y={112} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        Solutions Architect
-      </text>
-      <text x={455} y={146} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        네트워킹 · 인프라 설계
-      </text>
-      <text x={455} y={166} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        전체 아키텍처를 그림
-      </text>
-      <text x={455} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        ② 겹침을 딛고 수월하게
+      <text x={68} y={158} fontSize={11.5} fill={C.inkSoft}>
+        하지만 “이게 문제인가?”는 이 안에 답이 없다.
       </text>
 
-      {/* 전이 화살표 → 타 클라우드 */}
-      <line x1={564} y1={140} x2={608} y2={140} stroke={C.inkSoft} strokeWidth={2.5} />
-      <polygon points="616,140 604,134 604,146" fill={C.inkSoft} />
+      {/* 바깥의 세 축 = 세 사고 */}
+      {ctx(44, "실행 주체", "로컬의 나 ≠ Lambda 실행 역할", "누구의 권한으로 도는가", "→ 프로덕션에서만 AccessDenied")}
+      {ctx(272, "이벤트 흐름", "출력이 자기 트리거로 돌아오면", "무한 루프가 된다", "→ 청구서 5배")}
+      {ctx(500, "노출 경계", "무엇이 인터넷에 열려 있고", "무엇이 뒤에 숨어야 하는가", "→ 버킷이 통째로 공개")}
 
-      <rect x={620} y={70} width={116} height={140} rx={14} fill="#FFFFFF" stroke={C.line} strokeWidth={2} strokeDasharray="6 5" />
-      <text x={678} y={102} fontSize={13} fontWeight={900} fill={C.ink} textAnchor="middle">
-        GCP · Azure
-      </text>
-      <text x={678} y={130} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        리전/AZ · 권한 모델
-      </text>
-      <text x={678} y={148} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        관리형 · 종량제 —
-      </text>
-      <text x={678} y={166} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        이름만 다르다
-      </text>
-      <text x={678} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
-        ③ 개념째 전이
-      </text>
-
-      <text x={380} y={306} fontSize={12} fill={C.inkSoft} textAnchor="middle" fontWeight={700}>
-        겹치는 기초 — 바로 이 챕터의 내용들 — 가 사다리의 첫 칸이다
+      <text x={380} y={362} fontSize={12.5} fontWeight={800} fill={C.inkSoft} textAnchor="middle">
+        AI는 보여준 것 안에선 천재다 — 무엇을 보여줄지는 사람이 정한다
       </text>
     </svg>
   );
