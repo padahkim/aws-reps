@@ -271,3 +271,147 @@ export function ManagedSpectrumSvg() {
     </svg>
   );
 }
+
+/** §00 — AI(생성)와 사람(판단)의 분업 루프. */
+export function AiDivisionSvg() {
+  return (
+    <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* AI 박스 */}
+      <rect x={40} y={55} width={280} height={150} rx={14} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
+      <text x={180} y={90} fontSize={15} fontWeight={900} fill={C.blue} textAnchor="middle">
+        🤖 AI의 몫 — 생성
+      </text>
+      <text x={180} y={122} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        인프라 코드 · 설정 초안 작성
+      </text>
+      <text x={180} y={142} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        반복 작업 자동화
+      </text>
+      <text x={180} y={176} fontSize={11.5} fontWeight={700} fill={C.blue} textAnchor="middle">
+        문법은 완벽하다
+      </text>
+
+      {/* 사람 박스 */}
+      <rect x={440} y={55} width={280} height={150} rx={14} fill={C.amberSoft} stroke={C.amber} strokeWidth={2.5} />
+      <text x={580} y={90} fontSize={15} fontWeight={900} fill={C.amberText} textAnchor="middle">
+        🧑‍💻 사람의 몫 — 판단
+      </text>
+      <text x={580} y={122} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        적합한가? 안전한가? 비용은?
+      </text>
+      <text x={580} y={142} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        장애가 나면 어디부터 보나?
+      </text>
+      <text x={580} y={176} fontSize={11.5} fontWeight={700} fill={C.amberText} textAnchor="middle">
+        검증하고, 책임진다
+      </text>
+
+      {/* 순환 화살표 */}
+      <line x1={324} y1={95} x2={428} y2={95} stroke={C.inkSoft} strokeWidth={2.5} />
+      <polygon points="436,95 424,89 424,101" fill={C.inkSoft} />
+      <text x={380} y={82} fontSize={11} fill={C.inkSoft} textAnchor="middle" fontWeight={700}>
+        결과물
+      </text>
+      <line x1={436} y1={168} x2={332} y2={168} stroke={C.teal} strokeWidth={2.5} />
+      <polygon points="324,168 336,162 336,174" fill={C.teal} />
+      <text x={380} y={192} fontSize={11} fill={C.teal} textAnchor="middle" fontWeight={700}>
+        좋은 질문 · 구체적 지시
+      </text>
+
+      <text x={380} y={252} fontSize={12.5} fontWeight={800} fill={C.inkSoft} textAnchor="middle">
+        아는 만큼 AI를 잘 부리고 — 모르는 만큼, 잘못된 것을 자신 있게 배포한다
+      </text>
+    </svg>
+  );
+}
+
+/** §00 — DVA→SAA 겹침 벤 다이어그램 + 타 클라우드 개념 전이 경로. */
+export function CertPathSvg() {
+  return (
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* 채우기 (겹침 영역은 위에 덧그림) */}
+      <rect x={30} y={50} width={320} height={180} rx={14} fill={C.blueSoft} />
+      <rect x={240} y={50} width={320} height={180} rx={14} fill={C.tealSoft} />
+      <rect x={240} y={50} width={110} height={180} fill={C.amberSoft} stroke={C.amber} strokeWidth={1.5} strokeDasharray="5 4" />
+      {/* 윤곽선 */}
+      <rect x={30} y={50} width={320} height={180} rx={14} fill="none" stroke={C.blue} strokeWidth={2.5} />
+      <rect x={240} y={50} width={320} height={180} rx={14} fill="none" stroke={C.teal} strokeWidth={2.5} />
+
+      {/* DVA (왼쪽 고유 영역) */}
+      <text x={135} y={92} fontSize={16} fontWeight={900} fill={C.blue} textAnchor="middle">
+        DVA
+      </text>
+      <text x={135} y={112} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
+        Developer Associate
+      </text>
+      <text x={135} y={146} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
+        Lambda · API · 배포
+      </text>
+      <text x={135} y={166} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
+        디버깅 — 개발자가
+      </text>
+      <text x={135} y={186} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
+        실무에서 만지는 영역
+      </text>
+      <text x={135} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        ① 지금 여기
+      </text>
+
+      {/* 겹침 */}
+      <text x={295} y={120} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        시험 범위
+      </text>
+      <text x={295} y={138} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        절반 안팎
+      </text>
+      <text x={295} y={156} fontSize={11} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        겹침
+      </text>
+      <text x={295} y={182} fontSize={10} fill={C.inkSoft} textAnchor="middle">
+        IAM · S3 · 서버리스
+      </text>
+
+      {/* SAA (오른쪽 고유 영역) */}
+      <text x={455} y={92} fontSize={16} fontWeight={900} fill={C.teal} textAnchor="middle">
+        SAA
+      </text>
+      <text x={455} y={112} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
+        Solutions Architect
+      </text>
+      <text x={455} y={146} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
+        네트워킹 · 인프라 설계
+      </text>
+      <text x={455} y={166} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
+        전체 아키텍처를 그림
+      </text>
+      <text x={455} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        ② 겹침을 딛고 수월하게
+      </text>
+
+      {/* 전이 화살표 → 타 클라우드 */}
+      <line x1={564} y1={140} x2={608} y2={140} stroke={C.inkSoft} strokeWidth={2.5} />
+      <polygon points="616,140 604,134 604,146" fill={C.inkSoft} />
+
+      <rect x={620} y={70} width={116} height={140} rx={14} fill="#FFFFFF" stroke={C.line} strokeWidth={2} strokeDasharray="6 5" />
+      <text x={678} y={102} fontSize={13} fontWeight={900} fill={C.ink} textAnchor="middle">
+        GCP · Azure
+      </text>
+      <text x={678} y={130} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
+        리전/AZ · 권한 모델
+      </text>
+      <text x={678} y={148} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
+        관리형 · 종량제 —
+      </text>
+      <text x={678} y={166} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
+        이름만 다르다
+      </text>
+      <text x={678} y={262} fontSize={12.5} fontWeight={800} fill={C.amberText} textAnchor="middle">
+        ③ 개념째 전이
+      </text>
+
+      <text x={380} y={306} fontSize={12} fill={C.inkSoft} textAnchor="middle" fontWeight={700}>
+        겹치는 기초 — 바로 이 챕터의 내용들 — 가 사다리의 첫 칸이다
+      </text>
+    </svg>
+  );
+}
