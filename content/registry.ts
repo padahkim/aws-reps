@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { ChapterData } from "./schema";
 
 /**
@@ -16,18 +16,21 @@ import type { ChapterData } from "./schema";
 export interface ChapterEntry {
   data: ChapterData;
   // default = 섹션 렌더러 (규약 v2): section 인덱스(0-based) 하나만 렌더한다.
-  loadBody: () => Promise<{ default: ComponentType<{ section: number }> }>;
+  // afterSection = 섹션 꼬리 슬롯 — 본문과 아웃트로 사이. 인출 개념 카드가 들어간다 (#58).
+  loadBody: () => Promise<{
+    default: ComponentType<{ section: number; afterSection?: ReactNode }>;
+  }>;
 }
 
 // .ts 확장자 명시: 검증기가 이 파일을 Node 네이티브 TS(strip-types)로 직접 로드하기 때문.
-import { chapterMeta as ch01Meta, quiz as ch01Quiz, sections as ch01Sections } from "./chapters/ch0-1/meta.ts";
+import { chapterMeta as ch01Meta, quiz as ch01Quiz, sections as ch01Sections, session as ch01Session } from "./chapters/ch0-1/meta.ts";
 import { chapterMeta as ch02Meta, quiz as ch02Quiz, sections as ch02Sections } from "./chapters/ch0-2/meta.ts";
 import { chapterMeta as ch11Meta, quiz as ch11Quiz, sections as ch11Sections } from "./chapters/ch1-1/meta.ts";
 import { chapterMeta as ch12Meta, quiz as ch12Quiz, sections as ch12Sections } from "./chapters/ch1-2/meta.ts";
 
 export const registry: ChapterEntry[] = [
   {
-    data: { chapterMeta: ch01Meta, quiz: ch01Quiz, sections: ch01Sections },
+    data: { chapterMeta: ch01Meta, quiz: ch01Quiz, sections: ch01Sections, session: ch01Session },
     loadBody: () => import("./chapters/ch0-1/body"),
   },
   {

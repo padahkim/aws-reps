@@ -38,7 +38,7 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
   // 실존 챕터 id 집합 (prerequisites 참조 검증용)
   const knownIds = new Set(chapters.map((c) => c.chapterMeta.id));
 
-  for (const { chapterMeta, quiz, sections } of chapters) {
+  for (const { chapterMeta, quiz, sections, session } of chapters) {
     const cid = chapterMeta.id;
 
     // ── 섹션 규약 (v2): 최소 1개, 제목 비지 않음, num 챕터 내 유일 ──────
@@ -157,6 +157,68 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
           message: `${qref}: choiceExplanations 길이 ${q.choiceExplanations.length} ≠ choices 길이 ${q.choices.length}`,
         });
       }
+    }
+
+    // ── 인출 세션 검사 (session 없는 챕터는 적법 → 이 블록을 건너뛴다) ────
+    if (session) {
+      // 세션 항목 id 는 챕터 내 유일 — concepts·mixed 를 한 이름공간으로 본다
+      // (v2 세션 페이지가 둘을 한 화면에 올리므로 서로도 겹치면 안 된다).
+      const idSeen = new Set<string>();
+      const checkId = (id: string, where: string) => {
+        if (id.trim() === "") {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_ID_EMPTY",
+            message: `session.${where}: id 가 비어 있음`,
+          });
+        } else if (idSeen.has(id)) {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_ID_DUP",
+            message: `session.${where}: id "${id}" 가 챕터 내에서 중복`,
+          });
+        }
+        idSeen.add(id);
+      };
+
+      // 개념 카드: section 은 실존하는 SectionMeta.num 을 가리켜야 한다 (하단 매핑의 전제)
+      session.concepts.forEach((c, i) => {
+        checkId(c.id, `concepts[${i}]`);
+        if (!numSeen.has(c.section)) {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_SECTION_MISSING",
+            message: `session.concepts[${i}] (id "${c.id}"): section "${c.section}" 이 실존하지 않는 섹션 num — 카드가 어디에도 안 붙는다`,
+          });
+        }
+        if (c.q.trim() === "" || c.a.trim() === "") {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_CONCEPT_EMPTY",
+            message: `session.concepts[${i}] (id "${c.id}"): q 또는 a 가 비어 있음`,
+          });
+        }
+      });
+
+      // 도식: 선형 체인이라 edges 는 nodes 보다 정확히 1 짧다
+      if (session.diagram) {
+        const { nodes, edges } = session.diagram;
+        if (nodes.length < 2) {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_DIAGRAM_TOO_SHORT",
+            message: `session.diagram: nodes 가 ${nodes.length}개 — 최소 2개 필요 (체인이 성립해야 함)`,
+          });
+        } else if (edges.length !== nodes.length - 1) {
+          problems.push({
+            chapterId: cid,
+            code: "SESSION_DIAGRAM_EDGES",
+            message: `session.diagram: edges ${edges.length}개 ≠ nodes ${nodes.length}개 - 1 (선형 체인 모델)`,
+          });
+        }
+      }
+
+      session.mixed.forEach((m, i) => checkId(m.id, `mixed[${i}]`));
     }
   }
 

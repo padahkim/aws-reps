@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Sec } from "../ui";
 import { sections } from "./meta";
 import Intro from "./intro.mdx";
@@ -25,9 +26,16 @@ const INTRO_AT = 1;
 
 /**
  * 규약 v3 shim — 본문은 intro/outro/sections/*.mdx, 여기는 Sec 래핑(meta 스프레드)과
- * 인트로·아웃트로(마지막 섹션 하단) 배치만 담당한다.
+ * 인트로·아웃트로(마지막 섹션 하단)·섹션 꼬리 슬롯 배치만 담당한다.
+ * afterSection(인출 개념 카드)은 본문과 아웃트로 사이 — 섹션 단위 인출이 챕터 마무리보다 먼저다.
  */
-export default function Ch01Body({ section }: { section: number }) {
+export default function Ch01Body({
+  section,
+  afterSection,
+}: {
+  section: number;
+  afterSection?: ReactNode;
+}) {
   const S = SECTIONS[section];
   if (!S) throw new Error(`ch0-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
@@ -36,6 +44,7 @@ export default function Ch01Body({ section }: { section: number }) {
       <Sec {...sections[section]}>
         <S />
       </Sec>
+      {afterSection}
       {section === SECTIONS.length - 1 && <Outro />}
     </>
   );
