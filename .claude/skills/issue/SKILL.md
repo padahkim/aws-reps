@@ -14,7 +14,7 @@ description: 이슈 번호 하나를 입력으로 표준 절차(파악→요건�
 2. 이슈를 읽는다: `gh issue view <N>` (+ 부모/하위: `--json`으로 subIssues·parent 확인).
    gh 차단 머신이면 사용자에게 이슈 본문 붙여넣기를 요청한다.
 3. **선행 조건 확인**: 본문의 선행 이슈가 열려 있으면 멈추고 보고한다 (이유 무시 금지).
-4. WIP 1 확인: 보드에 In Progress가 이미 있으면 사용자에게 알리고 진행 여부를 묻는다.
+4. WIP 1 확인 (CLAUDE.md Task management): 보드의 In Progress가 **에픽**이고 이번 이슈도 다른 에픽에 속하면 사용자에게 알리고 진행 여부를 묻는다. 서로 의존 없는 작은 이슈의 병렬 진행은 WIP 1 위반이 아니다 — 알리지 말고 그냥 진행한다.
 5. 보드에서 이 이슈를 **In Progress**로 (절차는 land 스킬 "보드 갱신" — TARGET만 다름).
 6. 작업 브랜치 분기: `git switch -c <type>/<주제> develop`.
 

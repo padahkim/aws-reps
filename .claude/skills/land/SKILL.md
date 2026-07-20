@@ -7,16 +7,37 @@ description: 작업 브랜치를 develop에 착지시킨다 — 기본은 PR 착
 
 목표: 현재 작업 브랜치의 커밋을 `develop`에 도달시킨다. 경로는 두 가지 — 기본인 **PR 착지**(PR 생성 후 사용자 승인 대기) 또는 예외인 **즉시 착지**(직접 머지·push). 둘 중 하나가 끝나야(PR 착지는 "PR 보고"까지 하면) 착지 의무가 충족된 것이다.
 
-이 리포의 `develop`은 메인 워크트리에 체크아웃돼 있다 (현재 구조). 세션 워크트리에서 develop을 조작할 때는 항상 `git -C`를 쓴다. 아래 명령은 이 변수를 전제한다:
+## 착지 모드 판별 — 둘 다 정상 경로
+
+이 리포는 두 가지 형태로 작업된다. **어느 쪽도 이상 상황이 아니다** — 모드를 판별해 해당 경로를 그대로 따르고, 우회 판단을 하지 않는다 (#62).
+
+- **워크트리 모드** — 세션 워크트리에서 작업하고 `develop`은 메인 워크트리에 체크아웃돼 있다. develop 조작은 전부 `git -C "$MAIN"`.
+- **단일 워크트리 모드** — 메인 워크트리에서 `git switch -c feat/<주제> develop`으로 작업한다. develop이 어느 워크트리에도 체크아웃돼 있지 않으므로 `MAIN`이 빈 값이 되는 것이 **정상**이다.
 
 ```bash
+BR=<착지할 작업 브랜치>
+
 # develop이 체크아웃된 워크트리를 동적으로 찾는다 (PC마다 경로가 다를 수 있으므로 하드코딩 금지)
 MAIN=$(git worktree list --porcelain \
   | awk '/^worktree /{w=$2} /^branch refs\/heads\/develop$/{print w}')
-BR=<착지할 작업 브랜치>
+
+if [ -n "$MAIN" ]; then
+  MODE=worktree
+elif git show-ref --verify --quiet refs/heads/develop \
+  && [ "$(git rev-parse --path-format=absolute --git-dir)" \
+     = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
+  # develop 브랜치는 있고, 지금이 주 워크트리다 → 단일 워크트리 모드
+  # --path-format=absolute 필수: 하위 디렉토리에서 실행하면 --git-dir은 절대경로,
+  # --git-common-dir은 상대경로(../.git)로 나와 비교가 헛돈다 (#63 Codex 리뷰)
+  MODE=single
+  MAIN=$(git rev-parse --show-toplevel)   # 아래 git -C "$MAIN" 이 그대로 성립하게
+else
+  MODE=abort
+fi
 ```
 
-`MAIN`이 비어 있으면 develop이 어느 워크트리에도 체크아웃돼 있지 않다는 뜻이다 — 멈추고 사용자에게 보고한다 (이 경우 `git -C ""`는 위험하니 절대 이어가지 않는다).
+- `MODE=single`이면 **develop을 조작하기 직전에 이 워크트리에서 `git switch develop`을 한 번 한다** (A-1·B-3에 명시). 그 뒤로는 아래의 모든 `git -C "$MAIN"` 명령이 같은 워크트리를 가리키므로 그대로 쓴다.
+- `MODE=abort`이면 진짜 이상 상황이다 — develop 브랜치 자체가 없거나(리포가 예상과 다름), 세션 워크트리에 있는데 메인 워크트리가 develop이 아닌 다른 브랜치로 옮겨져 있다. 멈추고 사용자에게 보고한다 (`git -C ""`는 위험하니 절대 이어가지 않는다).
 
 ## 경로 선택 — 기본은 PR 착지
 
@@ -33,14 +54,23 @@ gh를 쓸 수 없는 머신(git_guard가 차단 — 회사 머신 등)에서 PR 
 
 1. `git branch --show-current`가 작업 브랜치인가? `develop`/`main`이면 착지할 대상이 없다.
 2. 워킹트리가 클린한가? (`git status --porcelain` 빈 출력) 미커밋 변경은 먼저 커밋한다.
-3. `git -C "$MAIN" status --porcelain`이 클린한가? 더럽다면 다른 세션이 메인에서 작업 중일 수 있다 — 이어가지 말고 보고.
-4. `git -C "$MAIN" branch --show-current`가 `develop`인가? 아니면 즉시 착지의 머지가 **엉뚱한 브랜치로 들어간다** — 멈추고 보고한다. (`$MAIN`을 하드코딩 fallback으로 썼거나, 누가 메인 워크트리를 다른 브랜치로 switch해둔 경우를 잡는 안전장치.)
+3. **워크트리 모드만** — `git -C "$MAIN" status --porcelain`이 클린한가? 더럽다면 다른 세션이 메인에서 작업 중일 수 있다 — 이어가지 말고 보고. (단일 워크트리 모드에서는 `$MAIN`이 현재 워크트리라 2번과 같은 검사다 — 생략한다.)
+4. 머지가 **엉뚱한 브랜치로 들어가지 않음**을 보장한다 — 모드별로 확인 지점이 다르다.
+   - 워크트리 모드: `git -C "$MAIN" branch --show-current`가 `develop`인가? 아니면 멈추고 보고한다. (`$MAIN`을 하드코딩 fallback으로 썼거나, 누가 메인 워크트리를 다른 브랜치로 switch해둔 경우를 잡는 안전장치.)
+   - 단일 워크트리 모드: 지금 이 자리에 작업 브랜치가 있는 것이 정상이므로 여기서는 검사하지 않는다. 대신 A-1/B-3의 `git switch develop` **직후** `git branch --show-current`가 `develop`인지 확인하고, 아니면 멈추고 보고한다.
 
 ## A. 즉시 착지
 
 ### A-1. develop 동기화
 
-`git -C "$MAIN" fetch origin` 후 develop이 origin/develop보다 behind면 `git -C "$MAIN" merge --ff-only origin/develop`. diverge 상태면 멈추고 보고한다 (다른 PC 작업과 충돌 소지).
+단일 워크트리 모드면 **먼저** 이 워크트리를 develop으로 옮기고 확인한다 (사전 체크 4의 단일 모드 확인 지점):
+
+```bash
+git switch develop
+[ "$(git branch --show-current)" = "develop" ] || exit 1   # 아니면 멈추고 보고
+```
+
+이후 두 모드 공통: `git -C "$MAIN" fetch origin` 후 develop이 origin/develop보다 behind면 `git -C "$MAIN" merge --ff-only origin/develop`. diverge 상태면 멈추고 보고한다 (다른 PC 작업과 충돌 소지).
 
 ### A-2. 머지 → push
 
@@ -59,7 +89,7 @@ git -C "$MAIN" push origin --delete "$BR" 2>/dev/null || true # origin에 올렸
 ```
 
 - 세션 워크트리 쪽에서 실행하면 그 HEAD 기준 "not fully merged"로 거부된다.
-- `$BR`이 현재 세션 워크트리에 체크아웃돼 있으면 삭제가 거부된다 → 먼저 이 워크트리를 원래의 `claude/*` 브랜치로 `git switch`해서 비켜준 뒤 삭제한다.
+- `$BR`이 현재 세션 워크트리에 체크아웃돼 있으면 삭제가 거부된다 → 먼저 이 워크트리를 원래의 `claude/*` 브랜치로 `git switch`해서 비켜준 뒤 삭제한다. (단일 워크트리 모드는 A-1에서 이미 develop으로 옮겼으므로 그냥 삭제된다.)
 - 원격 삭제 줄은 `$BR`이 origin에 없으면 (로컬 전용 브랜치였으면) 조용히 넘어간다 — 남은 `feat/*`·`fix/*` 원격 브랜치가 쌓이지 않게 하는 게 목적이다. `--delete`는 force가 아니라 git_guard에 걸리지 않는다.
 
 ## B. PR 착지
@@ -95,12 +125,17 @@ PR URL과 "PR 대기"를 사용자에게 보고한다. **여기까지 하면 이
 
 ```bash
 gh pr merge "$BR" --merge --delete-branch   # 원격 develop에 머지 커밋 + 원격 브랜치 삭제
+
+# 단일 워크트리 모드면 먼저 이 워크트리를 develop으로 옮긴다 (사전 체크 4의 단일 모드 확인 지점)
+git switch develop
+[ "$(git branch --show-current)" = "develop" ] || exit 1   # 아니면 멈추고 보고
+
 git -C "$MAIN" fetch origin
 git -C "$MAIN" merge --ff-only origin/develop
 git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 못 했으면 정리
 ```
 
-- `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제.
+- `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제. (단일 워크트리 모드는 위의 `git switch develop`으로 이미 비켜난 상태다.)
 
 ## 보드 갱신
 
