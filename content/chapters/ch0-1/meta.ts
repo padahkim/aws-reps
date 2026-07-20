@@ -1,4 +1,4 @@
-import type { ChapterMeta, Question, SectionMeta } from "../../schema";
+import type { ChapterMeta, SectionMeta } from "../../schema";
 
 /**
  * 원본: content/aws-dva-stage0.html (0단계 — AWS의 문법) 중 01 리전/AZ · 03 API 구조 · 04 요금.
@@ -13,8 +13,9 @@ export const chapterMeta: ChapterMeta = {
   prerequisites: [],
 };
 
-// 원본에 퀴즈 성분 없음 (축2 리포트: 말미 체크리스트는 자기평가 문장 — 본문에 잔류).
-export const quiz: Question[] = [];
+// 퀴즈: aws-cloud-drills aws-basics.json 11문항 임포트 — scripts/import-drills.mts가
+// 생성한 ./drills.ts를 re-export (이슈 #11. 원본에 퀴즈 성분 없어 신규 작성).
+export { quiz } from "./drills.ts";
 
 // 인출 세션 (이슈 #58) — 데이터는 ./session.ts, meta 가 단일 진실 통로 (drills.ts 전례).
 export { session } from "./session.ts";
