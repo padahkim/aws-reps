@@ -4,12 +4,13 @@ import { Sec } from "../ui";
 import { sections } from "./meta";
 import Intro from "./intro.mdx";
 import Outro from "./outro.mdx";
+import S00 from "./sections/00.mdx";
 import S01 from "./sections/01.mdx";
 import S02 from "./sections/02.mdx";
 import S03 from "./sections/03.mdx";
 
 /** 섹션 mdx 목록 — 순서 = meta.sections (불일치는 아래 assert가 빌드 프리렌더에서 잡는다). */
-const SECTIONS = [S01, S02, S03];
+const SECTIONS = [S00, S01, S02, S03];
 
 if (SECTIONS.length !== sections.length) {
   throw new Error(`ch0-1: 본문 섹션 ${SECTIONS.length}개 ≠ meta.sections ${sections.length}개`);
