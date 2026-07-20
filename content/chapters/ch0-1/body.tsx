@@ -17,15 +17,22 @@ if (SECTIONS.length !== sections.length) {
 }
 
 /**
+ * 인트로를 띄울 섹션 인덱스. 규약 기본값은 0(첫 섹션 상단)이지만, 이 챕터의 00은
+ * "왜 AI 시대에 AWS인가"라는 동기 부여 서문이라 본문 흐름 밖에 있다 — 인트로의
+ * "자, 그럼 시작해 볼까요?"가 실제 내용(01 리전/AZ)으로 바로 이어지도록 01에 붙인다.
+ */
+const INTRO_AT = 1;
+
+/**
  * 규약 v3 shim — 본문은 intro/outro/sections/*.mdx, 여기는 Sec 래핑(meta 스프레드)과
- * 인트로(첫 섹션 상단)·아웃트로(마지막 섹션 하단) 배치만 담당한다.
+ * 인트로·아웃트로(마지막 섹션 하단) 배치만 담당한다.
  */
 export default function Ch01Body({ section }: { section: number }) {
   const S = SECTIONS[section];
   if (!S) throw new Error(`ch0-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
     <>
-      {section === 0 && <Intro />}
+      {section === INTRO_AT && <Intro />}
       <Sec {...sections[section]}>
         <S />
       </Sec>
