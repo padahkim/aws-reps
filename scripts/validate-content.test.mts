@@ -6,7 +6,13 @@
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
 import { validateChapters, type Problem } from "./validate-content.mts";
-import type { ChapterData, Question, SectionMeta } from "../content/schema.ts";
+import type {
+  ChapterData,
+  Question,
+  SectionMeta,
+  SessionConcept,
+  SessionData,
+} from "../content/schema.ts";
 
 let failures = 0;
 
@@ -31,12 +37,22 @@ function section(over: Partial<SectionMeta> = {}): SectionMeta {
   return { num: "01", title: "t", sub: "s", freq: "mid", freqLabel: "f", ...over };
 }
 
+function concept(over: Partial<SessionConcept> = {}): SessionConcept {
+  return { id: "c1", section: "01", q: "질문?", a: "답", ...over };
+}
+
+/** 세션 기본값 — 개념 카드 1장, 도식·혼합 없음 (ch0-1 모양). */
+function sess(over: Partial<SessionData> = {}): SessionData {
+  return { concepts: [concept()], mixed: [], ...over };
+}
+
 function ch(
   chapterMeta: ReturnType<typeof meta>,
   quiz: Question[] = [],
-  sections: SectionMeta[] = [section()]
+  sections: SectionMeta[] = [section()],
+  session?: SessionData
 ): ChapterData {
-  return { chapterMeta, quiz, sections };
+  return { chapterMeta, quiz, sections, session };
 }
 
 function codes(problems: Problem[]): Set<string> {
@@ -100,6 +116,42 @@ expectCaught(
   "SECTION_NUM_DUP"
 );
 
+// 인출 세션 규약 (#58)
+expectCaught(
+  "concepts.section 이 실존하지 않는 섹션",
+  [ch(meta("1-1"), [], [section({ num: "01" })], sess({ concepts: [concept({ section: "99" })] }))],
+  "SESSION_SECTION_MISSING"
+);
+expectCaught(
+  "concepts id 중복",
+  [ch(meta("1-1"), [], [section()], sess({ concepts: [concept(), concept({ q: "다른 질문?" })] }))],
+  "SESSION_ID_DUP"
+);
+expectCaught(
+  "concept id 와 mixed id 충돌 (한 이름공간)",
+  [
+    ch(meta("1-1"), [], [section()], sess({
+      mixed: [{ id: "c1", scenario: "s", service: "svc", why: "w", contrast: "c" }],
+    })),
+  ],
+  "SESSION_ID_DUP"
+);
+expectCaught(
+  "concept q 공백",
+  [ch(meta("1-1"), [], [section()], sess({ concepts: [concept({ q: "   " })] }))],
+  "SESSION_CONCEPT_EMPTY"
+);
+expectCaught(
+  "diagram edges 개수 불일치 (nodes-1 아님)",
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x"] } }))],
+  "SESSION_DIAGRAM_EDGES"
+);
+expectCaught(
+  "diagram nodes 1개 (체인 불성립)",
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: ["a"], edges: [] } }))],
+  "SESSION_DIAGRAM_TOO_SHORT"
+);
+
 console.log("\n── 통과해야 하는 적법 입력 ──");
 
 // 빈 레지스트리
@@ -107,6 +159,31 @@ expectClean("빈 레지스트리", []);
 
 // 빈 quiz 는 적법 (schema: 빈 배열 적법)
 expectClean("빈 quiz", [ch(meta("1-1"))]);
+
+// session 없는 챕터는 적법 (ChapterData.session? optional — 점진 이행)
+expectClean("session 없음", [ch(meta("1-1"), [], [section()], undefined)]);
+
+// 카드 0장 + 도식 없음 + 혼합 없음 — 전부 빈 세션도 적법
+expectClean("빈 session", [ch(meta("1-1"), [], [section()], { concepts: [], mixed: [] })]);
+
+// ch0-1 모양: 카드가 일부 섹션에만 붙고(00 은 생략), diagram·mixed 없음
+expectClean("정상 session(섹션 일부에만 카드·도식 없음)", [
+  ch(
+    meta("1-1"),
+    [],
+    [section({ num: "00" }), section({ num: "01", title: "t2" })],
+    sess({ concepts: [concept({ id: "c1", section: "01" }), concept({ id: "c2", section: "01" })] })
+  ),
+]);
+
+// 선형 체인 도식 + 혼합 — edges = nodes - 1
+expectClean("정상 session(도식·혼합 포함)", [
+  ch(meta("1-1"), [], [section()], {
+    concepts: [concept()],
+    diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x", "y"] },
+    mixed: [{ id: "m1", scenario: "s", service: "svc", why: "w", contrast: "c" }],
+  }),
+]);
 
 // 완전한 정상 챕터 — 복수정답 + choiceExplanations 일치 + 실존 prereq + 다중 섹션
 expectClean("정상 챕터(복수정답·prereq·choiceExpl·다중 섹션)", [

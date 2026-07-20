@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllChapters, getChapter, sectionCount } from "@/lib/content";
+import { conceptsForSection, getAllChapters, getChapter, sectionCount } from "@/lib/content";
 import ChapterQuiz from "../chapter-quiz";
 import MarkRead from "./mark-read";
+import SectionConcepts from "./section-concepts";
 
 // 미등록 param 거부 — 상위 [id]/page.tsx와 같은 정책 (output: "export" 정적 라우트).
 export const dynamicParams = false;
@@ -34,6 +35,10 @@ export default async function SectionPage({
   const isQuiz = quiz.length > 0 && n === total;
   const Body = (await entry.loadBody()).default;
 
+  // 개념 인출 카드 — 본문 섹션 페이지에만, 그 섹션(num)에 매핑된 카드가 있을 때만.
+  // body 의 afterSection 슬롯으로 넘겨 본문과 아웃트로 "사이"에 놓는다 (규약 v3 섹션 규약).
+  const concepts = isQuiz ? [] : conceptsForSection(entry, sections[n - 1].num);
+
   // 이전/다음 링크 라벨 — k는 1-based 섹션 번호
   const label = (k: number) =>
     k > sections.length ? "챕터 퀴즈" : `${sections[k - 1].num} ${sections[k - 1].title}`;
@@ -63,7 +68,14 @@ export default async function SectionPage({
         </span>
       </nav>
 
-      {isQuiz ? <ChapterQuiz quiz={quiz} /> : <Body section={n - 1} />}
+      {isQuiz ? (
+        <ChapterQuiz quiz={quiz} />
+      ) : (
+        <Body
+          section={n - 1}
+          afterSection={concepts.length > 0 ? <SectionConcepts concepts={concepts} /> : undefined}
+        />
+      )}
       <MarkRead chapterId={id} sec={n} />
 
       <nav

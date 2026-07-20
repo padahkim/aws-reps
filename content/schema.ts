@@ -8,7 +8,9 @@
  *   타입·registry·loadBody 시그니처)와 섹션 규약은 v2 그대로다.
  *
  * 파일 구조 (v3 — 전 챕터 적용 완료):
- *   content/chapters/{id}/meta.ts        — chapterMeta + quiz + sections (순수 데이터, "use client" 금지)
+ *   content/chapters/{id}/meta.ts        — chapterMeta + quiz + sections (+ session) (순수 데이터, "use client" 금지)
+ *   content/chapters/{id}/session.ts     — 인출 세션 데이터. meta.ts 가 re-export (drills.ts 전례).
+ *                                          없는 챕터 적법 (ChapterData.session? optional)
  *   content/chapters/{id}/body.tsx       — "use client" shim: <Sec {...sections[i]}> 래핑·
  *                                          섹션 수 assert·인트로/아웃트로 배치만 (본문 내용 금지)
  *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (첫 섹션 페이지 상단. 없으면 생략)
@@ -38,6 +40,21 @@
  *     — output: "export" 프리렌더가 모든 섹션 페이지를 렌더하므로 불일치는 빌드 실패로 드러난다
  *   • 챕터 인트로는 첫 섹션 페이지 상단, 말미 체크리스트는 마지막 섹션 페이지 하단에 렌더
  *   • quiz 가 비어있지 않으면 앱이 "챕터 퀴즈"를 마지막 섹션 페이지(N+1)로 덧붙인다
+ *   • body 의 default export 는 optional prop afterSection: ReactNode 을 받아 그 섹션 본문과
+ *     아웃트로 "사이"에 렌더한다 — 섹션 꼬리 슬롯. 인출 개념 카드가 이 자리에 들어간다
+ *     (아웃트로는 챕터 마무리라 섹션 단위 인출보다 뒤에 와야 한다). 페이지가 슬롯의 내용을
+ *     만들고 body 는 위치만 정한다 — 인트로/아웃트로 배치를 body 가 갖는 v3 원칙 그대로
+ *
+ * 인출 세션 규약 (이슈 #53 에픽 → #54 spike 결정, v1 = #58):
+ *   • session 데이터의 단일 진실도 meta.ts — content/chapters/{id}/session.ts 를 re-export 한다
+ *     (drills.ts 전례). session 이 없는 챕터는 적법하고, 앱은 그 경우 아무것도 렌더하지 않는다
+ *   • 개념 카드는 각 섹션 페이지 하단 — concepts[].section === sections[].num 로 매핑한다.
+ *     카드가 0개인 섹션(ch0-1 의 00 동기 서문 등)은 카드 영역 자체를 렌더하지 않는다
+ *   • 게이팅은 카드 내부만 — 기본은 질문만 보이고 탭해야 답+why 가 열린다. 섹션 이동은 막지
+ *     않는다. 카드 열림 상태는 v1 비저장(useState) — 세션은 한 자리 완주 설계
+ *   • diagram·mixed 는 마지막 세션 페이지용(#59 범위). 여기서는 타입만 확정해 둔다 —
+ *     diagram? 은 선형 체인 모델이 안 맞는 챕터(ch0-1 개념도)를 위해 optional, mixed 는
+ *     빈 배열이 적법하다(교차 대조 대상이 없는 첫 챕터)
  *
  * 본문 네거티브 규정 (PREWORK §1-D-3 — 위반 시 앱 셸과 충돌. S3 원본이 딱 위반):
  *   ✗ 자체 내비게이션/사이드바/페이저     ✗ 전역 셀렉터 스타일(<style>, body/table…)
@@ -98,9 +115,51 @@ export interface Question {
   references?: ReferenceLink[];   // AWS 공식 문서 링크
 }
 
+// ── 인출 세션 (이슈 #54 spike 결정. 위 "인출 세션 규약" 참조) ──────────────
+
+/**
+ * 개념 인출 카드 — 섹션을 읽은 직후 그 섹션 하단에서 "덮고 떠올리기"를 시킨다.
+ * 카드 하나 = 질문 하나. 탭 전에는 q 만, 탭 후에 a(+why)가 열린다.
+ */
+export interface SessionConcept {
+  id: string;                     // 챕터 내 유일 "c1" — 검증기가 유일성을 강제
+  section: string;                // 이 카드가 붙을 섹션의 SectionMeta.num ("01") — 실존해야 함
+  q: string;                      // 인출 질문. 답을 떠올리게 하는 형태로 (예/아니오 금지)
+  a: string;                      // 모범 답변 — 떠올린 것과 대조할 기준
+  why?: string;                   // 정교화 질문 — 답을 맞춘 뒤 한 겹 더 파고드는 물음 (템플릿 원 설계)
+}
+
+/**
+ * 도식 재현 — 노드를 순서대로 이어 흐름을 복원한다 (#59 범위).
+ * 선형 체인 모델: edges[i] = nodes[i] → nodes[i+1] 사이의 라벨. 그래서 edges 는 nodes 보다 정확히 1 짧다.
+ * 이 모델이 안 맞는 챕터(중첩·수렴·스펙트럼 도식)는 diagram 을 생략한다 — #54 결정 4.
+ */
+export interface SessionDiagram {
+  prompt: string;                 // "무엇을 그려 보라"는 지시문
+  nodes: string[];                // 최소 2개
+  edges: string[];                // 정확히 nodes.length - 1 개
+}
+
+/** 교차 복습 — 인접 서비스와의 대조로 혼동을 씻는다 (#59 범위, 뒤 챕터가 앞 챕터 풀을 누적 소비). */
+export interface SessionMixedItem {
+  id: string;                     // 챕터 내 유일
+  scenario: string;               // 상황 한 줄
+  service: string;                // 이 상황의 정답 서비스/기능
+  why: string;                    // 왜 그것인가
+  contrast: string;               // 헷갈리는 이웃과 무엇이 다른가
+}
+
+/** 챕터의 인출 세션 데이터. session.ts 가 export 하고 meta.ts 가 re-export 한다. */
+export interface SessionData {
+  concepts: SessionConcept[];     // 섹션 하단 카드. 빈 배열 적법
+  diagram?: SessionDiagram;       // 선형 체인이 안 맞으면 생략 (스테이션 선택제)
+  mixed: SessionMixedItem[];      // 빈 배열 적법 — 교차 대조 대상이 없는 첫 챕터
+}
+
 /** 각 챕터의 meta.ts가 export 하는 계약. */
 export interface ChapterData {
   chapterMeta: ChapterMeta;
   quiz: Question[];               // 빈 배열 적법 — 앱은 빈 quiz에 강건해야 한다
   sections: SectionMeta[];        // 최소 1개 — 단일 섹션 챕터(ch0-2류) 적법, 빈 배열은 위반
+  session?: SessionData;          // 없는 챕터 적법 — 점진 이행 중 (#54 결정 1)
 }
