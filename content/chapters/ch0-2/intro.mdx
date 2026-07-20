@@ -1,0 +1,3 @@
+import { ChLink } from "../ui";
+
+IAM(Identity and Access Management)은 AWS의 **출입 통제 시스템**입니다. <ChLink id="ch0-1">ch0-1</ChLink>에서 본 것처럼 모든 도구는 결국 같은 API를 부르고 요청마다 SigV4로 서명되는데 — 서명 검증(인증)을 통과한 다음 단계로, 모든 API 호출은 실행 전에 “이 주체가 이 행동을 이 리소스에 해도 되는가?”를 IAM에게 검사받습니다. 구성 요소는 딱 두 종류로 나눠서 보면 쉽습니다: <b>주체(Identity)</b>와 <b>권한(Policy)</b>.

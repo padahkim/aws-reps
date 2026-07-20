@@ -1,0 +1,67 @@
+import { ChLink, Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { IamStructureSvg } from "../figs";
+
+{/* 텍스트를 품는 커스텀 컴포넌트(Note·ExamLi)는 한 줄로 쓴다 — 여러 줄이면 MDX가
+    내용을 블록(문단)으로 파싱해 p 태그가 중첩된다. */}
+
+<Fig caption="주체(유저·그룹·롤)에 정책(JSON)을 연결하면, 그 주체가 리소스에 접근할 수 있게 된다.">
+  <IamStructureSvg />
+</Fig>
+
+<SubTitle>4가지 구성 요소</SubTitle>
+
+<Table
+  head={["요소", "무엇인가", "한 줄 비유"]}
+  rows={[
+    [
+      "유저 (User)",
+      <>
+        사람이나 애플리케이션을 나타내는 <b>영구 신원</b>. 비밀번호(콘솔용)와 액세스
+        키(API용)를 가질 수 있음
+      </>,
+      "사원증을 가진 직원",
+    ],
+    [
+      "그룹 (Group)",
+      "유저의 묶음. 그룹에 정책을 붙이면 소속 유저 전원에게 적용",
+      "“개발팀” 부서",
+    ],
+    [
+      "롤 (Role)",
+      <>
+        고정 자격증명이 없는, <b>필요할 때 빌려 쓰는 신원</b>. EC2·Lambda 같은 서비스나
+        다른 계정의 유저가 맡을(assume) 수 있고, 맡는 순간 <b>임시 자격증명</b>이 발급됨
+      </>,
+      "방문증 — 아무나 발급받을 수 있게 정해둔 규칙에 따라 잠깐 빌려 쓰고 반납",
+    ],
+    [
+      "정책 (Policy)",
+      "권한을 정의하는 JSON 문서. 주체(유저/그룹/롤)에 연결해야 효력 발생",
+      "출입 허가 목록",
+    ],
+  ]}
+/>
+
+<SubTitle>정책 JSON의 3대 키워드</SubTitle>
+
+- **Effect** — `Allow` 또는 `Deny`. 기본은 전부 거부(암묵적 Deny)이고, **명시적 Deny는 어떤 Allow보다 항상 이긴다**
+- **Action** — 허용/거부할 API 동작. 예: `s3:GetObject`, `dynamodb:PutItem`
+- **Resource** — 대상 리소스의 ARN. 예: `arn:aws:s3:::my-bucket/*`
+
+<Note>평가 순서 감각: 명시적 Deny 있으면 → 거부 / 없고 Allow 있으면 → 허용 / 둘 다 없으면 → 거부(기본값).</Note>
+
+<SubTitle>왜 “유저의 액세스 키”가 아니라 “롤”인가</SubTitle>
+
+EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를 코드나 서버에 박아두면 유출 시
+영구적으로 악용됩니다. 대신 **인스턴스에 롤을 부여**하면 SDK가 임시 자격증명을
+자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 — <ChLink id="ch0-1">ch0-1의 자격증명 탐색 체인</ChLink> 마지막
+단계(붙어 있는 IAM 롤)가 바로 이것입니다. **“AWS 위에서 도는 코드에는 키 대신 롤”** — 이
+한 문장이 DVA 전체를 관통하는 정답 패턴입니다.
+
+<ExamPoint>
+  <ExamLi><b>“EC2/Lambda/ECS에서 다른 AWS 서비스에 접근” → 정답은 거의 항상 IAM 롤.</b> 액세스 키를 코드/환경변수/AMI에 넣는 선택지는 오답</ExamLi>
+  <ExamLi><b>최소 권한 원칙(Least Privilege)</b>: <Code>*</Code> 전체 허용보다 필요한 Action·Resource만 허용하는 선택지가 정답</ExamLi>
+  <ExamLi>정책 JSON을 보여주고 “이 요청은 허용되는가?”를 묻는 문제 — Deny 우선 규칙과 Resource ARN 매칭을 읽을 줄 알아야 함</ExamLi>
+  <ExamLi>교차 계정 접근, 임시 권한 → <b>STS AssumeRole</b> 키워드</ExamLi>
+  <ExamLi>루트 계정은 일상 업무에 쓰지 않고 MFA로 잠가둔다 — 베스트 프랙티스형 문항</ExamLi>
+</ExamPoint>

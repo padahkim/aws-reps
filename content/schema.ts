@@ -30,6 +30,17 @@
  *   • self-explain 게이트: v1 미포함
  *   • 챕터 매핑        : 단수 id 하나. coverage[] 도입 안 함
  *   • 메타 export 이름  : chapterMeta (grep 게이트 `grep -L "export const chapterMeta"` 용)
+ *
+ * ── 규약 v3 전환 진행 중 (#15 결정 → #40 에픽) ──
+ * 본문 표현을 TSX 섹션 함수 → MDX 파일로 이관 중. v3 구조 (이관 완료 챕터: ch0-2):
+ *   body.tsx           — "use client" shim: <Sec {...sections[i]}> 래핑·섹션 수 assert·인트로/아웃트로 배치만
+ *   intro.mdx          — 챕터 인트로 (첫 섹션 페이지 상단)
+ *   sections/NN.mdx    — 섹션 본문 (Sec 래핑 없이 내용만). NN = meta.sections[i].num
+ *   outro.mdx          — 말미 체크리스트 (마지막 섹션 페이지 하단)
+ *   figs.tsx           — 챕터 도식 SVG 컴포넌트 (mdx가 import)
+ * md 기본 요소(p·인라인 code·ul/li)는 루트 mdx-components.tsx가 ui.tsx 팔레트로 매핑한다.
+ * remark/rehype 플러그인 금지 (Next 16+Turbopack 제약 — #15). 챕터 인터페이스(이 파일의
+ * 타입·registry·loadBody 시그니처)는 v2와 동일. 전 챕터 이관 후 이 주석을 전면 개정한다.
  */
 
 // DVA-C02 도메인. 관례: Development / Security / Deployment / Troubleshooting. ch0류는 "foundation".
