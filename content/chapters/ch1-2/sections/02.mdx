@@ -11,6 +11,8 @@ import { CodeBlock, InvocationSvg } from "../figs";
 
 <CodeBlock title="CLI — 동기식 호출">{`aws lambda invoke \\\n  --function-name demo-lambda \\\n  --cli-binary-format raw-in-base64-out \\\n  --payload '{"key1": "value1"}' \\\n  response.json`}</CodeBlock>
 
+호출 유형은 CLI의 <b>`--invocation-type`</b> 파라미터(SDK/API에서는 `InvocationType` 필드)로 정합니다 — `RequestResponse`(기본값 = 동기), `Event`(비동기), `DryRun`(권한·파라미터 검증만, 실행 없음).
+
 <SubTitle>ALB 통합</SubTitle>
 
 Lambda를 HTTP(S) 엔드포인트로 노출하려면 API Gateway 또는 <b>ALB</b>를 씁니다. ALB는 함수를 <b>대상 그룹(Target Group)</b>에 등록하고, HTTP 요청을 <b>JSON 문서로 변환</b>해 동기 호출한 뒤 함수의 JSON 응답(`statusCode`, `headers`, `body`, `isBase64Encoded`)을 다시 HTTP로 변환합니다.
@@ -20,4 +22,5 @@ ALB에서 <b>Multi-Value Headers</b>를 활성화하면 같은 이름의 쿼리 
 <ExamPoint>
   <ExamLi>“동기식 호출 실패 시 누가 재시도?” → 클라이언트.</ExamLi>
   <ExamLi>ALB + Lambda = 대상 그룹 등록 · HTTP↔JSON 상호 변환 · Multi-Value Headers는 배열.</ExamLi>
+  <ExamLi>“CLI로 비동기 호출” → <b>--invocation-type Event</b>.</ExamLi>
 </ExamPoint>
