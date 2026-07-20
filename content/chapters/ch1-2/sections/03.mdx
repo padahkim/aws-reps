@@ -1,7 +1,7 @@
 import { ExamLi, ExamPoint, SubTitle, Table } from "../../ui";
 import { WarnBox } from "../figs";
 
-<b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. S3·SNS·EventBridge· CodePipeline·SES·CloudWatch Logs(구독) 등이 비동기로 호출합니다.
+<b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. CLI/SDK에서는 `--invocation-type Event`로 비동기 호출합니다. S3·SNS·EventBridge· CodePipeline·SES·CloudWatch Logs(구독) 등이 비동기로 호출합니다.
 
 <Table
   head={["항목", "동작"]}
