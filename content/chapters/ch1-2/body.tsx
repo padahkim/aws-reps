@@ -14,6 +14,7 @@ import {
   SubTitle,
   Table,
 } from "../ui";
+import { sections } from "./meta";
 
 const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
@@ -74,37 +75,50 @@ function WarnBox({ children }: { children: ReactNode }) {
   );
 }
 
-export default function Ch12Body() {
+/** 섹션 컴포넌트 목록 — 순서 = meta.sections (불일치는 아래 assert가 빌드 프리렌더에서 잡는다). */
+const SECTIONS = [
+  OverviewSection,
+  SyncSection,
+  AsyncSection,
+  EsmSection,
+  EventCtxSection,
+  DestSection,
+  PermSection,
+  EnvSection,
+  MonSection,
+  EdgeSection,
+  VpcSection,
+  PerfSection,
+  ConcSection,
+  LayersSection,
+  DeploySection,
+  VersionsSection,
+  CodeDeploySection,
+  FurlSection,
+  SupplementSection,
+  LimitsSection,
+];
+
+if (SECTIONS.length !== sections.length) {
+  throw new Error(`ch1-2: 본문 섹션 ${SECTIONS.length}개 ≠ meta.sections ${sections.length}개`);
+}
+
+/** 규약 v2 — section 인덱스(0-based)의 섹션 하나만 렌더. 인트로/체크리스트는 첫/마지막 섹션에. */
+export default function Ch12Body({ section }: { section: number }) {
+  const S = SECTIONS[section];
+  if (!S) throw new Error(`ch1-2: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
     <>
+      {section === 0 && (
       <P>
         Lambda는 DVA-C02 Domain 1의 심장입니다. <b>호출 3유형(동기/비동기/이벤트 소스 매핑)의
         구분과 각각의 오류 처리</b>, <b>동시성·콜드 스타트</b>, <b>버전·별칭·트래픽 전환</b>,
         그리고 <b>수치 한도</b>가 반복 출제됩니다. 이 챕터는 S3 챕터(ch1-1)의 이벤트 알림을
         트리거 관점에서 다시 사용합니다.
       </P>
-
-      <OverviewSection />
-      <SyncSection />
-      <AsyncSection />
-      <EsmSection />
-      <EventCtxSection />
-      <DestSection />
-      <PermSection />
-      <EnvSection />
-      <MonSection />
-      <EdgeSection />
-      <VpcSection />
-      <PerfSection />
-      <ConcSection />
-      <LayersSection />
-      <DeploySection />
-      <VersionsSection />
-      <CodeDeploySection />
-      <FurlSection />
-      <SupplementSection />
-      <LimitsSection />
-
+      )}
+      <S />
+      {section === SECTIONS.length - 1 && (
       <Checklist
         title="체크리스트 — 이 문장이 술술 나오면 통과"
         items={[
@@ -142,6 +156,7 @@ export default function Ch12Body() {
           },
         ]}
       />
+      )}
     </>
   );
 }
@@ -150,13 +165,7 @@ export default function Ch12Body() {
 
 function OverviewSection() {
   return (
-    <Sec
-      num="01"
-      title="서버리스와 Lambda 개요"
-      sub="EC2와의 차이, 과금 모델, 런타임"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 전제 개념"
-    >
+    <Sec {...sections[0]}>
       <P>
         서버리스는 &ldquo;서버가 없다&rdquo;가 아니라 <b>서버를 관리·프로비저닝하지 않는다</b>는
         뜻입니다. Lambda에서 개척되어 지금은 관리형 전반(DynamoDB, S3, API Gateway, Cognito, SQS,
@@ -245,13 +254,7 @@ function InvocationSvg() {
 
 function SyncSection() {
   return (
-    <Sec
-      num="02"
-      title="호출 ① 동기식 (+ ALB 통합)"
-      sub="결과를 기다린다 — 오류 처리는 호출자 책임"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 호출 3유형 구분"
-    >
+    <Sec {...sections[1]}>
       <Fig caption="호출 3유형 — 푸시(동기/비동기)와 폴링(ESM)의 구분 자체가 가장 자주 출제된다.">
         <InvocationSvg />
       </Fig>
@@ -290,13 +293,7 @@ function SyncSection() {
 
 function AsyncSection() {
   return (
-    <Sec
-      num="03"
-      title="호출 ② 비동기식 & DLQ"
-      sub="이벤트 큐 · 재시도 3회 · S3/EventBridge 트리거"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 재시도 정책 암기 필수"
-    >
+    <Sec {...sections[2]}>
       <P>
         <b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에
         쌓이고 호출자는 즉시 <Code>202 Accepted</Code>만 받습니다. S3·SNS·EventBridge·
@@ -352,13 +349,7 @@ function AsyncSection() {
 
 function EsmSection() {
   return (
-    <Sec
-      num="04"
-      title="호출 ③ 이벤트 소스 매핑 (ESM)"
-      sub="Kinesis · DynamoDB Streams · SQS — Lambda가 폴링한다"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 오류 처리와 스케일링"
-    >
+    <Sec {...sections[3]}>
       <P>
         <b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로,
         대상은 딱 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>. 폴러가
@@ -436,13 +427,7 @@ function EsmSection() {
 
 function EventCtxSection() {
   return (
-    <Sec
-      num="05"
-      title="이벤트 & 컨텍스트 객체"
-      sub="handler(event, context) — 데이터 vs 메타데이터"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 구분 문제"
-    >
+    <Sec {...sections[4]}>
       <P>
         핸들러는 <b>이벤트 객체</b>(호출 서비스가 보낸 <b>데이터</b> — Records, source, 요청
         본문)와 <b>컨텍스트 객체</b>(호출·런타임 <b>메타데이터</b> — <Code>aws_request_id</Code>,{" "}
@@ -465,13 +450,7 @@ function EventCtxSection() {
 
 function DestSection() {
   return (
-    <Sec
-      num="06"
-      title="Lambda Destinations"
-      sub="성공/실패 결과 라우팅 — DLQ와의 비교"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · DLQ 비교 단골"
-    >
+    <Sec {...sections[5]}>
       <P>
         <b>Destinations</b>는 호출 결과를 다른 서비스로 보냅니다. ① <b>비동기 호출</b>:
         성공/실패 각각에 <b>SQS · SNS · Lambda · EventBridge</b>(4종) 지정 ② <b>이벤트 소스
@@ -541,13 +520,7 @@ function PermissionSvg() {
 
 function PermSection() {
   return (
-    <Sec
-      num="07"
-      title="권한 — 실행 역할 vs 리소스 기반 정책"
-      sub="권한이 나가느냐, 들어오느냐"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 방향 구분이 정답 키"
-    >
+    <Sec {...sections[6]}>
       <Fig caption="나가는 권한 = 실행 역할, 들어오는 호출 권한 = 리소스 기반 정책.">
         <PermissionSvg />
       </Fig>
@@ -576,13 +549,7 @@ function PermSection() {
 
 function EnvSection() {
   return (
-    <Sec
-      num="08"
-      title="환경 변수"
-      sub="4KB 한도 · KMS 암호화"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 설정 관리"
-    >
+    <Sec {...sections[7]}>
       <P>
         환경 변수는 문자열 키/값으로, <b>코드를 재배포하지 않고</b> 함수 동작을 조정합니다. 총
         용량 <b>4KB</b>. 비밀 값은 <b>KMS 암호화</b>(Lambda 서비스 키 또는 고객 관리형 키)하거나{" "}
@@ -600,13 +567,7 @@ function EnvSection() {
 
 function MonSection() {
   return (
-    <Sec
-      num="09"
-      title="모니터링 & X-Ray 추적"
-      sub="CloudWatch 지표와 X-Ray 환경 변수"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 환경 변수 그대로 출제"
-    >
+    <Sec {...sections[8]}>
       <P>
         실행 로그는 <b>CloudWatch Logs에 자동 저장</b>됩니다 — 단, 실행 역할에 로그 쓰기
         권한(<Code>AWSLambdaBasicExecutionRole</Code>)이 있어야 합니다. 주요 지표: Invocations,
@@ -643,13 +604,7 @@ function MonSection() {
 
 function EdgeSection() {
   return (
-    <Sec
-      num="10"
-      title="Lambda@Edge & CloudFront Functions"
-      sub="엣지에서 요청/응답 변형 — 비교표 암기"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 선택 기준 문제"
-    >
+    <Sec {...sections[9]}>
       <P>
         CloudFront의 4개 후크 지점 — ① Viewer Request ② Origin Request ③ Origin Response ④
         Viewer Response. <b>CloudFront Functions는 ①④(Viewer 쪽)만</b>, <b>Lambda@Edge는 ①~④
@@ -685,13 +640,7 @@ function EdgeSection() {
 
 function VpcSection() {
   return (
-    <Sec
-      num="11"
-      title="VPC의 Lambda"
-      sub="ENI · 퍼블릭 서브넷 함정 · NAT"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 초빈출 함정 포함"
-    >
+    <Sec {...sections[10]}>
       <P>
         기본적으로 Lambda는 <b>AWS 소유 VPC(내 VPC 밖)</b>에서 실행됩니다 — 퍼블릭 인터넷·퍼블릭
         API·DynamoDB에는 접근되지만, <b>내 VPC 안의 리소스(RDS, ElastiCache, 내부 ELB)에는 접근
@@ -715,13 +664,7 @@ function VpcSection() {
 
 function PerfSection() {
   return (
-    <Sec
-      num="12"
-      title="함수 성능 — 메모리·타임아웃·실행 컨텍스트"
-      sub="RAM↑ = vCPU↑ · 1,769MB = 1 vCPU"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 수치와 코드 패턴"
-    >
+    <Sec {...sections[11]}>
       <P>
         RAM은 <b>128MB~10,240MB, 1MB 단위</b>. CPU는 직접 설정할 수 없고 <b>RAM에 비례해
         할당</b>됩니다 — 약 <b>1,769MB에서 1 vCPU 상당</b>에 도달하고, 그 이상은{" "}
@@ -759,13 +702,7 @@ def get_user_handler(event, context):
 
 function ConcSection() {
   return (
-    <Sec
-      num="13"
-      title="동시성 & 콜드 스타트"
-      sub="Reserved vs Provisioned · 스로틀 동작"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 시나리오 단골"
-    >
+    <Sec {...sections[12]}>
       <P>
         계정(리전)당 동시 실행 기본 한도 <b>1,000</b>(상향 요청 가능). 함수별{" "}
         <b>예약 동시성(Reserved Concurrency)</b>은 그 함수의 동시 실행 상한을 지정해 격리합니다 —
@@ -808,13 +745,7 @@ function ConcSection() {
 
 function LayersSection() {
   return (
-    <Sec
-      num="14"
-      title="레이어 & 스토리지 옵션 (EFS 포함)"
-      sub="종속성 재사용과 4가지 스토리지 비교"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 비교표 통째로 출제"
-    >
+    <Sec {...sections[13]}>
       <P>
         <b>레이어(Layers)</b>의 용도: ① 커스텀 런타임(C++, Rust) ② <b>종속성 재사용</b> — 무거운
         라이브러리를 분리해 함수 패키지를 가볍게 하고 여러 함수가 공유. 한도:{" "}
@@ -842,13 +773,7 @@ function LayersSection() {
 
 function DeploySection() {
   return (
-    <Sec
-      num="15"
-      title="배포 — 종속성 · CloudFormation · 컨테이너 이미지"
-      sub="zip 50MB · S3ObjectVersion 함정 · Runtime API"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · CFN 함정 주의"
-    >
+    <Sec {...sections[14]}>
       <SubTitle>외부 종속성 패키징</SubTitle>
       <P>
         외부 라이브러리는 코드와 함께 zip으로 패키징합니다. zip <b>50MB 미만</b>이면 직접 업로드,
@@ -884,13 +809,7 @@ function DeploySection() {
 
 function VersionsSection() {
   return (
-    <Sec
-      num="16"
-      title="버전 & Alias"
-      sub="불변 버전 · 가변 별칭 · 가중치 카나리"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 그대로 암기"
-    >
+    <Sec {...sections[15]}>
       <P>
         작업 중인 함수는 <Code>$LATEST</Code> — <b>가변</b>. <b>게시(publish)</b>하면 V1, V2 …
         버전이 생성되며 <b>불변</b>입니다(코드+구성이 고정, 고유 ARN). <b>Alias</b>는 버전을
@@ -926,13 +845,7 @@ function VersionsSection() {
 
 function CodeDeploySection() {
   return (
-    <Sec
-      num="17"
-      title="CodeDeploy 트래픽 전환"
-      sub="Linear · Canary · AllAtOnce + 자동 롤백"
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 전략 이름 구분"
-    >
+    <Sec {...sections[16]}>
       <P>
         CodeDeploy는 Lambda <b>Alias의 트래픽 전환을 자동화</b>합니다(SAM 프레임워크 통합).
       </P>
@@ -969,13 +882,7 @@ function CodeDeploySection() {
 
 function FurlSection() {
   return (
-    <Sec
-      num="18"
-      title="Lambda 함수 URL"
-      sub="게이트웨이 없이 전용 HTTPS 엔드포인트"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · AuthType 구분"
-    >
+    <Sec {...sections[17]}>
       <P>
         API Gateway·ALB 없이 Lambda에 전용 HTTPS 엔드포인트를 부여합니다 —{" "}
         <Code>https://&#123;url-id&#125;.lambda-url.&#123;region&#125;.on.aws</Code> (고유·불변,
@@ -1006,13 +913,7 @@ function FurlSection() {
 
 function SupplementSection() {
   return (
-    <Sec
-      num="19"
-      title="익스텐션 · 테스트 · 준실시간 변환 (보충)"
-      sub="원본 미커버 항목 — Task 1.2 키워드 보강"
-      freq="lo"
-      freqLabel="보통 ★☆☆ · 커버리지 보강"
-    >
+    <Sec {...sections[18]}>
       <SubTitle>Lambda 익스텐션 (Extensions API)</SubTitle>
       <P>
         모니터링·관측성·보안 에이전트를 함수 실행 환경에 통합하는 방법입니다. <b>내부
@@ -1043,13 +944,7 @@ function SupplementSection() {
 
 function LimitsSection() {
   return (
-    <Sec
-      num="20"
-      title="한도 총정리 & 시나리오 → 정답 패턴"
-      sub="숫자 암기표 — 리전당 적용"
-      freq="hi"
-      freqLabel="최빈출 ★★★ · 숫자 그대로 출제"
-    >
+    <Sec {...sections[19]}>
       <Table
         head={["항목", "값", "시험에서의 활용"]}
         rows={[

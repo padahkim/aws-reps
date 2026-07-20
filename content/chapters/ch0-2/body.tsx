@@ -14,13 +14,25 @@ import {
   SubTitle,
   Table,
 } from "../ui";
+import { sections } from "./meta";
 
 const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
 
-export default function Ch02Body() {
+/** 섹션 컴포넌트 목록 — 순서 = meta.sections (불일치는 아래 assert가 빌드 프리렌더에서 잡는다). */
+const SECTIONS = [IamSection];
+
+if (SECTIONS.length !== sections.length) {
+  throw new Error(`ch0-2: 본문 섹션 ${SECTIONS.length}개 ≠ meta.sections ${sections.length}개`);
+}
+
+/** 규약 v2 — section 인덱스(0-based)의 섹션 하나만 렌더. 인트로/체크리스트는 첫/마지막 섹션에. */
+export default function Ch02Body({ section }: { section: number }) {
+  const S = SECTIONS[section];
+  if (!S) throw new Error(`ch0-2: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
     <>
+      {section === 0 && (
       <P>
         IAM(Identity and Access Management)은 AWS의 <b>출입 통제 시스템</b>입니다.{" "}
         <ChLink id="ch0-1">ch0-1</ChLink>에서 본 것처럼 모든 도구는 결국 같은 API를 부르고
@@ -29,9 +41,9 @@ export default function Ch02Body() {
         되는가?&rdquo;를 IAM에게 검사받습니다. 구성 요소는 딱 두 종류로 나눠서 보면 쉽습니다:{" "}
         <b>주체(Identity)</b>와 <b>권한(Policy)</b>.
       </P>
-
-      <IamSection />
-
+      )}
+      <S />
+      {section === SECTIONS.length - 1 && (
       <Checklist
         title="체크리스트 — 이 문장이 술술 나오면 통과"
         items={[
@@ -49,19 +61,14 @@ export default function Ch02Body() {
           },
         ]}
       />
+      )}
     </>
   );
 }
 
 function IamSection() {
   return (
-    <Sec
-      num="01"
-      title="IAM 기초"
-      sub="&ldquo;누가(Who) 무엇을(What) 할 수 있는가(Can do)&rdquo;"
-      freq="hi"
-      freqLabel="빈출 ★★★ · DVA 최다 빈출 주제 중 하나"
-    >
+    <Sec {...sections[0]}>
       <Fig caption="주체(유저·그룹·롤)에 정책(JSON)을 연결하면, 그 주체가 리소스에 접근할 수 있게 된다.">
         <IamStructureSvg />
       </Fig>

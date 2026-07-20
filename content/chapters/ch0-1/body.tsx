@@ -15,24 +15,34 @@ import {
   SubTitle,
   Table,
 } from "../ui";
+import { sections } from "./meta";
 
 const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
 
-export default function Ch01Body() {
+/** 섹션 컴포넌트 목록 — 순서 = meta.sections (불일치는 아래 assert가 빌드 프리렌더에서 잡는다). */
+const SECTIONS = [RegionAzSection, ApiSection, PricingSection];
+
+if (SECTIONS.length !== sections.length) {
+  throw new Error(`ch0-1: 본문 섹션 ${SECTIONS.length}개 ≠ meta.sections ${sections.length}개`);
+}
+
+/** 규약 v2 — section 인덱스(0-based)의 섹션 하나만 렌더. 인트로/체크리스트는 첫/마지막 섹션에. */
+export default function Ch01Body({ section }: { section: number }) {
+  const S = SECTIONS[section];
+  if (!S) throw new Error(`ch0-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
   return (
     <>
+      {section === 0 && (
       <P>
         어떤 서비스를 배우든 계속 등장하는 기반 개념 — 인프라의 물리적 구조(리전/AZ), 모든
         도구가 수렴하는 API와 자격증명, 그리고 요금의 사고방식. 여기서 다루는 &ldquo;문법&rdquo;은
         이후 모든 서비스 설명이 전제로 깔고 가는 공통 언어입니다. 이 챕터는 개념 이해 중심이며,
         실습은 포함하지 않습니다. (출입 통제 시스템인 IAM은 별도 챕터 ch0-2에서 다룹니다.)
       </P>
-
-      <RegionAzSection />
-      <ApiSection />
-      <PricingSection />
-
+      )}
+      <S />
+      {section === SECTIONS.length - 1 && (
       <Checklist
         title="체크리스트 — 이 문장이 술술 나오면 통과"
         items={[
@@ -54,6 +64,7 @@ export default function Ch01Body() {
           },
         ]}
       />
+      )}
     </>
   );
 }
@@ -62,13 +73,7 @@ export default function Ch01Body() {
 
 function RegionAzSection() {
   return (
-    <Sec
-      num="01"
-      title="리전 / 가용영역(AZ)"
-      sub={'"내 리소스는 물리적으로 어디에 있는가"'}
-      freq="mid"
-      freqLabel="빈출 ★★☆ · 직접 문항은 적지만 모든 문제의 전제"
-    >
+    <Sec {...sections[0]}>
       <P>
         AWS는 전 세계에 데이터센터를 깔아 두고, 이를{" "}
         <b>리전(Region) → 가용영역(AZ, Availability Zone) → 데이터센터</b>의 계층으로 묶어서
@@ -237,13 +242,7 @@ function GlobalInfraSvg() {
 
 function ApiSection() {
   return (
-    <Sec
-      num="02"
-      title="AWS API의 구조"
-      sub="콘솔·CLI·SDK는 전부 &ldquo;같은 API&rdquo;를 부르는 다른 껍데기"
-      freq="hi"
-      freqLabel="빈출 ★★★ · 자격증명 관련은 개발자 시험의 핵심"
-    >
+    <Sec {...sections[1]}>
       <P>
         AWS의 모든 것은 <b>HTTPS API</b>입니다. 웹 콘솔에서 버튼을 누르든, 터미널에서 CLI 명령을
         치든, 코드에서 SDK를 호출하든 — 최종적으로는 전부 동일한 API 엔드포인트로 서명된 HTTP
@@ -382,13 +381,7 @@ function ApiConvergeSvg() {
 
 function PricingSection() {
   return (
-    <Sec
-      num="03"
-      title="요금의 기본 사고방식"
-      sub="쓴 만큼 낸다 · 관리형 vs 직접 운영"
-      freq="lo"
-      freqLabel="빈출 ★☆☆ · 직접 출제는 드물지만 &ldquo;정답 고르는 감각&rdquo;의 뿌리"
-    >
+    <Sec {...sections[2]}>
       <P>
         AWS 요금의 대원칙은 <b>종량제(Pay-as-you-go)</b> — 선투자 없이, 쓴 만큼만, 초·요청·GB
         단위로 냅니다. 과금 축은 크게 세 가지입니다: <b>컴퓨팅(실행 시간)</b>,{" "}
