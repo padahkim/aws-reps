@@ -271,3 +271,120 @@ export function ManagedSpectrumSvg() {
     </svg>
   );
 }
+
+/** §00 — AI(생성)와 사람(판단)의 분업 루프. */
+export function AiDivisionSvg() {
+  return (
+    <svg viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* AI 박스 */}
+      <rect x={40} y={55} width={280} height={150} rx={14} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
+      <text x={180} y={90} fontSize={15} fontWeight={900} fill={C.blue} textAnchor="middle">
+        🤖 AI의 몫 — 생성
+      </text>
+      <text x={180} y={122} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        인프라 코드 · 설정 초안 작성
+      </text>
+      <text x={180} y={142} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        반복 작업 자동화
+      </text>
+      <text x={180} y={176} fontSize={11.5} fontWeight={700} fill={C.blue} textAnchor="middle">
+        문법은 완벽하다
+      </text>
+
+      {/* 사람 박스 */}
+      <rect x={440} y={55} width={280} height={150} rx={14} fill={C.amberSoft} stroke={C.amber} strokeWidth={2.5} />
+      <text x={580} y={90} fontSize={15} fontWeight={900} fill={C.amberText} textAnchor="middle">
+        🧑‍💻 사람의 몫 — 판단
+      </text>
+      <text x={580} y={122} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        적합한가? 안전한가? 비용은?
+      </text>
+      <text x={580} y={142} fontSize={12} fill={C.inkSoft} textAnchor="middle">
+        장애가 나면 어디부터 보나?
+      </text>
+      <text x={580} y={176} fontSize={11.5} fontWeight={700} fill={C.amberText} textAnchor="middle">
+        검증하고, 책임진다
+      </text>
+
+      {/* 순환 화살표 */}
+      <line x1={324} y1={95} x2={428} y2={95} stroke={C.inkSoft} strokeWidth={2.5} />
+      <polygon points="436,95 424,89 424,101" fill={C.inkSoft} />
+      <text x={380} y={82} fontSize={11} fill={C.inkSoft} textAnchor="middle" fontWeight={700}>
+        결과물
+      </text>
+      <line x1={436} y1={168} x2={332} y2={168} stroke={C.teal} strokeWidth={2.5} />
+      <polygon points="324,168 336,162 336,174" fill={C.teal} />
+      <text x={380} y={192} fontSize={11} fill={C.teal} textAnchor="middle" fontWeight={700}>
+        좋은 질문 · 구체적 지시
+      </text>
+
+      <text x={380} y={252} fontSize={12.5} fontWeight={800} fill={C.inkSoft} textAnchor="middle">
+        아는 만큼 AI를 잘 부리고 — 모르는 만큼, 잘못된 것을 자신 있게 배포한다
+      </text>
+    </svg>
+  );
+}
+
+/** §00 — AI가 보는 범위(코드·에러·로그)와 그 바깥의 시스템 맥락. */
+export function BlindSpotSvg() {
+  const ctx = (x: number, title: string, l1: string, l2: string, incident: string) => (
+    <>
+      <rect x={x} y={196} width={216} height={104} rx={12} fill={C.amberSoft} stroke={C.amber} strokeWidth={2} />
+      <text x={x + 108} y={224} fontSize={13} fontWeight={900} fill={C.amberText} textAnchor="middle">
+        {title}
+      </text>
+      <text x={x + 108} y={248} fontSize={11} fill={C.inkSoft} textAnchor="middle">
+        {l1}
+      </text>
+      <text x={x + 108} y={266} fontSize={11} fill={C.inkSoft} textAnchor="middle">
+        {l2}
+      </text>
+      <text x={x + 108} y={288} fontSize={10.5} fill={C.red} textAnchor="middle" fontWeight={700}>
+        {incident}
+      </text>
+    </>
+  );
+
+  return (
+    <svg viewBox="0 0 760 390" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      {/* 바깥: 시스템 전체 */}
+      <rect x={20} y={20} width={720} height={310} rx={16} fill="#FFFFFF" stroke={C.line} strokeWidth={2} strokeDasharray="7 5" />
+      <text x={44} y={50} fontSize={14} fontWeight={900} fill={C.ink}>
+        🗺 시스템 전체 — 사람이 그려야 하는 그림
+      </text>
+
+      {/* 안쪽: AI의 시야 */}
+      <rect x={44} y={68} width={672} height={104} rx={12} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
+      <text x={68} y={96} fontSize={13} fontWeight={900} fill={C.blue}>
+        🤖 AI에게 보여준 것
+      </text>
+      {[
+        { x: 300, label: "코드" },
+        { x: 420, label: "에러 메시지" },
+        { x: 566, label: "로그" },
+      ].map((b) => (
+        <g key={b.x}>
+          <rect x={b.x} y={80} width={b.label.length > 4 ? 130 : 100} height={34} rx={8} fill="#FFFFFF" stroke={C.blue} strokeWidth={1.5} />
+          <text x={b.x + (b.label.length > 4 ? 65 : 50)} y={102} fontSize={11.5} fill={C.blue} textAnchor="middle" fontFamily={MONO}>
+            {b.label}
+          </text>
+        </g>
+      ))}
+      <text x={68} y={140} fontSize={11.5} fill={C.inkSoft}>
+        이 범위 안에서는 정확하다 — 문법도, 에러 해석도 틀리지 않는다.
+      </text>
+      <text x={68} y={158} fontSize={11.5} fill={C.inkSoft}>
+        하지만 “이게 문제인가?”는 이 안에 답이 없다.
+      </text>
+
+      {/* 바깥의 세 축 = 세 사고 */}
+      {ctx(44, "실행 주체", "로컬의 나 ≠ Lambda 실행 역할", "누구의 권한으로 도는가", "→ 프로덕션에서만 AccessDenied")}
+      {ctx(272, "이벤트 흐름", "출력이 자기 트리거로 돌아오면", "무한 루프가 된다", "→ 청구서 5배")}
+      {ctx(500, "노출 경계", "무엇이 인터넷에 열려 있고", "무엇이 뒤에 숨어야 하는가", "→ 버킷이 통째로 공개")}
+
+      <text x={380} y={362} fontSize={12.5} fontWeight={800} fill={C.inkSoft} textAnchor="middle">
+        AI는 보여준 것 안에선 천재다 — 무엇을 보여줄지는 사람이 정한다
+      </text>
+    </svg>
+  );
+}
