@@ -101,12 +101,14 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 ```bash
 N=<이슈 번호>; TARGET=Done   # 또는 "In Progress"
 PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
-IT=$(gh project item-list 1 --owner "@me" --limit 50 --format json | python3 -c "import json,sys;print(next(i['id'] for i in json.load(sys.stdin)['items'] if i['content'].get('number')==$N))")
+IT=$(gh project item-list 1 --owner "@me" --limit 50 --format json | python3 -c "import json,sys;print(next((i['id'] for i in json.load(sys.stdin)['items'] if i['content'].get('number')==$N),''))")
+[ -n "$IT" ] || IT=$(gh project item-add 1 --owner "@me" --url "https://github.com/padahkim/aws-reps/issues/$N" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
 FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='Status');import os;print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
 gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }"
 ```
 
-- 새 이슈를 이 세션에서 등록했는데 보드에 없다면 `gh project item-add 1 --owner "@me" --url <이슈 URL>`로 추가한다.
+- 순서 주의: **추가가 먼저, 상태 설정이 나중** — 보드에 없는 이슈를 상태부터 설정하려 하면 조회가 빈 값으로 끝나 상태가 기본값으로 남는다. 위 스크립트는 조회 실패 시 item-add로 추가한 뒤 그 item ID로 상태를 설정한다.
+- item-add로 새로 추가한 이슈는 **Phase 필드도 설정**한다 (CLAUDE.md Task management의 보드 규칙 — Milestones 대신 Phase 필드).
 - gh 차단 머신에서는 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션 시작 시 동기화한다.
 
 ## 하네스 변경 시 — main 전파
