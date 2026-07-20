@@ -11,7 +11,7 @@ import { CodeBlock, InvocationSvg } from "../figs";
 
 <CodeBlock title="CLI — 동기식 호출">{`aws lambda invoke \\\n  --function-name demo-lambda \\\n  --cli-binary-format raw-in-base64-out \\\n  --payload '{"key1": "value1"}' \\\n  response.json`}</CodeBlock>
 
-호출 유형은 CLI/SDK의 <b>`--invocation-type`</b> 파라미터로 정합니다 — `RequestResponse`(기본값 = 동기), `Event`(비동기), `DryRun`(권한·파라미터 검증만, 실행 없음).
+호출 유형은 CLI의 <b>`--invocation-type`</b> 파라미터(SDK/API에서는 `InvocationType` 필드)로 정합니다 — `RequestResponse`(기본값 = 동기), `Event`(비동기), `DryRun`(권한·파라미터 검증만, 실행 없음).
 
 <SubTitle>ALB 통합</SubTitle>
 
