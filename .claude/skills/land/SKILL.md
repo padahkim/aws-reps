@@ -24,8 +24,11 @@ MAIN=$(git worktree list --porcelain \
 if [ -n "$MAIN" ]; then
   MODE=worktree
 elif git show-ref --verify --quiet refs/heads/develop \
-  && [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ]; then
+  && [ "$(git rev-parse --path-format=absolute --git-dir)" \
+     = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
   # develop 브랜치는 있고, 지금이 주 워크트리다 → 단일 워크트리 모드
+  # --path-format=absolute 필수: 하위 디렉토리에서 실행하면 --git-dir은 절대경로,
+  # --git-common-dir은 상대경로(../.git)로 나와 비교가 헛돈다 (#63 Codex 리뷰)
   MODE=single
   MAIN=$(git rev-parse --show-toplevel)   # 아래 git -C "$MAIN" 이 그대로 성립하게
 else
