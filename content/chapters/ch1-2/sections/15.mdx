@@ -1,0 +1,16 @@
+import { SubTitle } from "../../ui";
+import { WarnBox } from "../figs";
+
+<SubTitle>외부 종속성 패키징</SubTitle>
+
+외부 라이브러리는 코드와 함께 zip으로 패키징합니다. zip <b>50MB 미만</b>이면 직접 업로드, 초과하면 <b>S3에 올린 뒤 참조</b>. 네이티브 라이브러리는 Amazon Linux에서 컴파일해야 하고, <b>AWS SDK는 기본 포함</b>이라 별도 패키징이 불필요합니다(시험 포인트).
+
+<SubTitle>CloudFormation 배포 2방식</SubTitle>
+
+① <b>인라인</b>(`Code.ZipFile`): 간단한 함수용 — <b>외부 종속성 포함 불가</b>. ② <b>S3 참조</b>: `S3Bucket`·`S3Key`·`S3ObjectVersion`.
+
+<WarnBox>S3의 코드만 새로 올리고 템플릿의 버킷/키/버전을 안 바꾸면 <b>CloudFormation은 함수를 업데이트하지 않는다</b> — 버킷 버저닝 활성화 + <b>S3ObjectVersion을 매번 갱신</b>이 정답. 다중 계정 배포는 S3 버킷 정책(다른 계정 허용) + 각 계정 CFN 실행 역할의 S3 읽기 권한 둘 다 필요.</WarnBox>
+
+<SubTitle>컨테이너 이미지</SubTitle>
+
+함수를 컨테이너 이미지로 배포 — 최대 <b>10GB</b>, 이미지는 <b>ECR</b>에 저장. 이미지는 반드시 <b>Lambda Runtime API를 구현</b>해야 하며(AWS 제공 베이스 이미지 사용 권장), <b>Lambda Runtime Interface Emulator(RIE)</b>로 로컬 테스트가 가능합니다. 모범 사례: 멀티 스테이지 빌드, 안정적인 레이어 → 자주 바뀌는 레이어 순 배치.

@@ -1,0 +1,26 @@
+import { ExamLi, ExamPoint, Note, Table } from "../../ui";
+
+계정(리전)당 동시 실행 기본 한도 <b>1,000</b>(상향 요청 가능). 함수별 <b>예약 동시성(Reserved Concurrency)</b>은 그 함수의 동시 실행 상한을 지정해 격리합니다 — 무료. 한 함수가 폭주해 계정 풀 1,000을 다 쓰면 <b>같은 계정의 다른 모든 함수가 스로틀</b>됩니다(예약 동시성이 필요한 이유이자 시험 시나리오 단골).
+
+<Table
+  head={["상황", "동작"]}
+  rows={[
+    ["동기 호출 스로틀", <>즉시 <b>429 ThrottleError</b> 반환 — 재시도는 호출자 책임</>],
+    [
+      "비동기 호출 스로틀·시스템 오류",
+      <>
+        이벤트를 큐로 되돌려 <b>최대 6시간</b> 재시도 — 지수 백오프 1초→최대 5분
+      </>,
+    ],
+  ]}
+/>
+
+<b>콜드 스타트</b>: 새 실행 환경 기동 시 코드 로드 + 핸들러 밖 초기화(INIT)가 실행되어 첫 요청이 지연됩니다 — 지연 폭은 런타임·초기화 코드·패키지 크기에 따라 가변(통상 수백 ms~수 초). <b>프로비저닝된 동시성(Provisioned Concurrency)</b>은 호출 전에 실행 환경을 미리 초기화해 콜드 스타트를 제거하며(유료), <b>Application Auto Scaling</b>의 스케줄/사용률 기반 관리와 결합합니다. 게시된 <b>버전/별칭에만</b> 설정할 수 있습니다($LATEST 불가).
+
+<Note>보완: <b>SnapStart</b>는 초기화 완료 스냅샷에서 실행 환경을 복원해 콜드 스타트를 줄인다 — Java 11+ 외에 Python 3.12+, .NET 8+도 현행 지원.</Note>
+
+<ExamPoint>
+  <ExamLi>“한 함수 폭주가 다른 함수를 스로틀” → Reserved Concurrency로 격리.</ExamLi>
+  <ExamLi>“예측 가능한 피크의 콜드 스타트 제거” → Provisioned Concurrency + AAS 스케줄.</ExamLi>
+  <ExamLi>Reserved = 한도 보장(무료), Provisioned = 미리 데워둠(유료) — 역할 구분.</ExamLi>
+</ExamPoint>

@@ -1,0 +1,27 @@
+import { ExamLi, ExamPoint, Table } from "../../ui";
+
+객체를 자동으로 다른 클래스로 <b>전환(Transition)</b>하거나 <b>만료(Expiration, 삭제)</b>시키는 규칙입니다. prefix(`s3://bucket/mp3/*`)나 객체 태그로 적용 범위를 좁힐 수 있습니다.
+
+<Table
+  head={["액션", "예시"]}
+  rows={[
+    ["Transition", "생성 60일 후 Standard-IA로, 6개월 후 Glacier로 이동"],
+    [
+      "Expiration",
+      <>
+        365일 후 액세스 로그 삭제 · <b>이전 버전 삭제</b> · <b>미완료 멀티파트 업로드
+        정리</b>(AbortIncompleteMultipartUpload) · 오래된 삭제 마커 제거
+      </>,
+    ],
+  ]}
+/>
+
+대표 설계 시나리오 — “삭제 후 30일 내 즉시 복구 + 이후 1년까지 48시간 내 복구”: 버전 관리 활성화 + **이전 버전**을 30일 후 Standard-IA로, 이후 Glacier Deep Archive로 전환.
+
+**S3 Analytics(스토리지 클래스 분석)**: **Standard → Standard-IA 전환 추천만** 제공합니다(One Zone-IA·Glacier 미지원). 리포트(CSV)는 활성화 24~48시간 후부터 매일 갱신 — 수명 주기 규칙 수립의 근거로 활용합니다.
+
+<ExamPoint>
+  <ExamLi>“미완료 멀티파트 업로드로 저장 비용이 샌다” → 수명 주기 규칙으로 자동 정리.</ExamLi>
+  <ExamLi>S3 Analytics는 Glacier 전환을 추천하지 못한다 — Standard↔Standard-IA만.</ExamLi>
+  <ExamLi>버전 관리 + 수명 주기를 조합한 복구 설계 문제가 자주 나온다.</ExamLi>
+</ExamPoint>

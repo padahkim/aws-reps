@@ -1,0 +1,9 @@
+import { ExamLi, ExamPoint } from "../../ui";
+
+객체를 호출자에게 반환하기 **직전에 Lambda로 변환**합니다. 변환본을 위한 별도 버킷 복제가 필요 없습니다. 구성 순서: **S3 버킷 → (지원) 액세스 포인트 → Object Lambda 액세스 포인트 → Lambda → 애플리케이션**.
+
+사용 예: 분석 환경용 **PII 마스킹/삭제** · XML→JSON 등 **포맷 변환** · 요청자별 **이미지 리사이즈·워터마크** · 다른 소스 정보를 합치는 **데이터 보강**. GET 외에 HEAD·LIST 요청 변환도 지원합니다.
+
+<ExamPoint>
+  <ExamLi>“원본 하나만 두고 애플리케이션마다 다른 형태로 제공” → Object Lambda가 정답 키워드.</ExamLi>
+</ExamPoint>

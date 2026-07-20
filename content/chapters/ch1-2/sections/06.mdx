@@ -1,0 +1,24 @@
+import { ExamLi, ExamPoint, Table } from "../../ui";
+
+<b>Destinations</b>는 호출 결과를 다른 서비스로 보냅니다. ① <b>비동기 호출</b>: 성공/실패 각각에 <b>SQS · SNS · Lambda · EventBridge</b>(4종) 지정 ② <b>이벤트 소스 매핑</b>: 처리 불가로 폐기된 배치를 SQS/SNS로.
+
+<Table
+  head={["항목", "DLQ", "Destinations"]}
+  rows={[
+    ["적용 범위", "비동기 호출의 '실패'만", "비동기 성공+실패 모두 + ESM 폐기 배치"],
+    ["대상", "SQS · SNS (2종)", "SQS · SNS · Lambda · EventBridge (4종)"],
+    ["전송 정보", "이벤트 본문 위주", "호출 컨텍스트·응답 등 더 풍부"],
+    [
+      "위상",
+      "먼저 나온 기능",
+      <>
+        공식 문서상 DLQ의 <b>대안</b> — 성공/실패 모두 지원 + 풍부한 컨텍스트가 이점
+      </>,
+    ],
+  ]}
+/>
+
+<ExamPoint>
+  <ExamLi>“실패 이벤트를 더 많은 컨텍스트와 함께 라우팅” → Destinations.</ExamLi>
+  <ExamLi>“성공 결과도 라우팅하려면?” → Destinations (DLQ는 불가).</ExamLi>
+</ExamPoint>

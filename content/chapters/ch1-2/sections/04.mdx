@@ -1,0 +1,53 @@
+import { ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
+import { WarnBox } from "../figs";
+
+<b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 딱 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>. 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
+
+<SubTitle>유형 ① 스트림 (Kinesis & DynamoDB Streams)</SubTitle>
+
+샤드마다 iterator를 만들어 <b>샤드 수준 순서 보장</b>으로 처리합니다. 읽기 시작 위치는 새 항목만 / 처음부터(TRIM_HORIZON) / 특정 타임스탬프. 처리된 항목은 스트림에서 삭제되지 않으며, 처리량을 높이려면 <b>샤드당 최대 10개 배치 병렬 처리</b>(ParallelizationFactor, 파티션 키 수준 순서 유지)가 가능합니다.
+
+<WarnBox>스트림 오류 기본 동작: <b>성공하거나 항목이 만료될 때까지 배치 전체 재시도</b> — 그동안 <b>해당 샤드 처리가 중지</b>된다(순서 보장 때문). 대응 설정: discard old events · restrict retries · <b>split(bisect) batch on error</b>. 폐기된 이벤트는 Destination으로.</WarnBox>
+
+<SubTitle>유형 ② 큐 (SQS & SQS FIFO)</SubTitle>
+
+롱 폴링으로 큐를 읽으며 배치 크기 1~10. <b>가시성 타임아웃은 함수 타임아웃의 6배</b> 권장(계산 문제 출제). 성공 항목은 Lambda가 큐에서 삭제하고, 실패 배치는 개별 항목 단위로 큐에 복귀 — 이미 성공한 항목이 다시 올 수 있으니 <b>멱등</b> 처리해야 합니다.
+
+<WarnBox>실패 메시지 DLQ는 <b>SQS 큐 자체에</b> 설정한다 — <b>Lambda의 DLQ 설정은 비동기 호출 전용</b>이라 ESM에서는 동작하지 않음(핵심 함정). 대안은 Lambda Destination.</WarnBox>
+
+<SubTitle>스케일링 요약</SubTitle>
+
+<Table
+  head={["소스", "동시성 / 스케일링", "순서 보장"]}
+  rows={[
+    [
+      "Kinesis / DDB Streams",
+      <>
+        샤드당 호출 1개 · 병렬화 시 <b>샤드당 최대 10개 배치</b>
+      </>,
+      "샤드(병렬화 시 파티션 키) 수준",
+    ],
+    [
+      "SQS Standard",
+      <>
+        <b>5개 동시 호출로 시작 → 분당 최대 300개 추가 → 최대 1,250 동시 호출</b> (Standard
+        모드 기준)
+      </>,
+      "없음",
+    ],
+    [
+      "SQS FIFO",
+      <>
+        <b>활성 메시지 그룹(GroupID) 수</b>만큼 스케일링
+      </>,
+      "메시지 그룹 ID 수준",
+    ],
+  ]}
+/>
+
+<Note>SQS Standard의 “분당 60개 추가·최대 1,000”은 구버전 규칙 — 현행 공식 문서는 5 시작·+300/분·최대 1,250이다.</Note>
+
+<ExamPoint>
+  <ExamLi>구분법: <b>S3·SNS·EventBridge = 비동기(푸시)</b> vs <b>Kinesis·DDB Streams·SQS = ESM(폴링·동기)</b> — 이 구분 자체가 최다 빈출.</ExamLi>
+  <ExamLi>“불량 레코드가 샤드를 막는다” → bisect batch on error + 재시도 제한 + 실패 대상 지정.</ExamLi>
+</ExamPoint>

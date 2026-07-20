@@ -1,0 +1,39 @@
+import { Checklist } from "../ui";
+
+<Checklist
+  title="체크리스트 — 이 문장이 술술 나오면 통과"
+  items={[
+    {
+      text: "S3·SNS·EventBridge → 비동기(푸시), Kinesis·DynamoDB Streams·SQS → 이벤트 소스 매핑(폴링·동기)",
+      freq: "★★★",
+    },
+    {
+      text: "비동기 실패 = 총 3회 시도(1분·2분 간격) 후 DLQ/Destination — 처리 로직은 멱등해야 한다",
+      freq: "★★★",
+    },
+    {
+      text: "나가는 권한 = 실행 역할, 들어오는 호출 권한 = 리소스 기반 정책 (ESM 폴링은 실행 역할)",
+      freq: "★★★",
+    },
+    {
+      text: "메모리 128MB~10,240MB(1MB 단위), 약 1,769MB ≈ 1 vCPU — CPU가 필요하면 메모리를 올린다",
+      freq: "★★★",
+    },
+    {
+      text: "타임아웃 기본 3초·최대 900초(15분), zip 50MB/해제 250MB/컨테이너 10GB, /tmp 512MB~10GB, 환경 변수 4KB, 레이어 5개",
+      freq: "★★★",
+    },
+    {
+      text: "동시성 계정 기본 1,000 — 초과 시 동기 429, 비동기는 최대 6시간 재시도. Reserved=격리, Provisioned=콜드 스타트 제거",
+      freq: "★★★",
+    },
+    {
+      text: "버전은 불변, 별칭은 가변 포인터 — 가중치는 버전 2개까지, 별칭이 별칭을 가리킬 수 없고 $LATEST에는 가중치·PC 설정 불가",
+      freq: "★★★",
+    },
+    {
+      text: "VPC Lambda는 퍼블릭 서브넷에서도 공인 IP가 없다 — 인터넷은 프라이빗 서브넷 + NAT",
+      freq: "★★★",
+    },
+  ]}
+/>

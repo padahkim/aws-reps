@@ -1,0 +1,26 @@
+import { Code, Table } from "../../ui";
+
+CodeDeploy는 Lambda <b>Alias의 트래픽 전환을 자동화</b>합니다(SAM 프레임워크 통합).
+
+<Table
+  head={["전략", "동작", "예시"]}
+  rows={[
+    [
+      "Linear",
+      "N분마다 일정 비율씩 증가",
+      <>
+        <Code>Linear10PercentEvery3Minutes</Code>
+      </>,
+    ],
+    [
+      "Canary",
+      "X%로 시험 후 → 한 번에 100%",
+      <>
+        <Code>Canary10Percent5Minutes</Code>
+      </>,
+    ],
+    ["AllAtOnce", "즉시 100% 전환 (가장 빠르고 위험)", "—"],
+  ]}
+/>
+
+<b>Pre/Post Traffic Hook</b>(Lambda 함수)으로 배포 전후를 검증하고, <b>CloudWatch Alarm</b>이 울리면 <b>자동 롤백</b>합니다. AppSpec 필수 4필드: <b>Name · Alias · CurrentVersion · TargetVersion</b>.

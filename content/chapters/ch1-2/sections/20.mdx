@@ -1,0 +1,53 @@
+import { ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
+import { WarnBox } from "../figs";
+
+<Table
+  head={["항목", "값", "시험에서의 활용"]}
+  rows={[
+    ["메모리", "128MB ~ 10,240MB (1MB 단위)", "RAM↑=vCPU↑ · 1,769MB ≈ 1 vCPU"],
+    ["실행 시간", "기본 3초 · 최대 900초(15분)", "초과 → Step Functions / ECS·Fargate·Batch"],
+    ["/tmp", "512MB ~ 10,240MB", "임시 파일 — 웜 호출 간 유지될 수 있으나 영속 아님"],
+    ["환경 변수", "총 4KB", "큰 설정·비밀 → SSM / Secrets Manager"],
+    [
+      "배포 패키지",
+      "zip 50MB / 해제 250MB / 컨테이너 10GB",
+      "초과 → S3 경유·레이어·컨테이너 이미지",
+    ],
+    ["동시성", "계정·리전당 1,000 (소프트)", "초과 = 429 스로틀 · 상향 요청 가능"],
+    ["레이어", "함수당 최대 5개", "해제 250MB 합산에 포함"],
+    [
+      "페이로드",
+      <>
+        동기 <b>6MB</b>(요청·응답 각각) / 비동기 <b>1MB</b> / 스트리밍 응답 200MB
+      </>,
+      "큰 데이터는 S3에 두고 참조 전달",
+    ],
+    ["비동기 재시도", "2회 (총 3회 시도)", "멱등성 설계 + DLQ/Destinations"],
+    ["별칭 가중치", "버전 2개까지", "카나리 배포"],
+  ]}
+/>
+
+<Note>“비동기 페이로드 256KB”는 SQS 메시지 한도와 혼동한 구식 수치 — 현행 공식 문서는 비동기 1MB.</Note>
+
+<SubTitle>자주 나오는 시나리오 → 정답 패턴</SubTitle>
+
+<Table
+  head={["시나리오", "정답 패턴"]}
+  rows={[
+    ["콜드 스타트로 API 지연", "Provisioned Concurrency (버전/별칭에 설정)"],
+    ["한 함수 폭주가 다른 함수 스로틀 유발", "Reserved Concurrency로 격리"],
+    ["비동기 실패 이벤트 분석 필요", "Lambda Destinations (성공/실패 모두 + 풍부한 컨텍스트)"],
+    ["S3 이벤트가 함수를 못 부름", "리소스 기반 정책 부재"],
+    ["VPC 함수가 인터넷 접근 불가", "프라이빗 서브넷 + NAT Gateway"],
+    ["Kinesis 불량 레코드가 샤드 블로킹", "Bisect batch on error + 재시도 제한 + 실패 대상 지정"],
+    ["안전한 점진 배포", "가중치 별칭 + CodeDeploy (Canary/Linear)"],
+    ["DB 연결이 호출마다 생성돼 느림", "핸들러 밖(전역) 초기화 / RDS Proxy"],
+    ["시크릿을 코드에 하드코딩", "Secrets Manager 또는 SSM Parameter Store + KMS"],
+  ]}
+/>
+
+<WarnBox><b>재귀 호출 금지</b>: Lambda가 자기 자신을 직접·간접 호출하는 설계는 호출이 눈덩이처럼 불어나 비용 폭탄이 된다 — 항상 오답 선택지.</WarnBox>
+
+<ExamPoint>
+  <ExamLi>“30분 배치” → 15분 초과, Lambda ✗. “3GB 임시 파일” → /tmp(10GB) ✓. “300MB 종속성” → 컨테이너(10GB)/EFS.</ExamLi>
+</ExamPoint>

@@ -1,0 +1,51 @@
+import { ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { OverviewSvg } from "../figs";
+
+데이터는 **버킷**(최상위 컨테이너)에 **객체**(파일)로 저장됩니다. 버킷 이름은 모든 계정을 통틀어 **전역적으로 고유**해야 하고, 버킷 자체는 특정 **리전**에 생성됩니다 — S3가 글로벌 서비스처럼 보이지만 실제로는 리전 서비스입니다.
+
+<Fig caption="버킷 안에 객체가 Key로 저장된다. 폴더는 실재하지 않으며 Key의 prefix일 뿐이다.">
+  <OverviewSvg />
+</Fig>
+
+<SubTitle>핵심 수치와 규칙</SubTitle>
+
+<Table
+  head={["항목", "값", "기억할 것"]}
+  rows={[
+    [
+      "객체 최대 크기",
+      <>
+        <b>50TB</b> (멀티파트 5MB~50TB)
+      </>,
+      "과거 자료의 5TB는 구식 수치 — 현행 50TB",
+    ],
+    [
+      "단일 PUT",
+      <>
+        최대 <b>5GB</b>
+      </>,
+      <>
+        5GB 초과 시 <b>멀티파트 업로드 필수</b>, 100MB 이상부터 권장
+      </>,
+    ],
+    [
+      "버킷 이름",
+      "3~63자 · 소문자/숫자/하이픈/마침표(.)",
+      "대문자·언더스코어 불가, IP 형식 불가, 시작·끝 모두 문자/숫자",
+    ],
+    [
+      "객체 태그",
+      "최대 10개",
+      "보안·수명 주기·비용 배분에 활용",
+    ],
+  ]}
+/>
+
+**객체 Key = 전체 경로**입니다. `s3://bucket/folder1/file.txt`에서 Key는 `folder1/file.txt` 전체이고 `folder1/`이 prefix입니다. “디렉터리”는 실제로 없고 UI가 prefix를 폴더처럼 보여줄 뿐입니다.
+
+<Note>부기: 2026년부터 계정·리전 스코프로 이름을 허용하는 account regional namespace가 신설됐지만, 시험 기준은 여전히 기본 글로벌 네임스페이스(전역 고유)입니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“대용량 객체를 한 번의 PUT으로” 함정 → <b>단일 PUT은 5GB까지</b>, 초과는 멀티파트 필수 (객체 자체는 50TB까지).</ExamLi>
+  <ExamLi>Key vs prefix 구분, 버킷 이름 전역 고유성, “폴더는 prefix일 뿐”이 기초 단골 선지.</ExamLi>
+</ExamPoint>

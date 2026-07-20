@@ -1,0 +1,26 @@
+import { ExamLi, ExamPoint, Fig, Note, SubTitle } from "../../ui";
+import { CodeBlock, PolicySvg } from "../figs";
+
+S3 접근 제어는 <b>사용자 기반(IAM 정책)</b>과 <b>리소스 기반(버킷 정책, ACL)</b>으로 나뉩니다. ACL은 현재 기본 비활성화가 권장되며, 시험의 중심은 **버킷 정책**입니다.
+
+<Fig caption="같은 계정에서는 IAM 정책과 버킷 정책의 Allow가 합집합으로 평가되고, 명시적 Deny가 하나라도 있으면 무조건 거부된다.">
+  <PolicySvg />
+</Fig>
+
+접근 허용 조건: **(IAM 허용 OR 버킷 정책 허용) AND 명시적 Deny 없음**. 버킷 정책은 JSON이며 IAM 정책과 달리 `Principal` 필드(누가)를 가집니다 — 주요 용도는 ① 퍼블릭 공개 ② 업로드 암호화 강제 ③ **교차 계정(Cross-Account) 접근 허용**.
+
+{/* CodeBlock 내용은 \n 이스케이프 한 줄 템플릿으로 쓴다 — MDX 다중행 표현식은
+    행 선행 들여쓰기를 잘라먹어 원문이 훼손된다 (ch1-2/sections/02.mdx와 동일 사유). */}
+<CodeBlock>{`{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "PublicRead",\n    "Effect": "Allow",\n    "Principal": "*",\n    "Action": ["s3:GetObject"],\n    "Resource": ["arn:aws:s3:::my-bucket/*"]\n  }]\n}`}</CodeBlock>
+
+<SubTitle>Block Public Access (BPA)</SubTitle>
+
+정책과 무관하게 퍼블릭 공개를 차단하는 안전장치로, **4개 설정**을 버킷·액세스 포인트·**계정 수준**에 적용할 수 있습니다. 켜져 있으면 버킷 정책으로 퍼블릭을 허용해도 절대 공개되지 않습니다.
+
+<Note>EC2에서 S3에 접근할 때는 액세스 키를 코드에 넣지 말고 <b>IAM 역할(인스턴스 프로파일)</b>을 사용합니다 — 표준 보안 관행.</Note>
+
+<ExamPoint>
+  <ExamLi>“버킷 정책을 열었는데도 접근 불가” → <b>Block Public Access 확인</b>.</ExamLi>
+  <ExamLi>“다른 계정 IAM 사용자에게 접근 허용” → <b>버킷 정책</b>(Principal 지정).</ExamLi>
+  <ExamLi>“회사 데이터가 절대 공개되면 안 된다” → <b>계정 수준 BPA 4개 설정 모두 켜기</b>.</ExamLi>
+</ExamPoint>

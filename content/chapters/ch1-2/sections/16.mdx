@@ -1,0 +1,26 @@
+import { ExamLi, ExamPoint, Table } from "../../ui";
+
+작업 중인 함수는 `$LATEST` — <b>가변</b>. <b>게시(publish)</b>하면 V1, V2 … 버전이 생성되며 <b>불변</b>입니다(코드+구성이 고정, 고유 ARN). <b>Alias</b>는 버전을 가리키는 <b>가변 포인터</b>로 dev/test/prod처럼 운영하며, 사용자에게 안정적인 ARN을 제공한 채 뒤의 버전만 교체(블루/그린)합니다.
+
+<Table
+  head={["규칙", "내용"]}
+  rows={[
+    [
+      "가중치 라우팅",
+      <>
+        예: V1 95% / V2 5% 카나리 — <b>최대 2개 버전</b> 사이에서만 분배
+      </>,
+    ],
+    ["별칭 → 별칭", <><b>불가</b> — 별칭은 버전만 가리킨다(문장 그대로 출제)</>],
+    [
+      "$LATEST 제약",
+      <>
+        가중치 트래픽·Provisioned Concurrency는 <b>게시된 버전/별칭에만</b> — $LATEST 불가
+      </>,
+    ],
+  ]}
+/>
+
+<ExamPoint>
+  <ExamLi>“안전한 점진 배포” → 버전 게시 + 별칭 가중치 + CodeDeploy.</ExamLi>
+</ExamPoint>

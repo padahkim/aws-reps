@@ -1,0 +1,23 @@
+import { Table } from "../../ui";
+import { WarnBox } from "../figs";
+
+서버리스는 “서버가 없다”가 아니라 <b>서버를 관리·프로비저닝하지 않는다</b>는 뜻입니다. Lambda에서 개척되어 지금은 관리형 전반(DynamoDB, S3, API Gateway, Cognito, SQS, Step Functions, Fargate 등)을 포괄합니다. 표준 서버리스 웹앱 = CloudFront+S3(정적) · Cognito(인증) · API Gateway → Lambda → DynamoDB(API).
+
+<Table
+  head={["Amazon EC2", "AWS Lambda"]}
+  rows={[
+    ["클라우드의 가상 서버", "가상 함수 — 관리할 서버 없음"],
+    ["메모리·CPU를 직접 프로비저닝", "실행 시간에 맞춰 자동 프로비저닝"],
+    [
+      "계속 실행 (실행 중 항상 과금)",
+      <>
+        실행 시간이 짧음 — <b>최대 15분</b>
+      </>,
+    ],
+    ["확장에 개입 필요 (ASG 구성)", "온디맨드 실행 · 스케일링 완전 자동"],
+  ]}
+/>
+
+과금 = <b>요청 수 + 컴퓨팅 시간(GB-초 = RAM×초)</b>. 프리 티어 월 100만 요청 + 40만 GB-초, 초과 시 요청 $0.20/100만 건. 함수당 최대 10GB RAM이며 <b>RAM을 늘리면 CPU·네트워크 성능도 함께 향상</b>됩니다(시험 단골). 런타임: Node.js, Python, Java, .NET, Ruby + Custom Runtime API(Rust, Go 등).
+
+<WarnBox>Lambda 컨테이너 이미지는 반드시 <b>Lambda Runtime API를 구현</b>해야 한다. “임의의 Docker 이미지를 실행”하고 싶다면 정답은 <b>ECS/Fargate</b>다(빈출 함정).</WarnBox>

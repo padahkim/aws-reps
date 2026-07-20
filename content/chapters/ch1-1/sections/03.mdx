@@ -1,0 +1,10 @@
+import { Code, ExamLi, ExamPoint } from "../../ui";
+
+S3는 정적 콘텐츠(HTML/CSS/JS/이미지)를 서버 없이 웹사이트로 호스팅합니다. 인덱스 문서·에러 문서를 지정하며, 엔드포인트는 리전에 따라 두 형식이 있습니다:
+
+`bucket.s3-website-리전.amazonaws.com` (대시) 또는 `bucket.s3-website.리전.amazonaws.com` (점).
+
+<ExamPoint>
+  <ExamLi><b>403 Forbidden</b> → ① 계정/버킷의 <b>Block Public Access 해제</b> ② 버킷 정책으로 <Code>s3:GetObject</Code>를 <Code>"*"</Code>에 허용 — 콘텐츠 전체가 퍼블릭 읽기 가능해야 서비스된다.</ExamLi>
+  <ExamLi>정적 웹사이트 + CORS 조합 문제(13절)도 자주 나온다.</ExamLi>
+</ExamPoint>

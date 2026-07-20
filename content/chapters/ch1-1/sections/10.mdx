@@ -1,0 +1,12 @@
+import { ExamLi, ExamPoint, Note } from "../../ui";
+import { WarnBox } from "../figs";
+
+**사용자 정의 메타데이터**는 반드시 `x-amz-meta-` 접두사의 key-value로 지정하며 객체와 함께 저장·반환됩니다(업로드 후 수정 불가 — 복사로만 변경). **객체 태그**는 객체당 최대 10개로 세분화된 권한 제어·분석·수명 주기 필터에 씁니다.
+
+<WarnBox><b>메타데이터·태그로 객체를 직접 검색/필터링할 수 없다!</b> 태그·메타데이터로 객체를 찾아야 한다면 DynamoDB 같은 외부 DB에 인덱스를 구축하는 것이 정석 패턴.</WarnBox>
+
+<Note>부기: 최근 쿼리 가능한 메타데이터 테이블을 제공하는 S3 Metadata 기능이 추가됐지만, 시험 기준 정답 패턴은 여전히 “외부 인덱스(DynamoDB)”입니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“태그로 객체를 검색하려면?” → 불가능, DynamoDB 인덱스 구축 — 이 함정이 그대로 출제된다.</ExamLi>
+</ExamPoint>

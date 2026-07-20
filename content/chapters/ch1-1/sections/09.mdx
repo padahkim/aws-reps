@@ -1,0 +1,32 @@
+import { ExamLi, ExamPoint, Table } from "../../ui";
+
+기준 성능: **prefix당 초당 3,500 PUT/COPY/POST/DELETE · 5,500 GET/HEAD**. prefix 수는 무제한이므로 여러 prefix에 분산하면 그만큼 확장됩니다.
+
+<Table
+  head={["기법", "동작", "사용 시점"]}
+  rows={[
+    [
+      "멀티파트 업로드",
+      "파일을 파트로 쪼개 병렬 업로드",
+      <>
+        <b>100MB 이상 권장, 5GB 초과 필수</b>
+      </>,
+    ],
+    [
+      "Transfer Acceleration",
+      "가까운 엣지 로케이션 경유 → AWS 백본으로 고속 전송",
+      "지리적으로 먼 리전과의 업로드·다운로드 모두. 멀티파트와 병행 가능",
+    ],
+    [
+      "Byte-Range Fetch",
+      "특정 바이트 범위를 병렬 GET",
+      "다운로드 가속 + 실패 범위만 재시도(복원력↑) + 파일 앞부분(헤더)만 부분 조회",
+    ],
+  ]}
+/>
+
+<ExamPoint>
+  <ExamLi>“멀리 떨어진 사용자의 업로드가 느리다” → Transfer Acceleration (+멀티파트).</ExamLi>
+  <ExamLi>“대용량 다운로드 병렬화/부분 조회” → Byte-Range Fetch.</ExamLi>
+  <ExamLi>3,500 / 5,500 수치를 그대로 묻는 문제가 있다 — 암기.</ExamLi>
+</ExamPoint>

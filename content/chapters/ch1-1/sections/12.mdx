@@ -1,0 +1,9 @@
+import { ExamLi, ExamPoint } from "../../ui";
+
+2023년 1월부터 **모든 새 객체는 자동으로 SSE-S3 암호화**됩니다(기존 객체 소급 없음). 버킷 기본값을 SSE-KMS 등으로 바꿀 수 있으며, 헤더 없이 업로드하면 기본 설정이 적용됩니다.
+
+특정 방식을 **강제**하려면 버킷 정책에서 `x-amz-server-side-encryption` 헤더가 없거나 다른 값인 PUT을 **명시적으로 Deny**합니다 — SSE-KMS·DSSE 강제의 공식 정책 예시 패턴입니다.
+
+<ExamPoint>
+  <ExamLi>“업로드를 특정 암호화 방식으로만 받으려면” → 버킷 정책의 암호화 헤더 불일치 PUT Deny 패턴.</ExamLi>
+</ExamPoint>

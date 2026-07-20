@@ -1,0 +1,7 @@
+import { CodeBlock } from "../figs";
+
+핸들러는 <b>이벤트 객체</b>(호출 서비스가 보낸 <b>데이터</b> — Records, source, 요청 본문)와 <b>컨텍스트 객체</b>(호출·런타임 <b>메타데이터</b> — `aws_request_id`, `function_name`, `memory_limit_in_mb`, 로그 그룹/스트림)를 받습니다.
+
+`context.get_remaining_time_in_millis()`로 <b>남은 실행 시간</b>을 확인해 타임아웃 직전 정리 작업을 구현할 수 있습니다(시험 포인트).
+
+<CodeBlock title="Python — 두 객체 사용 예">{`def lambda_handler(event, context):\n    print("Event:", event)                      # 서비스가 보낸 데이터\n    print("Request ID:", context.aws_request_id)\n    print("남은 시간(ms):", context.get_remaining_time_in_millis())\n    return {"statusCode": 200}`}</CodeBlock>

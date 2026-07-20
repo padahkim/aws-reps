@@ -1,0 +1,21 @@
+import { Code, Note, Table } from "../../ui";
+
+실행 로그는 <b>CloudWatch Logs에 자동 저장</b>됩니다 — 단, 실행 역할에 로그 쓰기 권한(`AWSLambdaBasicExecutionRole`)이 있어야 합니다. 주요 지표: Invocations, Duration, Concurrent Executions, Errors, Throttles, DeadLetterErrors, <b>IteratorAge</b>(스트림 처리 지연 확인).
+
+<b>X-Ray</b>: 구성에서 <b>Active Tracing</b>을 켜면 Lambda가 X-Ray 데몬을 대신 실행하고, 코드에서는 X-Ray SDK만 사용합니다. 실행 역할에 `AWSXRayDaemonWriteAccess` 필요.
+
+<Table
+  head={["X-Ray 환경 변수", "의미"]}
+  rows={[
+    [<Code>_X_AMZN_TRACE_ID</Code>, "추적 헤더(트레이스 ID)"],
+    [
+      <Code>AWS_XRAY_CONTEXT_MISSING</Code>,
+      <>
+        컨텍스트 누락 시 동작 — 기본값 <Code>LOG_ERROR</Code>
+      </>,
+    ],
+    [<Code>AWS_XRAY_DAEMON_ADDRESS</Code>, "X-Ray 데몬의 IP:PORT"],
+  ]}
+/>
+
+<Note>보완: <b>CodeGuru Profiler</b>(지원 언어 Java·Python)를 콘솔에서 활성화하면 Profiler Group 생성 + 레이어·환경 변수 자동 추가 + 실행 역할에 <Code>AmazonCodeGuruProfilerAgentAccess</Code> 부여로 런타임 성능 인사이트를 얻는다.</Note>

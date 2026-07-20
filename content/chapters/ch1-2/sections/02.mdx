@@ -1,0 +1,23 @@
+import { ExamLi, ExamPoint, Fig, SubTitle } from "../../ui";
+import { CodeBlock, InvocationSvg } from "../figs";
+
+{/* CodeBlock 템플릿 리터럴은 한 줄 \n 이스케이프로 쓴다 — MDX 다중행 표현식은 행 들여쓰기를 잘라먹어 코드 내용이 변형된다. */}
+
+<Fig caption="호출 3유형 — 푸시(동기/비동기)와 폴링(ESM)의 구분 자체가 가장 자주 출제된다.">
+  <InvocationSvg />
+</Fig>
+
+<b>동기식</b>은 호출 후 결과를 기다렸다가 즉시 응답을 받습니다. CLI/SDK, API Gateway, ALB, CloudFront(Lambda@Edge), S3 Batch, Cognito, Step Functions 등이 동기 호출입니다. 오류 처리는 <b>클라이언트 측 책임</b> — 재시도·지수 백오프를 호출자가 수행합니다.
+
+<CodeBlock title="CLI — 동기식 호출">{`aws lambda invoke \\\n  --function-name demo-lambda \\\n  --cli-binary-format raw-in-base64-out \\\n  --payload '{"key1": "value1"}' \\\n  response.json`}</CodeBlock>
+
+<SubTitle>ALB 통합</SubTitle>
+
+Lambda를 HTTP(S) 엔드포인트로 노출하려면 API Gateway 또는 <b>ALB</b>를 씁니다. ALB는 함수를 <b>대상 그룹(Target Group)</b>에 등록하고, HTTP 요청을 <b>JSON 문서로 변환</b>해 동기 호출한 뒤 함수의 JSON 응답(`statusCode`, `headers`, `body`, `isBase64Encoded`)을 다시 HTTP로 변환합니다.
+
+ALB에서 <b>Multi-Value Headers</b>를 활성화하면 같은 이름의 쿼리 스트링·헤더가 <b>배열</b>로 변환됩니다 — `?name=foo&name=bar` → `"name": ["foo","bar"]`.
+
+<ExamPoint>
+  <ExamLi>“동기식 호출 실패 시 누가 재시도?” → 클라이언트.</ExamLi>
+  <ExamLi>ALB + Lambda = 대상 그룹 등록 · HTTP↔JSON 상호 변환 · Multi-Value Headers는 배열.</ExamLi>
+</ExamPoint>

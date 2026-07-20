@@ -1,0 +1,61 @@
+import { ExamLi, ExamPoint, Note, Table } from "../../ui";
+
+**내구성(Durability)은 모든 클래스에서 11-nine(99.999999999%)으로 동일**합니다. 차이는 가용성·검색 시간·최소 저장 기간·비용입니다. 객체 생성 시 선택하거나 수명 주기 규칙으로 전환합니다.
+
+<Table
+  head={["클래스", "가용성", "최소 기간", "특징 · 사용 예"]}
+  rows={[
+    ["Standard", "99.99%", "—", "즉시 접근, 검색 비용 없음 — 빅데이터, 콘텐츠 배포"],
+    [
+      "Standard-IA",
+      "99.9%",
+      "30일",
+      "저렴한 저장 + 검색 비용 — 백업, 재해 복구",
+    ],
+    [
+      "One Zone-IA",
+      "99.5%",
+      "30일",
+      <>
+        <b>단일 AZ</b> — AZ 파괴 시 유실. 재생성 가능한 사본·2차 백업용
+      </>,
+    ],
+    [
+      "Intelligent-Tiering",
+      "99.9%",
+      "—",
+      "접근 패턴 따라 자동 계층 이동, 검색 비용 없음, 소액 모니터링 비용(128KB 미만은 미모니터링)",
+    ],
+    [
+      "Glacier Instant Retrieval",
+      "99.9%",
+      "90일",
+      "밀리초 검색 — 분기 1회 접근 데이터",
+    ],
+    [
+      "Glacier Flexible Retrieval",
+      "99.99%*",
+      "90일",
+      <>
+        신속 1~5분 / 표준 3~5시간 / 대량 5~12시간(<b>무료</b>)
+      </>,
+    ],
+    [
+      "Glacier Deep Archive",
+      "99.99%*",
+      "180일",
+      <>
+        표준 12시간 / 대량 48시간 — <b>최저가</b>, 신속 검색 미지원
+      </>,
+    ],
+  ]}
+/>
+
+<Note>* 복원 후 기준. 가용성 수치보다 “검색 시간·최소 보관 기간·단일 AZ 여부”가 시험 포인트입니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“복원 없이 즉시 접근 + 아카이브 가격” → Glacier Instant Retrieval.</ExamLi>
+  <ExamLi>“손실돼도 재생성 가능한 데이터의 저비용 보관” → One Zone-IA.</ExamLi>
+  <ExamLi>“접근 패턴 불명 + 운영 부담 최소화” → Intelligent-Tiering.</ExamLi>
+  <ExamLi>“7년 규정 보관, 거의 안 봄” → Glacier Deep Archive. 검색 시간·최소 기간(30/90/180일) 암기.</ExamLi>
+</ExamPoint>

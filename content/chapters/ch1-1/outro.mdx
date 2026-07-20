@@ -1,0 +1,39 @@
+import { Checklist } from "../ui";
+
+<Checklist
+  title="체크리스트 — 이 문장이 술술 나오면 통과"
+  items={[
+    {
+      text: "객체 최대 50TB(멀티파트 5MB~50TB), 단일 PUT 최대 5GB — 5GB 초과는 멀티파트 필수, 100MB 이상 권장",
+      freq: "★★★",
+    },
+    {
+      text: "접근 허용 = (IAM 정책 ∪ 버킷 정책의 Allow) AND 명시적 Deny 없음. 퍼블릭 공개는 Block Public Access 해제까지 필요",
+      freq: "★★★",
+    },
+    {
+      text: "내구성은 전 클래스 11-nine 동일 — 차이는 가용성·검색 시간·최소 저장 기간(30/90/180일)·비용",
+      freq: "★★★",
+    },
+    {
+      text: "SSE-KMS는 CloudTrail 감사 + KMS 쿼터 소모(해결책 S3 Bucket Key), SSE-C는 HTTPS 필수·S3가 키를 저장하지 않음",
+      freq: "★★★",
+    },
+    {
+      text: "복제는 양쪽 버전 관리 필수, 활성화 이후 새 객체만(기존은 Batch Replication), 체이닝 불가",
+      freq: "★★☆",
+    },
+    {
+      text: "이벤트 알림 권한은 IAM 역할이 아니라 대상(SNS/SQS/Lambda)의 리소스 정책",
+      freq: "★★☆",
+    },
+    {
+      text: "prefix당 초당 3,500 PUT/COPY/POST/DELETE · 5,500 GET/HEAD, prefix 수 무제한",
+      freq: "★★★",
+    },
+    {
+      text: "Presigned URL은 생성자 권한 상속 — 기본 3600초, 콘솔 최대 12시간, CLI 최대 7일",
+      freq: "★★★",
+    },
+  ]}
+/>

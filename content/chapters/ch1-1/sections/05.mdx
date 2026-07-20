@@ -1,0 +1,14 @@
+import { ExamLi, ExamPoint, Fig } from "../../ui";
+import { ReplicationSvg, WarnBox } from "../figs";
+
+버킷 간 객체를 **비동기**로 자동 복사합니다. 교차 리전(CRR)과 동일 리전(SRR)이 있고, 다른 AWS 계정 간에도 가능합니다. 필수 조건은 **원본·대상 버킷 모두 버전 관리 활성화** + S3에 부여하는 **IAM 역할**입니다.
+
+<Fig caption="CRR/SRR 복제 — 양쪽 버전 관리 필수, 복제는 비동기.">
+  <ReplicationSvg />
+</Fig>
+
+<WarnBox>복제의 3대 함정: ① 활성화 <b>이후 새 객체만</b> 복제 — 기존 객체·복제 실패분은 <b>S3 Batch Replication</b> ② <b>체이닝 불가</b> — 1→2, 2→3을 설정해도 1의 객체가 3으로 자동 전파되지 않음 ③ <b>삭제 마커 복제는 옵션</b>이고, <b>버전 ID를 지정한 영구 삭제는 복제되지 않음</b>(악의적 삭제 전파 방지).</WarnBox>
+
+<ExamPoint>
+  <ExamLi>“버전 관리 필수”, “기존 객체는 Batch Replication”, “체이닝 불가” — 복제 문제의 핵심 선지 3종.</ExamLi>
+</ExamPoint>

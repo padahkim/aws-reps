@@ -1,0 +1,15 @@
+import { ExamLi, ExamPoint, Note } from "../../ui";
+
+`s3:ObjectCreated:*`, `s3:ObjectRemoved:*`, 복원·복제 이벤트 등을 **SNS·SQS·Lambda**로 전달합니다. 대표 사례: 이미지 업로드 → Lambda로 썸네일 자동 생성. 객체 이름 필터링(prefix/suffix, 예: `*.jpg`)이 가능하며, 전달은 보통 수초 내지만 1분 이상 걸릴 수도 있습니다.
+
+**권한 방식이 시험 포인트**: S3가 대상에 게시하려면 IAM 역할이 아니라 **대상 측 리소스(액세스) 정책**(SNS/SQS Access Policy, Lambda Resource Policy)에서 S3를 허용해야 합니다.
+
+**Amazon EventBridge 통합**: 모든 S3 이벤트가 자동 전달되며 ① 메타데이터·객체 크기·이름 기반 **고급 JSON 필터링** ② **18개 이상 서비스**(Step Functions, Kinesis 등)로 전달 ③ 아카이브·재생(Replay) 지원.
+
+<Note>SQS FIFO 큐는 S3 이벤트 알림의 직접 대상이 될 수 없다 — EventBridge를 경유한다.</Note>
+
+<ExamPoint>
+  <ExamLi>“업로드 시 자동 처리” → S3 이벤트 + Lambda.</ExamLi>
+  <ExamLi>“알림이 안 온다” → 대상의 리소스 정책 확인 (IAM 역할 아님).</ExamLi>
+  <ExamLi>“Step Functions/Kinesis로 전달, 이벤트 재생 필요” → EventBridge.</ExamLi>
+</ExamPoint>

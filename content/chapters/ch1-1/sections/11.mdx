@@ -1,0 +1,70 @@
+import { Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { EncryptionSvg } from "../figs";
+
+**누가 키를 소유하고, 어디서 암호화가 일어나는지**로 구분하면 헷갈리지 않습니다.
+
+<Fig caption="서버 측 암호화 4종. 헤더 값 3종(AES256 / aws:kms / aws:kms:dsse) 구분이 출제된다.">
+  <EncryptionSvg />
+</Fig>
+
+<Table
+  head={["방식", "키 관리", "헤더", "핵심 포인트"]}
+  rows={[
+    [
+      "SSE-S3",
+      "AWS(S3) 소유·관리",
+      <Code>AES256</Code>,
+      <>
+        AES-256, 신규 버킷·객체 <b>기본값</b>
+      </>,
+    ],
+    [
+      "SSE-KMS",
+      "KMS 키 (직접 관리 가능)",
+      <Code>aws:kms</Code>,
+      <>
+        키 사용 제어 + <b>CloudTrail 감사</b>. 업/다운로드 시 KMS API 호출 → 쿼터 스로틀링
+        주의
+      </>,
+    ],
+    [
+      "DSSE-KMS",
+      "KMS 키",
+      <Code>aws:kms:dsse</Code>,
+      <>
+        KMS 기반 <b>이중(2겹) 암호화</b> — 2023년 추가, S3 Bucket Key 미지원
+      </>,
+    ],
+    [
+      "SSE-C",
+      "고객이 외부에서 관리",
+      "매 요청 헤더로 키 전달",
+      <>
+        <b>HTTPS 필수</b>, S3는 키를 저장하지 않음 — 다운로드 시에도 같은 키 제공 필요
+      </>,
+    ],
+    [
+      "클라이언트 측",
+      "고객 (S3 밖)",
+      "—",
+      "업로드 전 암호화·다운로드 후 복호화 전 과정을 고객이 수행",
+    ],
+  ]}
+/>
+
+<SubTitle>SSE-KMS의 함정 — KMS 쿼터</SubTitle>
+
+객체를 쓰고 읽을 때마다 KMS의 `GenerateDataKey`·`Decrypt`가 호출되어 **KMS 요청 쿼터**(리전·키 유형별로 상이, 조정 가능)를 소모합니다 — 대량 업/다운로드 시 ThrottlingException 가능. 해결책: **S3 Bucket Key**(버킷 수준 키 재사용으로 KMS 호출 최대 99% 감소) 또는 Service Quotas 한도 상향.
+
+<SubTitle>전송 중 암호화 (SSL/TLS)</SubTitle>
+
+HTTP·HTTPS 엔드포인트가 모두 있지만 HTTPS가 권장이며 **SSE-C는 HTTPS만 가능**합니다. HTTPS를 강제하려면 버킷 정책에서 `aws:SecureTransport = false`인 요청을 **Deny**합니다 — 공식 버킷 정책 예시 패턴.
+
+<Note>부기: 2026-04부터 신규 버킷은 SSE-C가 기본 차단된다(PutBucketEncryption으로 명시 활성화 필요).</Note>
+
+<ExamPoint>
+  <ExamLi>“감사 추적 + 키 제어” → SSE-KMS.</ExamLi>
+  <ExamLi>“키를 AWS에 저장 금지, 외부에서 완전 관리” → SSE-C 또는 클라이언트 측.</ExamLi>
+  <ExamLi>“대량 업로드 시 KMS 스로틀링” → S3 Bucket Key 또는 쿼터 상향.</ExamLi>
+  <ExamLi>“전송 중 암호화 강제” → aws:SecureTransport=false Deny. 헤더 값 3종 구분.</ExamLi>
+</ExamPoint>

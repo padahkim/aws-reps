@@ -1,0 +1,42 @@
+import { ExamLi, ExamPoint, SubTitle, Table } from "../../ui";
+import { WarnBox } from "../figs";
+
+<b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. S3·SNS·EventBridge· CodePipeline·SES·CloudWatch Logs(구독) 등이 비동기로 호출합니다.
+
+<Table
+  head={["항목", "동작"]}
+  rows={[
+    [
+      "재시도 정책",
+      <>
+        오류 시 <b>총 3회 시도</b> — 최초 시도 후 <b>1분 대기 → 재시도</b>, 다시{" "}
+        <b>2분 대기 → 재시도</b>
+      </>,
+    ],
+    [
+      "멱등성",
+      <>
+        재시도 때문에 처리 로직은 <b>멱등(idempotent)</b>해야 하고, CloudWatch Logs에 중복
+        로그가 보일 수 있다
+      </>,
+    ],
+    [
+      "DLQ",
+      <>
+        최종 실패 이벤트를 <b>SNS 토픽 또는 SQS 큐</b>로 — 이때{" "}
+        <b>실행 역할에 SQS/SNS 쓰기 권한</b> 필요(권한 함정 출제)
+      </>,
+    ],
+  ]}
+/>
+
+<SubTitle>대표 트리거 패턴</SubTitle>
+
+<b>S3 이벤트 알림</b>: `s3:ObjectCreated:*` 등 → Lambda(비동기). 새 객체 업로드 → 메타데이터 추출 → DynamoDB 기록 패턴이 자주 출제됩니다. <b>EventBridge</b>: ① 스케줄(CRON/Rate) 규칙 → 서버리스 크론 ② 서비스 이벤트(예: CodePipeline 상태 변경) → 규칙 매칭 → Lambda.
+
+<WarnBox>버저닝이 꺼진 버킷에서 같은 객체에 동시에 두 번 쓰기가 일어나면 S3 이벤트 알림이 <b>1건 유실</b>될 수 있다 — 빠짐없이 받으려면 <b>버전 관리 활성화</b>(그대로 출제).</WarnBox>
+
+<ExamPoint>
+  <ExamLi>“S3 이벤트가 실패하면?” → 재시도 3회 후 DLQ가 정답 흐름.</ExamLi>
+  <ExamLi>“X분마다 Lambda 실행” → EventBridge 스케줄 규칙 (EC2 크론은 오답).</ExamLi>
+</ExamPoint>

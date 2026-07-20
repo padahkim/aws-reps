@@ -1,12 +1,32 @@
 /**
- * 규약 v2 (CONFIRMED) — 챕터 모듈 계약. 이 파일이 단일 진실.
+ * 규약 v3 (CONFIRMED) — 챕터 모듈 계약. 이 파일이 단일 진실.
  * CONTRACT_PROPOSAL(종이 제안서) 대체. 열린 결정은 "가장 단순"으로 종결하고, 빌드가 교정한다.
  * 근거: axis1 §3(형식은 점수를 거의 안 움직임) + CONTRACT_PREWORK §2-0(RSC 제약).
  * v2 (이슈 #7): 본문을 Sec 단위 섹션 페이지로 분할 — 섹션 헤더 데이터가 meta로 이동.
+ * v3 (이슈 #15 spike → #40 에픽): 본문 표현을 TSX 섹션 함수 → MDX 파일로 이관 —
+ *   md 산문이 AI 컨텍스트 주입·생성·번역의 직접 재료가 된다. 챕터 인터페이스(이 파일의
+ *   타입·registry·loadBody 시그니처)와 섹션 규약은 v2 그대로다.
  *
- * 파일 구조 (PREWORK §2-0 — "use client" 챕터가 meta 서버소비를 막는 문제 해소):
- *   content/chapters/{id}/meta.ts   — chapterMeta + quiz + sections (순수 데이터, "use client" 금지)
- *   content/chapters/{id}/body.tsx  — "use client" + default 본문 컴포넌트
+ * 파일 구조 (v3 — 전 챕터 적용 완료):
+ *   content/chapters/{id}/meta.ts        — chapterMeta + quiz + sections (순수 데이터, "use client" 금지)
+ *   content/chapters/{id}/body.tsx       — "use client" shim: <Sec {...sections[i]}> 래핑·
+ *                                          섹션 수 assert·인트로/아웃트로 배치만 (본문 내용 금지)
+ *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (첫 섹션 페이지 상단. 없으면 생략)
+ *   content/chapters/{id}/sections/NN.mdx — 섹션 본문 (Sec 래핑 없이 내용만). NN = meta.sections[i].num
+ *   content/chapters/{id}/outro.mdx      — 말미 체크리스트 (마지막 섹션 페이지 하단. 없으면 생략)
+ *   content/chapters/{id}/figs.tsx       — 챕터 도식 SVG + 챕터 로컬 컴포넌트 (mdx가 import)
+ *
+ * MDX 규정 (v3 — 위반 시의 증상까지 기록해 둔다):
+ *   • remark/rehype 플러그인 금지 — Next 16+Turbopack에서 플러그인 지원 불안정 (#15 결정 코멘트).
+ *     Mermaid·하이라이트가 필요해지면 플러그인이 아니라 클라이언트 컴포넌트로 도입한다.
+ *   • md 기본 요소(p·인라인 code·ul/li)는 루트 mdx-components.tsx가 ui.tsx 팔레트로 매핑 —
+ *     본문 mdx에서 코드 펜스(```)는 쓰지 않는다 (블록 코드는 CodeBlock류 컴포넌트로).
+ *   • 텍스트를 품는 컴포넌트(Note·ExamLi·WarnBox…)는 여는~닫는 태그를 한 줄에 쓴다 —
+ *     여러 줄이면 내용이 블록 파싱되어 <p>가 중첩된다 (hydration 오류).
+ *   • 볼드 `**…**`는 닫는 ** 앞이 괄호·구두점이고 뒤가 한글이면 안 닫힌다 (CommonMark
+ *     flanking 규칙) — 그 패턴은 <b> 태그를 쓴다. 애매하면 <b>가 안전.
+ *   • CodeBlock 등 여러 줄 문자열은 \n 이스케이프 한 줄 템플릿으로 — MDX 다중행 표현식은
+ *     행 선행 들여쓰기를 잘라먹는다.
  *
  * 섹션 규약 (v2 — 이슈 #7, 앱이 섹션별 정적 라우트 /chapters/{id}/{n} 을 생성):
  *   • meta.ts 의 sections: SectionMeta[] 가 섹션 목록의 단일 진실 — 목차·라우트 수·검증기가 소비
@@ -30,17 +50,6 @@
  *   • self-explain 게이트: v1 미포함
  *   • 챕터 매핑        : 단수 id 하나. coverage[] 도입 안 함
  *   • 메타 export 이름  : chapterMeta (grep 게이트 `grep -L "export const chapterMeta"` 용)
- *
- * ── 규약 v3 전환 진행 중 (#15 결정 → #40 에픽) ──
- * 본문 표현을 TSX 섹션 함수 → MDX 파일로 이관 중. v3 구조 (이관 완료 챕터: ch0-2):
- *   body.tsx           — "use client" shim: <Sec {...sections[i]}> 래핑·섹션 수 assert·인트로/아웃트로 배치만
- *   intro.mdx          — 챕터 인트로 (첫 섹션 페이지 상단)
- *   sections/NN.mdx    — 섹션 본문 (Sec 래핑 없이 내용만). NN = meta.sections[i].num
- *   outro.mdx          — 말미 체크리스트 (마지막 섹션 페이지 하단)
- *   figs.tsx           — 챕터 도식 SVG 컴포넌트 (mdx가 import)
- * md 기본 요소(p·인라인 code·ul/li)는 루트 mdx-components.tsx가 ui.tsx 팔레트로 매핑한다.
- * remark/rehype 플러그인 금지 (Next 16+Turbopack 제약 — #15). 챕터 인터페이스(이 파일의
- * 타입·registry·loadBody 시그니처)는 v2와 동일. 전 챕터 이관 후 이 주석을 전면 개정한다.
  */
 
 // DVA-C02 도메인. 관례: Development / Security / Deployment / Troubleshooting. ch0류는 "foundation".
