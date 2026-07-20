@@ -53,17 +53,23 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
           cursor: "pointer",
         }}
       >
-        <div
+        {/* 배경·글자색을 쌍으로 고정한다 (ui.tsx 원칙) — amberText 단독은 다크 배경에서
+            3.48:1 로 AA(4.5:1) 미달이고, 테마별로 안전한 단일 색이 없다. */}
+        <span
           style={{
+            display: "inline-block",
             fontFamily: MONO,
             fontSize: "0.7rem",
             fontWeight: 700,
             letterSpacing: "0.08em",
+            background: PAL.amberSoft,
             color: PAL.amberText,
+            borderRadius: 99,
+            padding: "2px 9px",
           }}
         >
           인출 Q{index + 1}
-        </div>
+        </span>
         <div style={{ fontSize: "0.98rem", fontWeight: 700, lineHeight: 1.6, marginTop: 6 }}>
           {concept.q}
         </div>
