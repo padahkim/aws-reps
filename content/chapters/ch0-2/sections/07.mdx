@@ -1,0 +1,74 @@
+import { ChLink, Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { CodeBlock, StsSequenceSvg, WarnBox } from "../figs";
+
+EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를 코드나 서버에 박아두면 유출 시 영구적으로 악용됩니다. 대신 **인스턴스에 롤을 부여**하면 SDK가 <b>STS(Security Token Service)</b>가 발급한 임시 자격증명을 자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 — <ChLink id="ch0-1">ch0-1의 자격증명 탐색 체인</ChLink> 마지막 단계(붙어 있는 IAM 롤)가 바로 이것입니다. **“AWS 위에서 도는 코드에는 키 대신 롤”** — 이 한 문장이 DVA 전체를 관통하는 정답 패턴입니다.
+
+<Fig caption="롤을 맡으면(assume) STS가 만료 있는 임시 자격증명을 발급하고, 그 자격으로 대상 리소스 API를 호출한다.">
+  <StsSequenceSvg />
+</Fig>
+
+<SubTitle>롤의 두 정책 — Trust와 Permission</SubTitle>
+
+<Table
+  head={["정책", "답하는 질문", "내용"]}
+  rows={[
+    [
+      "Trust Policy (신뢰 정책)",
+      "누가 이 롤을 맡을 수 있나",
+      <>
+        <Code>Principal</Code>로 정의 — EC2 서비스, 특정 계정, 외부 IdP 등
+      </>,
+    ],
+    [
+      "Permission Policy (권한 정책)",
+      "롤을 맡으면 무엇을 할 수 있나",
+      "일반 Identity 정책과 동일한 구조",
+    ],
+  ]}
+/>
+
+<SubTitle>어디에 쓰이나</SubTitle>
+
+- <b>EC2 인스턴스 프로파일</b> — 인스턴스 안 앱이 키 없이 AWS API 호출. 자격증명은 인스턴스 메타데이터로 자동 제공·순환 (DVA 최빈출)
+- <b>Lambda 실행 역할</b> — 함수가 다른 서비스(S3·DynamoDB 등)에 접근할 때
+- <b>CloudFormation 롤</b> — 스택이 리소스를 생성/수정할 때
+- <b>교차 계정 접근</b> — A계정 유저가 B계정의 롤을 AssumeRole. 키 공유 없이 안전하게 위임
+- <b>페더레이션</b> — Google·Cognito·기업 SSO 사용자에게 임시 AWS 권한 부여. 흐름은 “외부 IdP가 신원을 증명하는 토큰 발급 → 그 토큰을 STS에 제시해 임시 자격증명으로 교환 → AWS API 호출” 3단계
+
+<SubTitle>STS 오퍼레이션 4종 — 이름과 용도를 짝지어 암기</SubTitle>
+
+<Table
+  head={["API", "용도"]}
+  rows={[
+    ["AssumeRole", "같은 계정 또는 다른 AWS 계정의 롤을 맡을 때 (교차 계정의 기본)"],
+    [
+      "AssumeRoleWithWebIdentity",
+      "Cognito·Google 등 웹 ID(OIDC) 토큰으로 롤을 맡을 때 — 웹/모바일 앱 페더레이션",
+    ],
+    ["AssumeRoleWithSAML", "기업 SAML IdP(사내 SSO) 인증으로 롤을 맡을 때"],
+    [
+      "GetSessionToken",
+      <>
+        롤 수임이 아니라 <b>IAM 유저 본인이</b> MFA를 포함해 임시 자격증명을 직접 발급받을
+        때 (예: MFA 조건이 걸린 API를 CLI로 호출)
+      </>,
+    ],
+  ]}
+/>
+
+<Note>반환값에는 항상 <b>SessionToken</b>이 포함되고 만료 시간이 있습니다 — “SessionToken이 있다 = 임시 자격증명이다”로 역추론하는 문제도 나옵니다.</Note>
+
+<SubTitle>iam:PassRole — 롤을 “전달”하는 권한 (DVA 초빈출)</SubTitle>
+
+EC2를 시작하며 롤을 붙이거나 Lambda·CodePipeline에 롤을 지정하려면, 그 작업을 수행하는 주체에게 <Code>iam:PassRole</Code> 권한이 필요합니다 (롤 확인용 <Code>iam:GetRole</Code>이 함께 쓰이기도 합니다). PassRole은 API 호출이 아니라 **IAM 액션**이라는 점도 상식 포인트입니다.
+
+<CodeBlock>{`{\n  "Effect": "Allow",\n  "Action": ["ec2:RunInstances", "iam:PassRole"],\n  "Resource": "arn:aws:iam::123456789012:role/S3AccessRole"\n}`}</CodeBlock>
+
+<WarnBox>“롤을 전달했는데 서비스가 사용하지 못한다” → 롤의 <b>신뢰 정책 Principal</b>이 그 서비스를 허용하는지 확인하는 것이 정답. 신뢰 정책에 없는 주체는 그 롤을 맡을 수 없습니다.</WarnBox>
+
+<ExamPoint>
+  <ExamLi><b>“EC2/Lambda/ECS에서 다른 AWS 서비스에 접근” → 정답은 거의 항상 IAM 롤.</b> 액세스 키를 코드/환경변수/AMI에 넣는 선택지는 오답</ExamLi>
+  <ExamLi>교차 계정·임시 권한 → <b>STS AssumeRole</b>, 웹/모바일 로그인 사용자 → <b>AssumeRoleWithWebIdentity</b>, 사내 SSO → <b>AssumeRoleWithSAML</b>, MFA 임시 자격 자기발급 → <b>GetSessionToken</b></ExamLi>
+  <ExamLi>“서비스에 롤을 지정하는 작업” → 작업자에게 <b>iam:PassRole</b> 필요</ExamLi>
+  <ExamLi>“롤 전달 후 서비스가 못 씀” → <b>신뢰 정책 Principal</b> 확인</ExamLi>
+</ExamPoint>
