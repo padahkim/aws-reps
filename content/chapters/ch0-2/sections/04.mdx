@@ -5,17 +5,20 @@ import { CodeBlock } from "../figs";
 
 {/* CodeBlock 내용은 \n 이스케이프 한 줄 템플릿으로 쓴다 — MDX 다중행 표현식은
     행 선행 들여쓰기를 잘라먹는다 (ch1-1/sections/02.mdx와 동일 사유). */}
-<CodeBlock>{`{\n  "Version": "2012-10-17",          // 정책 언어 버전 — 항상 이 값 (필수)\n  "Id": "S3-Account-Permissions",   // 정책 식별자 (선택)\n  "Statement": [{\n    "Sid": "AllowS3Read",           // 문장 식별자 (선택)\n    "Effect": "Allow",              // Allow 또는 Deny (필수)\n    "Principal": {                  // "누가" — 리소스 기반 정책에서 사용\n      "AWS": ["arn:aws:iam::123456789012:root"]\n    },\n    "Action": ["s3:GetObject"],     // 허용/거부할 API 동작 (필수)\n    "Resource": "arn:aws:s3:::my-bucket/*",  // 대상 ARN (필수)\n    "Condition": {                  // 적용 조건 (선택)\n      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }\n    }\n  }]\n}`}</CodeBlock>
+<CodeBlock>{`{\n  "Version": "2012-10-17",          // 정책 언어 버전 — 항상 이 값\n  "Id": "S3-Account-Permissions",   // 정책 식별자 (선택)\n  "Statement": [{\n    "Sid": "AllowS3Read",           // 문장 식별자 (선택)\n    "Effect": "Allow",              // Allow 또는 Deny (필수)\n    "Principal": {                  // "누가" — 리소스 기반 정책에서 사용\n      "AWS": ["arn:aws:iam::123456789012:root"]\n    },\n    "Action": ["s3:GetObject"],     // 허용/거부할 API 동작 (필수)\n    "Resource": "arn:aws:s3:::my-bucket/*",  // 대상 ARN (필수)\n    "Condition": {                  // 적용 조건 (선택)\n      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }\n    }\n  }]\n}`}</CodeBlock>
+
+<Note>코드 블록의 <Code>//</Code> 주석은 설명용입니다 — 실제 IAM 정책 JSON은 주석을 허용하지 않으므로 복사해 쓸 때는 주석을 제거해야 합니다.</Note>
 
 <Table
   head={["필드", "필수 여부", "설명"]}
   rows={[
     [
       "Version",
-      "필수",
+      "사실상 필수",
       <>
         정책 언어 버전. 항상 <Code>2012-10-17</Code> — 날짜처럼 생겼지만 <b>고정
-        문자열</b>입니다 (함정 포인트)
+        문자열</b>입니다 (함정 포인트). 생략하면 구버전(2008-10-17) 언어로 해석돼 정책
+        변수 등이 동작하지 않으므로 항상 명시합니다
       </>,
     ],
     ["Effect", "필수", <>Allow 또는 Deny. <b>Deny는 언제나 Allow보다 우선</b></>],
@@ -44,7 +47,7 @@ import { CodeBlock } from "../figs";
   ]}
 />
 
-<Note>ARN 형식: <Code>arn:aws:service:region:account-id:resource</Code>. S3처럼 글로벌한 리소스는 region/account 자리가 비어 있습니다.</Note>
+<Note>ARN 형식: <Code>arn:aws:service:region:account-id:resource</Code>. S3처럼 글로벌한 리소스는 region/account 자리가 비어 있습니다. 둘째 자리 <Code>aws</Code>는 표준 파티션 기준이고 GovCloud(<Code>aws-us-gov</Code>)·중국(<Code>aws-cn</Code>)에선 달라집니다 — 시험은 사실상 <Code>arn:aws</Code>만 나옵니다.</Note>
 
 <SubTitle>정책 상속 — 유저가 실제로 받는 권한</SubTitle>
 

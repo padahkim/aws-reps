@@ -33,5 +33,5 @@ import { AuthFlowSvg } from "../figs";
 
 <ExamPoint>
   <ExamLi>인증 = <b>누구인가</b>(비밀번호·액세스 키·MFA), 인가 = <b>무엇을 할 수 있나</b>(정책 평가) — 용어 구분 문제</ExamLi>
-  <ExamLi>인가 실패의 증상은 <b>AccessDenied</b> — 자격증명이 틀린 것(인증 실패)과 다른 오류</ExamLi>
+  <ExamLi>인가 실패의 대표 증상은 <b>AccessDenied</b>, 자격증명·서명 문제는 <b>SignatureDoesNotMatch</b> 등 별도 에러 코드 — 단 AccessDenied만으로 인증 성공을 단정할 수는 없음(서명 없는 익명 요청도 받을 수 있는 에러)</ExamLi>
 </ExamPoint>
