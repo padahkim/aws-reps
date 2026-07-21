@@ -113,6 +113,8 @@ export interface Question {
   title?: string;                 // 문항 한 줄 제목
   difficulty?: "easy" | "medium" | "hard";  // 난이도 (하·중·상)
   references?: ReferenceLink[];   // AWS 공식 문서 링크
+  slug?: string;                  // drills 원본의 안정 식별자 — 부분 선별(meta.ts filter)의 키.
+                                  // positional id(q1…)는 원본 재정렬 시 밀리므로 선별에 쓰지 않는다 (#69 Codex 리뷰)
 }
 
 // ── 인출 세션 (이슈 #54 spike 결정. 위 "인출 세션 규약" 참조) ──────────────

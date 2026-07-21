@@ -8,6 +8,7 @@ export const quiz: Question[] = [
   // source: lambda-provisioned-concurrency-cold-start
   {
     "id": "q1",
+    "slug": "lambda-provisioned-concurrency-cold-start",
     "scope": "final",
     "concept": [
       "cold-start",
@@ -47,6 +48,7 @@ export const quiz: Question[] = [
   // source: lambda-secrets-manager-db-credentials
   {
     "id": "q2",
+    "slug": "lambda-secrets-manager-db-credentials",
     "scope": "final",
     "concept": [
       "secrets-manager",
@@ -86,6 +88,7 @@ export const quiz: Question[] = [
   // source: lambda-alias-weighted-canary-deploy
   {
     "id": "q3",
+    "slug": "lambda-alias-weighted-canary-deploy",
     "scope": "final",
     "concept": [
       "alias",
@@ -126,6 +129,7 @@ export const quiz: Question[] = [
   // source: lambda-throttling-429-mitigation
   {
     "id": "q4",
+    "slug": "lambda-throttling-429-mitigation",
     "scope": "final",
     "concept": [
       "throttling",
@@ -166,6 +170,7 @@ export const quiz: Question[] = [
   // source: lambda-vpc-rds-access-configuration
   {
     "id": "q5",
+    "slug": "lambda-vpc-rds-access-configuration",
     "scope": "final",
     "concept": [
       "vpc",
@@ -202,6 +207,7 @@ export const quiz: Question[] = [
   // source: lambda-snapstart-java-cold-start
   {
     "id": "q6",
+    "slug": "lambda-snapstart-java-cold-start",
     "scope": "final",
     "concept": [
       "snapstart",
@@ -238,6 +244,7 @@ export const quiz: Question[] = [
   // source: lambda-sqs-batch-window-small-invocations
   {
     "id": "q7",
+    "slug": "lambda-sqs-batch-window-small-invocations",
     "scope": "final",
     "concept": [
       "sqs",
@@ -274,6 +281,7 @@ export const quiz: Question[] = [
   // source: lambda-kinesis-poison-record-blocking-shard
   {
     "id": "q8",
+    "slug": "lambda-kinesis-poison-record-blocking-shard",
     "scope": "final",
     "concept": [
       "kinesis",
@@ -311,6 +319,7 @@ export const quiz: Question[] = [
   // source: lambda-async-onfailure-destination-vs-dlq
   {
     "id": "q9",
+    "slug": "lambda-async-onfailure-destination-vs-dlq",
     "scope": "final",
     "concept": [
       "asynchronous-invocation",
@@ -346,6 +355,7 @@ export const quiz: Question[] = [
   // source: lambda-envvar-customer-managed-kms-key
   {
     "id": "q10",
+    "slug": "lambda-envvar-customer-managed-kms-key",
     "scope": "final",
     "concept": [
       "environment-variables",
@@ -382,6 +392,7 @@ export const quiz: Question[] = [
   // source: lambda-layers-shared-dependencies
   {
     "id": "q11",
+    "slug": "lambda-layers-shared-dependencies",
     "scope": "final",
     "concept": [
       "layers",
@@ -417,6 +428,7 @@ export const quiz: Question[] = [
   // source: lambda-ephemeral-storage-tmp-sizing
   {
     "id": "q12",
+    "slug": "lambda-ephemeral-storage-tmp-sizing",
     "scope": "final",
     "concept": [
       "ephemeral-storage",
@@ -452,6 +464,7 @@ export const quiz: Question[] = [
   // source: lambda-memory-cpu-coupling-performance
   {
     "id": "q13",
+    "slug": "lambda-memory-cpu-coupling-performance",
     "scope": "final",
     "concept": [
       "memory",
@@ -488,6 +501,7 @@ export const quiz: Question[] = [
   // source: lambda-function-url-auth-type-public-webhook
   {
     "id": "q14",
+    "slug": "lambda-function-url-auth-type-public-webhook",
     "scope": "final",
     "concept": [
       "function-url",
@@ -523,6 +537,7 @@ export const quiz: Question[] = [
   // source: lambda-xray-active-tracing-bottleneck
   {
     "id": "q15",
+    "slug": "lambda-xray-active-tracing-bottleneck",
     "scope": "final",
     "concept": [
       "x-ray",

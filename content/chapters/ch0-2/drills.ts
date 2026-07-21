@@ -8,6 +8,7 @@ export const quiz: Question[] = [
   // source: iam-ec2-role-instead-of-access-keys
   {
     "id": "q1",
+    "slug": "iam-ec2-role-instead-of-access-keys",
     "scope": "final",
     "concept": [
       "ec2",
@@ -47,6 +48,7 @@ export const quiz: Question[] = [
   // source: iam-cross-account-assume-role
   {
     "id": "q2",
+    "slug": "iam-cross-account-assume-role",
     "scope": "final",
     "concept": [
       "sts",
@@ -63,7 +65,7 @@ export const quiz: Question[] = [
     "answer": [
       3
     ],
-    "explanation": "계정 간 접근은 \"대상 계정에 역할을 만들고, 신뢰 정책(trust policy)으로 누가 수임할 수 있는지 지정하고, 호출 측이 STS AssumeRole로 임시 자격 증명을 받는\" 구조가 표준이다. 임시 자격 증명은 수명이 짧아 유출 피해가 제한되고, 장기 키 배포·교체 문제가 사라진다.\n\n이 구성에서는 권한 정책(역할이 무엇을 할 수 있나)과 신뢰 정책(누가 역할을 수임할 수 있나)을 구분하는 것이 핵심 출제 포인트다.",
+    "explanation": "계정 간 접근은 \"대상 계정에 역할을 만들고, 신뢰 정책(trust policy)으로 누가 수임할 수 있는지 지정하고, 호출 측이 STS AssumeRole로 임시 자격 증명을 받는\" 구조가 표준이다. 임시 자격 증명은 수명이 짧아 유출 피해가 제한되고, 장기 키 배포·교체 문제가 사라진다.\n\n이 구성에서는 권한 정책(역할이 무엇을 할 수 있나)과 신뢰 정책(누가 역할을 수임할 수 있나)을 구분하는 것이 핵심 출제 포인트다.\n\n잊기 쉬운 반쪽: 신뢰 정책이 계정 A(계정 루트)를 지정하는 표준 구성에서는, 계정 A 쪽에서도 호출 주체(배치 작업의 실행 역할·유저)에게 대상 역할 ARN에 대한 sts:AssumeRole을 허용하는 자격 증명 기반 정책이 필요하다. 양쪽 계정이 모두 허용해야 수임이 성립한다 — 대상 계정의 신뢰 정책만으로는 AccessDenied가 난다.",
     "choiceExplanations": [
       "루트 자격 증명은 어떤 저장소에 두더라도 공유 대상이 아니다. Secrets Manager는 비밀을 안전하게 저장할 뿐, 루트 공유를 정당화하지 않는다.",
       "장기 액세스 키를 다른 계정에 배포하는 것 자체가 금지된 요구사항이고, 키 교체·폐기 관리 부담도 그대로 남는다.",
@@ -86,6 +88,7 @@ export const quiz: Question[] = [
   // source: iam-permissions-boundary-effective-permissions
   {
     "id": "q3",
+    "slug": "iam-permissions-boundary-effective-permissions",
     "scope": "final",
     "concept": [
       "permissions-boundary",
@@ -124,6 +127,7 @@ export const quiz: Question[] = [
   // source: iam-lambda-least-privilege-dynamodb
   {
     "id": "q4",
+    "slug": "iam-lambda-least-privilege-dynamodb",
     "scope": "final",
     "concept": [
       "least-privilege",
@@ -164,6 +168,7 @@ export const quiz: Question[] = [
   // source: iam-cognito-identity-pool-mobile-app
   {
     "id": "q5",
+    "slug": "iam-cognito-identity-pool-mobile-app",
     "scope": "final",
     "concept": [
       "cognito",
@@ -204,6 +209,7 @@ export const quiz: Question[] = [
   // source: iam-explicit-deny-precedence
   {
     "id": "q6",
+    "slug": "iam-explicit-deny-precedence",
     "scope": "final",
     "concept": [
       "policy-evaluation",
@@ -238,6 +244,7 @@ export const quiz: Question[] = [
   // source: iam-identity-vs-resource-based-policy
   {
     "id": "q7",
+    "slug": "iam-identity-vs-resource-based-policy",
     "scope": "final",
     "concept": [
       "resource-based-policy",
@@ -272,6 +279,7 @@ export const quiz: Question[] = [
   // source: iam-source-ip-condition-key
   {
     "id": "q8",
+    "slug": "iam-source-ip-condition-key",
     "scope": "final",
     "concept": [
       "condition-keys",
@@ -306,6 +314,7 @@ export const quiz: Question[] = [
   // source: iam-getfederationtoken-custom-broker
   {
     "id": "q9",
+    "slug": "iam-getfederationtoken-custom-broker",
     "scope": "final",
     "concept": [
       "sts",
@@ -341,6 +350,7 @@ export const quiz: Question[] = [
   // source: iam-access-analyzer-external-access
   {
     "id": "q10",
+    "slug": "iam-access-analyzer-external-access",
     "scope": "final",
     "concept": [
       "access-analyzer",
@@ -379,6 +389,7 @@ export const quiz: Question[] = [
   // source: iam-service-linked-role-purpose
   {
     "id": "q11",
+    "slug": "iam-service-linked-role-purpose",
     "scope": "final",
     "concept": [
       "service-linked-role",
@@ -413,6 +424,7 @@ export const quiz: Question[] = [
   // source: iam-roles-anywhere-on-premises
   {
     "id": "q12",
+    "slug": "iam-roles-anywhere-on-premises",
     "scope": "final",
     "concept": [
       "roles-anywhere",
@@ -448,6 +460,7 @@ export const quiz: Question[] = [
   // source: iam-scp-does-not-grant-permissions
   {
     "id": "q13",
+    "slug": "iam-scp-does-not-grant-permissions",
     "scope": "final",
     "concept": [
       "scp",
@@ -484,6 +497,7 @@ export const quiz: Question[] = [
   // source: iam-mfa-protected-api-terminate
   {
     "id": "q14",
+    "slug": "iam-mfa-protected-api-terminate",
     "scope": "final",
     "concept": [
       "mfa",
@@ -518,6 +532,7 @@ export const quiz: Question[] = [
   // source: iam-cognito-user-pool-vs-identity-pool
   {
     "id": "q15",
+    "slug": "iam-cognito-user-pool-vs-identity-pool",
     "scope": "final",
     "concept": [
       "cognito",

@@ -15,7 +15,7 @@
  *   + answerSummary       정답 칸은 "정답. " + answerSummary — 기존 수기 문항의 관례와 동일)
  *   title·difficulty·references → 동명 optional 필드로 보존
  *   tags               → concept (챕터 과목과 같은 태그는 중복이라 제외, 전부 겹치면 원본 유지)
- *   slug               → 문항 위 주석 (출처 추적용)
+ *   slug               → 동명 필드 (부분 선별의 안정 키 — #69 Codex 리뷰) + 문항 위 주석
  *   domain(번호)       → 버림 — chapterMeta.domain이 챕터 수준에서 이미 커버
  *
  * 실행: node scripts/import-drills.mts [subject ...]   (무인자 = 매핑된 전 과목)
@@ -64,6 +64,7 @@ function convert(subject: string, src: DrillsQuestion[]): Question[] {
 
     return {
       id: `q${i + 1}`,
+      slug: d.slug,
       scope: "final" as const,
       concept: concept.length > 0 ? concept : d.tags,
       scenario: d.question,
