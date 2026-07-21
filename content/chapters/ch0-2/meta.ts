@@ -1,4 +1,5 @@
 import type { ChapterMeta, Question, SectionMeta } from "../../schema";
+import { quiz as drills } from "./drills.ts";
 
 /**
  * 원본: content/aws-dva-stage0.html (0단계 — AWS의 문법) 중 02 IAM 기초 섹션.
@@ -14,8 +15,21 @@ export const chapterMeta: ChapterMeta = {
   prerequisites: ["ch0-1"],
 };
 
-// 원본에 퀴즈 성분 없음 (축2 리포트: 말미 체크리스트는 자기평가 문장 — 본문에 잔류).
-export const quiz: Question[] = [];
+// 원본에 퀴즈 성분 없음 (축2 리포트) — aws-cloud-drills iam.json 15문항 중 예고편 범위
+// 4문항만 선별 연결 (이슈 #44. drills.ts 는 15문항 전체 생성물 — 선별은 여기서 한다).
+// 제외 11문항(권한경계·Cognito·SCP·페더레이션·Condition 키·리소스 기반 정책 등)은
+// IAM 심화 챕터 변환 시 회수 — #29 코멘트 참조.
+const PREVIEW_SCOPE = new Set([
+  "q1", // iam-ec2-role-instead-of-access-keys — "코드에는 키 대신 롤"
+  "q2", // iam-cross-account-assume-role — AssumeRole 키워드
+  "q4", // iam-lambda-least-privilege-dynamodb — 최소 권한
+  "q6", // iam-explicit-deny-precedence — Deny 우선
+]);
+export const quiz: Question[] = drills.filter((q) => PREVIEW_SCOPE.has(q.id));
+// 선별 결과 개수 가드 — iam.json 재정렬·재임포트로 id 가 밀리면 빌드에서 즉시 실패시킨다.
+if (quiz.length !== PREVIEW_SCOPE.size) {
+  throw new Error(`ch0-2 quiz 선별 실패: ${quiz.length}문항 (기대 ${PREVIEW_SCOPE.size}) — drills.ts 재임포트로 id가 밀렸는지 확인`);
+}
 
 /**
  * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).
