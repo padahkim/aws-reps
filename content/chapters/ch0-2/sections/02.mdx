@@ -1,7 +1,7 @@
 import { Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
 import { IamStructureSvg, WarnBox } from "../figs";
 
-인트로에서 말한 두 종류 — <b>주체(Identity)</b>가 유저·그룹·롤이고, <b>권한(Policy)</b>이 정책입니다. 권한은 항상 정책으로 정의하고, 그것을 주체에 **연결(attach)** 해야 효력이 생깁니다.
+인트로에서 말한 두 종류 — <b>주체(Identity)</b>가 유저·그룹·롤이고, <b>권한(Policy)</b>이 정책입니다. 권한은 항상 정책으로 정의하고, 자격 증명 기반 정책은 주체에 **연결(attach)** 해야 효력이 생깁니다 (리소스 쪽에 붙이는 <b>리소스 기반 정책</b>은 §05에서 다룹니다).
 
 <Fig caption="주체(유저·그룹·롤)에 정책(JSON)을 연결하면, 그 주체가 리소스에 접근할 수 있게 된다.">
   <IamStructureSvg />

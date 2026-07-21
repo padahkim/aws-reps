@@ -62,7 +62,9 @@ EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를
 
 EC2를 시작하며 롤을 붙이거나 Lambda·CodePipeline에 롤을 지정하려면, 그 작업을 수행하는 주체에게 <Code>iam:PassRole</Code> 권한이 필요합니다 (롤 확인용 <Code>iam:GetRole</Code>이 함께 쓰이기도 합니다). PassRole은 API 호출이 아니라 **IAM 액션**이라는 점도 상식 포인트입니다.
 
-<CodeBlock>{`{\n  "Effect": "Allow",\n  "Action": ["ec2:RunInstances", "iam:PassRole"],\n  "Resource": "arn:aws:iam::123456789012:role/S3AccessRole"\n}`}</CodeBlock>
+<CodeBlock>{`{\n  "Statement": [\n    { "Effect": "Allow", "Action": "ec2:RunInstances", "Resource": "*" },\n    {\n      "Effect": "Allow", "Action": "iam:PassRole",\n      "Resource": "arn:aws:iam::123456789012:role/S3AccessRole"\n    }\n  ]\n}`}</CodeBlock>
+
+<Note>statement를 나누는 이유: <Code>ec2:RunInstances</Code>는 EC2 리소스(인스턴스·AMI 등)에, <Code>iam:PassRole</Code>은 <b>전달할 롤의 ARN</b>에 매칭됩니다. 한 statement에 묶어 Resource를 롤 ARN으로 두면 RunInstances 쪽이 매칭되지 않아 시작 권한이 부여되지 않습니다 — PassRole을 롤 ARN으로 좁히는 게 최소 권한의 핵심입니다.</Note>
 
 <WarnBox>“롤을 전달했는데 서비스가 사용하지 못한다” → 롤의 <b>신뢰 정책 Principal</b>이 그 서비스를 허용하는지 확인하는 것이 정답. 신뢰 정책에 없는 주체는 그 롤을 맡을 수 없습니다.</WarnBox>
 

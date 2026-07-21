@@ -349,7 +349,7 @@ export function StsSequenceSvg() {
 
       <line x1={385} y1={152} x2={117} y2={152} stroke={C.amber} strokeWidth={2} markerEnd="url(#arrow-sts)" />
       <text x={244} y={144} fontSize={11} fontWeight={700} fill={C.amberText} textAnchor="middle">② 임시 자격증명 발급</text>
-      <text x={244} y={170} fontSize={10} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>AccessKeyId · SecretKey · SessionToken (만료 있음)</text>
+      <text x={244} y={170} fontSize={10} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>AccessKeyId · SecretAccessKey · SessionToken (만료 있음)</text>
 
       <line x1={110} y1={218} x2={638} y2={218} stroke={C.teal} strokeWidth={2} markerEnd="url(#arrow-sts)" />
       <text x={375} y={210} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle">③ 임시 자격으로 API 호출 (s3:GetObject)</text>
@@ -362,12 +362,13 @@ export function StsSequenceSvg() {
 
 /* ============ 인터랙티브: 정책 평가 시뮬레이터 (iam_guide EvalEngine 이식) ============ */
 
-function Switch({ on, onClick, colorOn }: { on: boolean; onClick: () => void; colorOn: string }) {
+function Switch({ on, onClick, colorOn, label }: { on: boolean; onClick: () => void; colorOn: string; label: string }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
+      aria-label={label}
       onClick={onClick}
       style={{
         width: 44,
@@ -403,6 +404,9 @@ function Switch({ on, onClick, colorOn }: { on: boolean; onClick: () => void; co
  * 정책 평가 시뮬레이터 — 토글 4개로 요청 조건을 바꾸면 AWS 평가 순서(단순화:
  * 명시적 Deny > SCP > Permission Boundary > 명시적 Allow > 암묵적 Deny)에 따라
  * 실시간 판정을 보여준다. 순서 정확성은 축2 리포트에서 공식 문서 대조로 확인됨.
+ * 범위는 자격 증명 기반(identity-based) 경로만 — 같은 계정 리소스 기반 정책이
+ * 주체에게 직접 Allow하는 경우 Boundary의 암묵적 deny에 제한받지 않는 예외가
+ * 있어(공식 evaluation-logic 문서), Allow 단계를 Identity 정책으로 한정한다.
  */
 export function EvalEngine() {
   const [explicitDeny, setDeny] = useState(false);
@@ -428,7 +432,7 @@ export function EvalEngine() {
     { id: "deny", label: "명시적 Deny 있음?", sub: "어디든 Deny 하나라도 있으면 끝" },
     { id: "scp", label: "SCP가 허용?", sub: "조직 계정일 때 최대 한계" },
     { id: "pb", label: "Permission Boundary 통과?", sub: "유저·롤 권한 상한" },
-    { id: "allow", label: "명시적 Allow 있음?", sub: "Identity/Resource 정책" },
+    { id: "allow", label: "명시적 Allow 있음?", sub: "Identity(자격 증명 기반) 정책" },
   ];
 
   const toggles: [string, boolean, () => void, string][] = [
@@ -451,7 +455,7 @@ export function EvalEngine() {
           {toggles.map(([label, on, fn, col], i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 4px" }}>
               <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>{label}</span>
-              <Switch on={on} onClick={fn} colorOn={col} />
+              <Switch on={on} onClick={fn} colorOn={col} label={label} />
             </div>
           ))}
           <div
