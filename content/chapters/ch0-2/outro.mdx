@@ -8,12 +8,28 @@ import { Checklist } from "../ui";
       freq: "★★★",
     },
     {
-      text: "명시적 Deny는 항상 Allow를 이기고, 기본값은 전부 거부다",
+      text: "명시적 Deny는 항상 Allow를 이기고, 기본값은 전부 거부다 — 유효 권한은 SCP ∩ Boundary ∩ Identity 교집합",
       freq: "★★★",
     },
     {
       text: "AWS 위에서 도는 코드의 인증은 액세스 키 하드코딩이 아니라 IAM 롤(임시 자격증명)이다",
       freq: "★★★",
+    },
+    {
+      text: "서비스에 롤을 지정하려면 iam:PassRole, 전달했는데 못 쓰면 신뢰 정책 Principal을 본다",
+      freq: "★★★",
+    },
+    {
+      text: "동일 계정은 자격 증명 정책과 리소스 정책의 합집합, 교차 계정은 양쪽 Allow가 다 필요하다",
+      freq: "★★★",
+    },
+    {
+      text: "STS 4종 — AssumeRole(교차 계정)·WithWebIdentity(웹 ID)·WithSAML(사내 SSO)·GetSessionToken(MFA 자기발급) — 을 용도로 구분할 수 있다",
+      freq: "★★☆",
+    },
+    {
+      text: "계정 전체 감사는 자격 증명 보고서, 유저별 미사용 권한 정리는 액세스 어드바이저다",
+      freq: "★★☆",
     },
   ]}
 />
