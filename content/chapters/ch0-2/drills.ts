@@ -1,0 +1,573 @@
+/**
+ * 생성물 — 손편집 금지. `node scripts/import-drills.mts iam` 재실행으로 갱신.
+ * 원본: aws-cloud-drills data/questions/iam.json (15문항)
+ */
+import type { Question } from "../../schema";
+
+export const quiz: Question[] = [
+  // source: iam-ec2-role-instead-of-access-keys
+  {
+    "id": "q1",
+    "slug": "iam-ec2-role-instead-of-access-keys",
+    "scope": "final",
+    "concept": [
+      "ec2",
+      "instance-profile",
+      "credentials"
+    ],
+    "scenario": "한 개발자가 EC2 인스턴스에서 실행되는 애플리케이션이 S3 버킷의 객체를 읽도록 만들고 있다. 처음에는 IAM 사용자의 액세스 키를 발급받아 소스 코드에 넣을 계획이었지만, 보안 검토에서 반려됐다. AWS 보안 모범 사례에 맞는 방법은?",
+    "choices": [
+      "액세스 키를 소스 코드의 상수로 두되, 프라이빗 리포지토리에서만 관리한다.",
+      "루트 사용자 액세스 키를 발급해 환경 변수로 주입한다.",
+      "S3 접근을 허용하는 IAM 역할을 만들고 인스턴스 프로파일로 EC2 인스턴스에 연결한다.",
+      "액세스 키를 AMI에 포함시켜 인스턴스를 시작할 때마다 자동으로 배포되게 한다."
+    ],
+    "answer": [
+      2
+    ],
+    "explanation": "EC2에서 실행되는 애플리케이션에 권한을 줄 때의 표준 답은 IAM 역할이다. 역할을 인스턴스 프로파일로 인스턴스에 연결하면, 애플리케이션(SDK)은 인스턴스 메타데이터 서비스를 통해 임시 자격 증명을 자동으로 받아 쓰고, 자격 증명은 주기적으로 자동 교체된다.\n\n장기 액세스 키를 코드·이미지·환경 변수에 심는 방식은 유출 시 폐기·교체가 어렵고, 리포지토리 공개 실수 같은 사고에 그대로 노출된다. DVA 시험에서 \"EC2 위 애플리케이션 + AWS 서비스 접근\" 조합이 보이면 거의 항상 IAM 역할이 정답이다.",
+    "choiceExplanations": [
+      "프라이빗 리포지토리라도 코드에 박힌 장기 자격 증명은 유출 경로(포크, 로그, 빌드 아티팩트)가 많고 교체도 수동이다.",
+      "루트 사용자 액세스 키는 만들지 않는 것 자체가 모범 사례다. 권한을 제한할 수도 없다.",
+      "정답. IAM 역할 + 인스턴스 프로파일을 쓰면 임시 자격 증명이 자동으로 발급·교체되어 키를 저장·배포할 필요가 없습니다.",
+      "AMI에 자격 증명을 포함하면 이미지를 공유·복사할 때마다 키가 함께 유출되고, 키 교체 시 AMI를 다시 구워야 한다."
+    ],
+    "title": "EC2 애플리케이션에 S3 접근 권한을 주는 올바른 방법",
+    "difficulty": "easy",
+    "references": [
+      {
+        "title": "IAM roles for Amazon EC2",
+        "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html"
+      },
+      {
+        "title": "Security best practices in IAM",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+      }
+    ]
+  },
+  // source: iam-cross-account-assume-role
+  {
+    "id": "q2",
+    "slug": "iam-cross-account-assume-role",
+    "scope": "final",
+    "concept": [
+      "sts",
+      "assume-role",
+      "cross-account"
+    ],
+    "scenario": "개발 계정(A)에서 실행되는 배치 작업이 운영 계정(B)의 DynamoDB 테이블을 읽어야 한다. 보안팀은 계정 B의 장기 자격 증명을 계정 A에 발급·배포하는 것을 금지했다. 가장 적절한 구성은?",
+    "choices": [
+      "계정 B의 루트 자격 증명을 AWS Secrets Manager에 저장해 계정 A와 공유한다.",
+      "계정 B에 IAM 사용자를 만들고 액세스 키를 계정 A의 배치 작업에 환경 변수로 전달한다.",
+      "DynamoDB 테이블에 퍼블릭 읽기를 허용하는 리소스 기반 정책을 붙인다.",
+      "계정 B에 테이블 읽기 권한을 가진 역할을 만들고 신뢰 정책에 계정 A를 지정한 뒤, 배치 작업이 sts:AssumeRole로 임시 자격 증명을 받아 사용한다."
+    ],
+    "answer": [
+      3
+    ],
+    "explanation": "계정 간 접근은 \"대상 계정에 역할을 만들고, 신뢰 정책(trust policy)으로 누가 수임할 수 있는지 지정하고, 호출 측이 STS AssumeRole로 임시 자격 증명을 받는\" 구조가 표준이다. 임시 자격 증명은 수명이 짧아 유출 피해가 제한되고, 장기 키 배포·교체 문제가 사라진다.\n\n이 구성에서는 권한 정책(역할이 무엇을 할 수 있나)과 신뢰 정책(누가 역할을 수임할 수 있나)을 구분하는 것이 핵심 출제 포인트다.\n\n잊기 쉬운 반쪽: 신뢰 정책이 계정 A(계정 루트)를 지정하는 표준 구성에서는, 계정 A 쪽에서도 호출 주체(배치 작업의 실행 역할·유저)에게 대상 역할 ARN에 대한 sts:AssumeRole을 허용하는 자격 증명 기반 정책이 필요하다. 양쪽 계정이 모두 허용해야 수임이 성립한다 — 대상 계정의 신뢰 정책만으로는 AccessDenied가 난다.",
+    "choiceExplanations": [
+      "루트 자격 증명은 어떤 저장소에 두더라도 공유 대상이 아니다. Secrets Manager는 비밀을 안전하게 저장할 뿐, 루트 공유를 정당화하지 않는다.",
+      "장기 액세스 키를 다른 계정에 배포하는 것 자체가 금지된 요구사항이고, 키 교체·폐기 관리 부담도 그대로 남는다.",
+      "퍼블릭 접근 허용은 최소 권한 원칙의 정반대로, 계정 A만이 아니라 인터넷 전체에 데이터를 여는 구성이다.",
+      "정답. 교차 계정 접근의 표준 패턴은 대상 계정의 역할 + 신뢰 정책 + sts:AssumeRole로 받은 임시 자격 증명입니다."
+    ],
+    "title": "교차 계정 접근은 역할 수임으로",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "IAM tutorial: Delegate access across AWS accounts using IAM roles",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html"
+      },
+      {
+        "title": "AssumeRole (AWS Security Token Service API Reference)",
+        "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html"
+      }
+    ]
+  },
+  // source: iam-permissions-boundary-effective-permissions
+  {
+    "id": "q3",
+    "slug": "iam-permissions-boundary-effective-permissions",
+    "scope": "final",
+    "concept": [
+      "permissions-boundary",
+      "policy-evaluation"
+    ],
+    "scenario": "어떤 IAM 사용자에게 s3:* 를 허용하는 자격 증명 기반 정책이 연결되어 있고, 동시에 s3:GetObject 와 s3:ListBucket 만 허용하는 권한 경계(permissions boundary)가 설정되어 있다. 이 사용자가 s3:PutObject 를 호출하면 어떻게 되는가?",
+    "choices": [
+      "성공한다 — 자격 증명 기반 정책이 s3:* 를 허용하기 때문이다.",
+      "실패한다 — 유효 권한은 자격 증명 기반 정책과 권한 경계의 교집합이므로 PutObject는 암묵적으로 거부된다.",
+      "실패한다 — 권한 경계는 모든 쓰기 작업을 항상 차단하기 때문이다.",
+      "성공한다 — 권한 경계는 콘솔 로그인에만 적용되고 API 호출에는 적용되지 않기 때문이다."
+    ],
+    "answer": [
+      1
+    ],
+    "explanation": "권한 경계는 자격 증명 기반 정책이 줄 수 있는 권한의 상한을 정의한다. 실제 유효 권한은 두 집합의 교집합이다: 자격 증명 기반 정책이 허용하더라도 경계가 허용하지 않으면 그 작업은 암묵적 거부(implicit deny)가 된다.\n\n이 문제에서 경계는 GetObject와 ListBucket만 허용하므로, 정책이 s3:* 를 허용해도 PutObject는 교집합 밖이라 거부된다. 반대로 경계만 허용하고 정책이 허용하지 않는 작업도 거부된다는 점까지 묶어서 기억해 두면 평가 로직 문제 전반에 대응할 수 있다.",
+    "choiceExplanations": [
+      "자격 증명 기반 정책 단독으로는 부족하다. 권한 경계가 설정된 주체는 경계가 허용하는 범위를 벗어날 수 없다.",
+      "정답. 권한 경계는 상한선입니다 — 자격 증명 기반 정책과 경계가 모두 허용하는 작업만 유효 권한이 됩니다.",
+      "권한 경계에 '쓰기 차단' 같은 고정 규칙은 없다. 경계 문서에 어떤 작업을 넣었는지가 전부다.",
+      "권한 경계는 콘솔·CLI·SDK를 가리지 않고 해당 주체의 모든 요청 평가에 적용된다."
+    ],
+    "title": "권한 경계가 있을 때의 유효 권한",
+    "difficulty": "hard",
+    "references": [
+      {
+        "title": "Permissions boundaries for IAM entities",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html"
+      },
+      {
+        "title": "Policy evaluation logic",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
+      }
+    ]
+  },
+  // source: iam-lambda-least-privilege-dynamodb
+  {
+    "id": "q4",
+    "slug": "iam-lambda-least-privilege-dynamodb",
+    "scope": "final",
+    "concept": [
+      "least-privilege",
+      "lambda",
+      "execution-role"
+    ],
+    "scenario": "Lambda 함수가 orders 라는 DynamoDB 테이블 하나에 대해 GetItem 과 PutItem 만 수행한다. 함수의 실행 역할(execution role)을 최소 권한 원칙에 맞게 구성하는 조치는? (2개를 고르세요)",
+    "choices": [
+      "정책의 Action 을 dynamodb:GetItem 과 dynamodb:PutItem 으로 한정한다.",
+      "AWS 관리형 정책 AmazonDynamoDBFullAccess 를 실행 역할에 연결한다.",
+      "정책의 Resource 를 orders 테이블의 ARN으로 한정한다.",
+      "실행 역할에 AdministratorAccess 를 연결하고 함수 코드에서 접근 범위를 제한한다."
+    ],
+    "answer": [
+      0,
+      2
+    ],
+    "explanation": "최소 권한 원칙은 \"무엇을(Action)\"과 \"어디에(Resource)\" 두 축을 모두 좁힐 때 완성된다. 이 함수는 특정 테이블에 GetItem·PutItem만 수행하므로, 정책도 정확히 그 액션과 그 테이블 ARN으로 한정해야 한다.\n\n실행 역할은 함수 코드가 AWS 서비스를 호출할 때 쓰는 자격 증명이므로, 역할이 과도하게 넓으면 코드 결함·의존성 침해 사고가 그대로 계정 전체의 피해로 확대된다. 시험에서는 'FullAccess 관리형 정책 연결'이 단골 오답으로 나온다.",
+    "choiceExplanations": [
+      "정답. 최소 권한은 두 축으로 좁힙니다 — 필요한 액션만(Action), 필요한 리소스만(Resource).",
+      "FullAccess는 모든 테이블에 모든 작업을 허용한다. 동작은 하지만 최소 권한 원칙 위반이라 이 문제의 요구와 어긋난다.",
+      "정답. 최소 권한은 두 축으로 좁힙니다 — 필요한 액션만(Action), 필요한 리소스만(Resource).",
+      "코드에서 범위를 제한하는 것은 권한 제어가 아니다. 자격 증명 자체가 관리자 권한이면 코드 결함 한 번으로 계정 전체가 노출된다."
+    ],
+    "title": "Lambda 실행 역할에 최소 권한 적용하기",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "Defining Lambda function permissions with an execution role",
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html"
+      },
+      {
+        "title": "Security best practices in IAM",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+      }
+    ]
+  },
+  // source: iam-cognito-identity-pool-mobile-app
+  {
+    "id": "q5",
+    "slug": "iam-cognito-identity-pool-mobile-app",
+    "scope": "final",
+    "concept": [
+      "cognito",
+      "identity-pool",
+      "temporary-credentials",
+      "mobile"
+    ],
+    "scenario": "수만 명이 사용하는 모바일 앱에서 각 사용자가 자신의 사진을 S3 버킷에 직접 업로드해야 한다. 사용자마다 IAM 사용자를 만들 수는 없다. 사용자에게 범위가 제한된 AWS 자격 증명을 발급하는 가장 적절한 방법은?",
+    "choices": [
+      "Amazon Cognito 자격 증명 풀(identity pool)로 인증된 사용자에게 IAM 역할 기반의 임시 자격 증명을 발급한다.",
+      "하나의 IAM 사용자 액세스 키를 앱 바이너리에 포함시켜 모든 사용자가 공유한다.",
+      "앱 최초 실행 시 IAM CreateUser API로 사용자별 IAM 사용자를 자동 생성한다.",
+      "S3 버킷을 퍼블릭 쓰기로 열어 자격 증명 없이 업로드하게 한다."
+    ],
+    "answer": [
+      0
+    ],
+    "explanation": "Cognito 자격 증명 풀은 인증된(또는 게스트) 사용자에게 IAM 역할에 연결된 임시 자격 증명을 발급한다. 역할 정책에 정책 변수를 활용하면 \"자기 프리픽스 아래에만 업로드\" 같은 사용자 단위 범위 제한도 가능하다.\n\nIAM 사용자는 애플리케이션 최종 사용자를 위한 수단이 아니다 — 계정당 IAM 사용자 수에는 한도가 있고, 장기 자격 증명을 단말에 배포하는 구조 자체가 보안 사고로 이어진다. \"앱 사용자 + AWS 리소스 직접 접근\" 조합이 보이면 Cognito를 떠올리면 된다.",
+    "choiceExplanations": [
+      "정답. 다수의 앱 사용자에게 AWS 자격 증명이 필요하면 Cognito 자격 증명 풀이 IAM 역할 기반 임시 자격 증명을 발급하는 표준 답입니다.",
+      "앱 바이너리는 디컴파일로 키가 그대로 노출된다. 공유 장기 키는 폐기하면 전체 사용자가 동시에 중단된다.",
+      "IAM 사용자는 사람·시스템 관리 주체용이고 계정당 수에 한도가 있어 수만 명 규모의 최종 사용자에게는 구조적으로 맞지 않는다.",
+      "퍼블릭 쓰기 버킷은 누구나 임의 데이터를 쓸 수 있어 과금·악성 콘텐츠 위험이 있고, 사용자 식별도 불가능하다."
+    ],
+    "title": "모바일 앱 사용자에게 AWS 자격 증명 발급하기",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "Amazon Cognito identity pools",
+        "url": "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-identity.html"
+      },
+      {
+        "title": "Temporary security credentials in IAM",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html"
+      }
+    ]
+  },
+  // source: iam-explicit-deny-precedence
+  {
+    "id": "q6",
+    "slug": "iam-explicit-deny-precedence",
+    "scope": "final",
+    "concept": [
+      "policy-evaluation",
+      "explicit-deny"
+    ],
+    "scenario": "한 IAM 역할에 두 개의 정책이 연결되어 있다. 정책 A는 s3:* 를 Allow 하고, 정책 B는 특정 버킷에 대한 s3:DeleteObject 를 명시적으로 Deny 한다. 이 역할이 해당 버킷에서 s3:DeleteObject 를 호출하면 어떻게 되는가?",
+    "choices": [
+      "정책이 두 개라 충돌이 발생하고, AWS는 더 최근에 연결된 정책을 우선 적용한다.",
+      "거부된다 — 어떤 정책의 명시적 Deny든 다른 정책의 Allow보다 우선한다.",
+      "허용된다 — Allow가 하나라도 있으면 Deny는 무시된다.",
+      "허용된다 — 같은 주체에 붙은 정책끼리는 더 넓은 권한(s3:*)이 우선한다."
+    ],
+    "answer": [
+      1
+    ],
+    "explanation": "IAM 정책 평가 로직의 핵심 규칙은 \"명시적 거부(explicit deny)가 모든 허용을 이긴다\"이다. 적용되는 모든 정책(자격 증명 기반·리소스 기반·SCP·권한 경계·세션 정책)을 통틀어 단 하나라도 명시적 Deny가 있으면 그 요청은 거부된다.\n\n정책이 여러 개일 때 AWS는 '최근 정책 우선'이나 '넓은 권한 우선' 같은 순서 규칙을 쓰지 않는다. 모든 정책의 Statement를 모아 Deny가 있는지 먼저 확인하고, 없으면 Allow가 하나라도 있는지 본다. 따라서 정책 A의 s3:* Allow가 있어도 정책 B의 DeleteObject Deny 때문에 삭제는 거부된다.",
+    "choiceExplanations": [
+      "IAM에는 '나중에 연결된 정책이 우선'이라는 개념이 없다. 연결 순서·시점과 무관하게 모든 정책을 함께 평가한다.",
+      "정답. 정책 평가에서 명시적 Deny는 어떤 Allow보다도 항상 우선합니다.",
+      "정반대다. Allow가 있어도 명시적 Deny가 하나라도 있으면 요청은 거부된다.",
+      "권한의 넓고 좁음은 우선순위를 정하지 않는다. 평가는 'Deny 우선 → 그다음 Allow 존재 여부' 순서로만 이뤄진다."
+    ],
+    "title": "허용과 거부가 충돌할 때의 평가 결과",
+    "difficulty": "hard",
+    "references": [
+      {
+        "title": "Policy evaluation logic",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
+      }
+    ]
+  },
+  // source: iam-identity-vs-resource-based-policy
+  {
+    "id": "q7",
+    "slug": "iam-identity-vs-resource-based-policy",
+    "scope": "final",
+    "concept": [
+      "resource-based-policy",
+      "bucket-policy"
+    ],
+    "scenario": "한 S3 버킷에 대해 \"이 버킷에 접근할 수 있는 주체가 누구인가\"를 버킷 쪽에서 직접 정의하고 싶다. 즉 IAM 사용자·역할에 정책을 붙이는 것이 아니라, 리소스 자체에 정책을 붙여 접근 주체를 명시하려 한다. 이때 사용하는 정책 유형은?",
+    "choices": [
+      "권한 경계(permissions boundary)",
+      "세션 정책(session policy)",
+      "리소스 기반 정책(resource-based policy) — S3의 경우 버킷 정책",
+      "서비스 제어 정책(SCP)"
+    ],
+    "answer": [
+      2
+    ],
+    "explanation": "정책은 크게 자격 증명 기반(identity-based)과 리소스 기반(resource-based)으로 나뉜다. 자격 증명 기반 정책은 IAM 사용자·그룹·역할에 붙어 \"이 주체가 무엇을 할 수 있는가\"를 정의한다. 반면 리소스 기반 정책은 S3 버킷·SQS 큐·KMS 키 같은 리소스에 직접 붙어 \"누가 이 리소스에 접근할 수 있는가\"를 Principal 요소로 명시한다.\n\nS3 버킷에 붙이는 리소스 기반 정책이 바로 버킷 정책이다. 리소스 기반 정책은 Principal을 직접 지정할 수 있어 교차 계정 접근에도 유용하다. 문제처럼 \"리소스 쪽에서 접근 주체를 정의\"한다는 표현이 나오면 리소스 기반 정책을 떠올리면 된다.",
+    "choiceExplanations": [
+      "권한 경계는 IAM 주체가 가질 수 있는 권한의 상한을 정할 뿐, 리소스에 붙여 접근 주체를 명시하는 용도가 아니다.",
+      "세션 정책은 역할 수임·페더레이션 시점에 세션 권한을 좁히는 용도이며, 리소스에 영구적으로 붙는 정책이 아니다.",
+      "정답. 리소스에 직접 붙여 누가 접근할 수 있는지 명시하는 것은 리소스 기반 정책(S3에서는 버킷 정책)입니다.",
+      "SCP는 조직 내 계정의 권한 상한(가드레일)을 정할 뿐 권한을 부여하지 않고, 특정 리소스에 붙여 접근 주체를 명시하지도 않는다."
+    ],
+    "title": "S3 버킷 자체에 권한을 붙이는 방법",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "Identity-based policies and resource-based policies",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html"
+      }
+    ]
+  },
+  // source: iam-source-ip-condition-key
+  {
+    "id": "q8",
+    "slug": "iam-source-ip-condition-key",
+    "scope": "final",
+    "concept": [
+      "condition-keys",
+      "source-ip"
+    ],
+    "scenario": "보안팀은 회사 사무실 공인 IP 대역(203.0.113.0/24)에서 발생한 요청에 대해서만 어떤 IAM 작업을 허용하고, 그 밖의 출처에서는 차단하려 한다. 정책에서 사용할 조건은?",
+    "choices": [
+      "Condition 블록에 IpAddress 연산자와 aws:SourceIp 키로 203.0.113.0/24 를 지정한다.",
+      "정책의 Resource 요소에 회사 IP 대역을 ARN처럼 나열한다.",
+      "정책의 Principal 요소에 IP 대역을 지정한다.",
+      "Condition 블록에 aws:MultiFactorAuthPresent 키로 IP 대역을 검사한다."
+    ],
+    "answer": [
+      0
+    ],
+    "explanation": "aws:SourceIp 는 요청자의 공인 IP 주소를 정책에 지정한 IP 범위와 비교하는 전역 조건 키다. IpAddress 조건 연산자와 함께 써서 \"이 CIDR 범위에서 온 요청만 허용\" 같은 제약을 표현한다. 정책의 Condition 블록 안에 들어간다.\n\n주의할 점: aws:SourceIp 는 요청이 VPC 엔드포인트를 거치는 경우에는 요청 컨텍스트에 포함되지 않으므로, 그런 환경에서는 aws:VpcSourceIp 등 다른 키를 검토해야 한다. 시험에서 'IP 기반 접근 제한'이 보이면 Resource·Principal이 아니라 Condition + aws:SourceIp 가 정답이다.",
+    "choiceExplanations": [
+      "정답. 요청 출처 IP로 접근을 제한하려면 Condition에서 aws:SourceIp 전역 조건 키와 IpAddress 연산자를 사용합니다.",
+      "Resource 요소는 작업 대상 리소스의 ARN을 지정하는 곳이지, 요청 출처 IP를 거르는 곳이 아니다.",
+      "Principal은 리소스 기반 정책에서 '누가'를 지정하는 요소이고 값은 계정·사용자·역할·서비스다. IP 주소를 넣는 곳이 아니다.",
+      "aws:MultiFactorAuthPresent 는 MFA 인증 여부(불리언)를 검사하는 키로, IP 대역과는 무관하다."
+    ],
+    "title": "특정 IP 범위에서만 API를 허용하기",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "AWS global condition context keys",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html"
+      }
+    ]
+  },
+  // source: iam-getfederationtoken-custom-broker
+  {
+    "id": "q9",
+    "slug": "iam-getfederationtoken-custom-broker",
+    "scope": "final",
+    "concept": [
+      "sts",
+      "federation",
+      "getfederationtoken"
+    ],
+    "scenario": "온프레미스 사내 사용자 디렉터리로 인증하는 직원들에게, 별도의 IAM 사용자를 만들지 않고 AWS 리소스에 대한 임시 자격 증명을 발급하려 한다. 사내에 IAM 사용자 자격 증명으로 동작하는 커스텀 자격 증명 브로커 애플리케이션을 두고, 이 브로커가 직원별 권한을 부여한 임시 자격 증명을 발급하도록 만들고 싶다. 브로커가 호출할 STS API는?",
+    "choices": [
+      "GetCallerIdentity — 호출자의 신원을 확인해 자격 증명을 발급한다.",
+      "DecodeAuthorizationMessage — 거부 메시지를 디코딩해 자격 증명을 발급한다.",
+      "AssumeRoleWithSAML — SAML 어설션을 SDK 없이 그대로 STS에 전달한다.",
+      "GetFederationToken — IAM 사용자 자격 증명으로 호출하고 세션 정책으로 권한을 좁힌 임시 자격 증명을 페더레이션 사용자에게 발급한다."
+    ],
+    "answer": [
+      3
+    ],
+    "explanation": "GetFederationToken 은 커스텀 자격 증명 브로커 패턴의 핵심 API다. 브로커 애플리케이션은 유효한 IAM 사용자 자격 증명으로 인증한 뒤 이 API를 호출하고, 전달하는 세션 정책(Policy/PolicyArns)으로 발급되는 임시 자격 증명의 권한을 좁힌다. 결과 권한은 IAM 사용자의 자격 증명 기반 정책과 세션 정책의 교집합이다.\n\nAssumeRole 과 달리 기본 만료가 길고(12시간) DurationSeconds로 최대 36시간까지 지정할 수 있어 호출 횟수를 줄일 수 있다. SAML 어설션을 만들 수 있는 IdP가 있다면 AssumeRoleWithSAML 이 더 적합하지만, 이 시나리오는 'IAM 사용자 자격 증명으로 동작하는 커스텀 브로커'를 명시했으므로 GetFederationToken 이 정확한 답이다.",
+    "choiceExplanations": [
+      "GetCallerIdentity 는 현재 호출자가 누구인지 반환하는 진단용 API로, 새 임시 자격 증명을 발급하지 않는다.",
+      "DecodeAuthorizationMessage 는 인코딩된 권한 거부 메시지를 사람이 읽을 수 있게 풀어주는 API로, 자격 증명 발급과 무관하다.",
+      "AssumeRoleWithSAML 은 SAML 2.0 IdP가 만든 어설션을 받아 자격 증명을 발급한다. 'IAM 사용자 자격 증명으로 동작하는 커스텀 브로커'라는 이 문제의 조건과는 맞지 않는다.",
+      "정답. 커스텀 자격 증명 브로커가 IAM 사용자 자격 증명으로 호출해 페더레이션 사용자용 임시 자격 증명을 발급하는 API는 GetFederationToken입니다."
+    ],
+    "title": "사내 디렉터리 사용자에게 임시 자격 증명 발급하기",
+    "difficulty": "hard",
+    "references": [
+      {
+        "title": "Request temporary security credentials",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html"
+      }
+    ]
+  },
+  // source: iam-access-analyzer-external-access
+  {
+    "id": "q10",
+    "slug": "iam-access-analyzer-external-access",
+    "scope": "final",
+    "concept": [
+      "access-analyzer",
+      "external-access"
+    ],
+    "scenario": "보안 담당자가 계정 안의 S3 버킷·IAM 역할·KMS 키 중에서 신뢰 영역(조직/계정) 밖의 외부 주체와 공유된 리소스가 있는지 빠짐없이 식별하려 한다. 가장 적절한 AWS 기능은?",
+    "choices": [
+      "CloudTrail 이벤트 기록을 직접 검색해 외부 IP에서 들어온 호출을 찾는다.",
+      "IAM Access Analyzer로 외부 접근(external access) 분석기를 만들어, 리소스 기반 정책이 외부 주체에 부여한 접근을 자동으로 식별한다.",
+      "각 리소스의 정책을 수작업으로 열어 Principal에 외부 계정이 있는지 한 건씩 확인한다.",
+      "권한 경계를 모든 IAM 주체에 적용해 외부 공유를 차단한다."
+    ],
+    "answer": [
+      1
+    ],
+    "explanation": "IAM Access Analyzer는 S3 버킷·IAM 역할·KMS 키·Lambda 함수·SQS 큐 등의 리소스 기반 정책을 분석해, 신뢰 영역(조직 또는 계정) 밖의 외부 주체에게 접근이 부여된 리소스를 자동으로 찾아 'finding'으로 보고한다. 논리적 추론(automated reasoning) 기반이라 수작업 검토보다 정확하고 누락이 없다.\n\nCloudTrail은 '실제로 일어난 호출'을 기록하지만 '정책이 잠재적으로 외부에 허용하는 접근'을 식별하지는 못한다. 외부 공유 여부를 정책 수준에서 선제적으로 점검하려면 Access Analyzer가 맞는 도구다. (정책 작성 시점의 검증에는 Access Analyzer의 정책 검증 기능을 함께 쓴다.)",
+    "choiceExplanations": [
+      "CloudTrail은 발생한 API 호출 로그일 뿐, 정책이 외부에 부여하는 잠재적 접근을 식별하지 못한다. 아직 호출되지 않은 외부 공유는 잡히지 않는다.",
+      "정답. 리소스 기반 정책으로 외부 주체에 공유된 리소스를 자동 식별하려면 IAM Access Analyzer의 외부 접근 분석기를 사용합니다.",
+      "수작업 검토는 규모가 커지면 누락·실수가 생긴다. Access Analyzer가 바로 이 작업을 자동화하기 위해 존재한다.",
+      "권한 경계는 IAM 주체의 권한 상한을 정할 뿐, 리소스가 외부에 공유돼 있는지 식별하거나 리소스 기반 정책을 통제하지 못한다."
+    ],
+    "title": "외부와 공유된 리소스를 찾아내기",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "IAM Access Analyzer findings",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-findings.html"
+      },
+      {
+        "title": "Validate policies with IAM Access Analyzer",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-policy-validation.html"
+      }
+    ]
+  },
+  // source: iam-service-linked-role-purpose
+  {
+    "id": "q11",
+    "slug": "iam-service-linked-role-purpose",
+    "scope": "final",
+    "concept": [
+      "service-linked-role",
+      "roles"
+    ],
+    "scenario": "어떤 AWS 서비스를 처음 설정했더니 IAM에 그 서비스 이름이 붙은 역할이 자동으로 생겼고, 관리자가 권한을 보긴 해도 편집할 수는 없다. 이 역할에 대한 설명으로 옳은 것은?",
+    "choices": [
+      "관리자가 직접 만들어 EC2 인스턴스에 연결하는 일반 인스턴스 프로파일 역할이다.",
+      "사용자가 콘솔에 로그인할 때 사용하는 페더레이션 역할이다.",
+      "서비스 연결 역할(service-linked role)로, 연결된 AWS 서비스가 사용자를 대신해 작업을 수행하도록 사전 정의되어 있으며 서비스가 소유한다.",
+      "교차 계정 접근을 위해 다른 계정이 수임하도록 만든 역할이다."
+    ],
+    "answer": [
+      2
+    ],
+    "explanation": "서비스 연결 역할은 특정 AWS 서비스에 미리 연결된 서비스 역할의 한 종류다. 해당 서비스가 사용자를 대신해 다른 AWS 리소스를 호출할 수 있도록 권한과 신뢰 정책이 사전 정의되어 있고, 역할의 소유자는 서비스다. IAM 관리자는 권한을 볼 수는 있지만 편집할 수 없으며, 관련 리소스를 먼저 정리해야만 삭제할 수 있다.\n\n이 구조 덕분에 서비스가 필요한 권한을 누락 없이 안전하게 갖추고, 관리자가 실수로 권한을 잘못 바꿔 서비스가 동작을 멈추는 일을 막는다. 'AWS 서비스가 자동 생성 + 편집 불가 + 서비스 소유' 조합이 보이면 서비스 연결 역할이다.",
+    "choiceExplanations": [
+      "인스턴스 프로파일 역할은 관리자가 직접 만들어 EC2에 연결하고 권한도 자유롭게 편집한다. 서비스가 자동 생성하고 편집을 막는 역할이 아니다.",
+      "페더레이션 역할은 외부 IdP로 인증한 사용자가 수임하는 역할로, 서비스가 자기 작업을 위해 자동 생성하는 역할과 다르다.",
+      "정답. 서비스가 자동 생성하고 소유하며 권한을 편집할 수 없는 역할은 서비스 연결 역할(service-linked role)입니다.",
+      "교차 계정 역할은 신뢰 정책에 다른 계정을 지정해 사람이 만든 것이다. 서비스가 소유하며 편집 불가인 서비스 연결 역할과는 성격이 다르다."
+    ],
+    "title": "서비스가 내 계정에 자동으로 만든 역할",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "IAM roles",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html"
+      }
+    ]
+  },
+  // source: iam-roles-anywhere-on-premises
+  {
+    "id": "q12",
+    "slug": "iam-roles-anywhere-on-premises",
+    "scope": "final",
+    "concept": [
+      "roles-anywhere",
+      "on-premises",
+      "x509"
+    ],
+    "scenario": "데이터센터에서 돌아가는 온프레미스 서버 애플리케이션이 AWS 리소스에 접근해야 한다. 보안팀은 이 서버에 장기 IAM 액세스 키를 배포하지 않으면서도, AWS 워크로드와 동일하게 IAM 역할 기반 권한을 쓰게 하라고 요구한다. 이미 사내에는 X.509 인증서를 발급하는 자체 인증 기관(CA)이 있다. 가장 적절한 방법은?",
+    "choices": [
+      "서버마다 IAM 사용자를 만들고 액세스 키를 안전한 볼트에 넣어 배포한다.",
+      "서버에서 EC2 인스턴스 메타데이터 서비스(IMDS)를 호출해 임시 자격 증명을 받는다.",
+      "서버에 루트 사용자 자격 증명을 두고 필요한 권한만 코드에서 제한한다.",
+      "IAM Roles Anywhere를 사용해 사내 CA를 신뢰 앵커로 등록하고, 서버의 X.509 인증서로 IAM 역할의 임시 자격 증명을 받는다."
+    ],
+    "answer": [
+      3
+    ],
+    "explanation": "IAM Roles Anywhere는 EC2·Lambda 등 AWS 바깥(서버·컨테이너·온프레미스)에서 도는 워크로드가 IAM 역할의 임시 자격 증명을 받도록 해 준다. 워크로드가 보유한 X.509 인증서를 사용하며, 인증서를 발급한 CA(또는 AWS Private CA)를 신뢰 앵커(trust anchor)로 등록해 PKI와 IAM Roles Anywhere 사이 신뢰를 맺는다.\n\n이렇게 하면 온프레미스 서버에 장기 AWS 액세스 키를 배포·관리할 필요가 없고, AWS 워크로드와 동일한 IAM 역할·정책을 재사용할 수 있다. '사내 CA의 X.509 인증서 + 온프레미스 + 장기 키 금지'라는 조합이 IAM Roles Anywhere의 전형적인 사용 시나리오다.",
+    "choiceExplanations": [
+      "IAM 사용자 + 장기 액세스 키 배포는 보안팀이 금지한 바로 그 방식이다. 키 교체·폐기 관리 부담도 그대로 남는다.",
+      "IMDS는 EC2 인스턴스 안에서만 동작한다. 데이터센터의 온프레미스 서버에서는 호출할 수 없다.",
+      "루트 자격 증명을 서버에 두는 것은 최악의 선택이다. 코드에서 범위를 제한해도 자격 증명 자체가 무제한 권한이라 유출 시 계정 전체가 위험하다.",
+      "정답. 온프레미스 워크로드가 X.509 인증서로 IAM 역할 임시 자격 증명을 받게 하려면 IAM Roles Anywhere를 사용합니다."
+    ],
+    "title": "온프레미스 서버에 IAM 역할 자격 증명 주기",
+    "difficulty": "hard",
+    "references": [
+      {
+        "title": "What is AWS Identity and Access Management Roles Anywhere?",
+        "url": "https://docs.aws.amazon.com/rolesanywhere/latest/userguide/introduction.html"
+      }
+    ]
+  },
+  // source: iam-scp-does-not-grant-permissions
+  {
+    "id": "q13",
+    "slug": "iam-scp-does-not-grant-permissions",
+    "scope": "final",
+    "concept": [
+      "scp",
+      "organizations",
+      "policy-evaluation"
+    ],
+    "scenario": "AWS Organizations에서 어떤 멤버 계정의 OU에 ec2:* 를 Allow 하는 서비스 제어 정책(SCP)을 붙였는데, 그 계정의 IAM 사용자가 여전히 EC2 작업을 하지 못한다. SCP와 IAM 정책의 관계에 대해 옳은 설명을 모두 고르시오. (2개를 고르세요)",
+    "choices": [
+      "SCP는 권한을 부여하지 않는다 — 최대 권한의 상한(가드레일)을 정할 뿐, 실제 권한은 자격 증명 기반 정책으로 부여해야 한다.",
+      "SCP에 Allow가 있으면 IAM 정책 없이도 해당 작업이 자동으로 허용된다.",
+      "유효 권한은 SCP가 허용하는 범위와 IAM 정책이 허용하는 범위의 교집합이다.",
+      "SCP는 관리 계정(management account)의 사용자·역할에도 동일하게 적용된다."
+    ],
+    "answer": [
+      0,
+      2
+    ],
+    "explanation": "SCP는 조직 멤버 계정의 IAM 사용자·역할이 가질 수 있는 최대 권한(가드레일)을 정의할 뿐, 그 자체로는 어떤 권한도 부여하지 않는다. 따라서 SCP가 ec2:* 를 Allow 해도, 계정 안의 IAM 주체에 EC2를 허용하는 자격 증명 기반 정책이 없으면 해당 사용자는 아무 작업도 할 수 없다.\n\n실제 유효 권한은 SCP가 허용하는 범위와 IAM 정책(및 적용되는 리소스 기반 정책 등)이 허용하는 범위의 교집합이다. 즉 어떤 작업이 가능하려면 SCP와 IAM 정책 양쪽 모두에서 허용돼야 한다. 또한 SCP는 멤버 계정에만 적용되고 관리 계정의 사용자·역할에는 영향을 주지 않는다.",
+    "choiceExplanations": [
+      "정답. SCP는 권한을 부여하지 않고 상한만 정합니다 — 실제 권한은 IAM 정책으로 줘야 하며, 유효 권한은 둘의 교집합입니다.",
+      "SCP는 권한을 부여하지 않으므로 IAM 정책 없이 자동 허용되는 일은 없다. SCP의 Allow는 '여기까지 허용 가능'이라는 상한일 뿐이다.",
+      "정답. SCP는 권한을 부여하지 않고 상한만 정합니다 — 실제 권한은 IAM 정책으로 줘야 하며, 유효 권한은 둘의 교집합입니다.",
+      "SCP는 멤버 계정에만 적용되고 관리 계정의 사용자·역할에는 영향을 주지 않는다."
+    ],
+    "title": "SCP만으로는 접근이 안 되는 이유",
+    "difficulty": "hard",
+    "references": [
+      {
+        "title": "Service control policies (SCPs)",
+        "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html"
+      }
+    ]
+  },
+  // source: iam-mfa-protected-api-terminate
+  {
+    "id": "q14",
+    "slug": "iam-mfa-protected-api-terminate",
+    "scope": "final",
+    "concept": [
+      "mfa",
+      "condition-keys"
+    ],
+    "scenario": "개발자들이 평소 EC2 인스턴스를 자유롭게 다루되, ec2:TerminateInstances 같은 파괴적 작업만큼은 MFA로 인증한 경우에만 허용되도록 정책을 구성하려 한다. 어떻게 해야 하는가?",
+    "choices": [
+      "TerminateInstances를 허용하는 statement의 Condition에 aws:MultiFactorAuthPresent 가 true 인지 검사하는 조건을 추가한다.",
+      "개발자 그룹에서 모든 EC2 권한을 제거하고, 종료가 필요할 때마다 관리자가 대신 수행한다.",
+      "계정의 모든 IAM 사용자에게 MFA 디바이스 등록을 강제하면 자동으로 종료 작업이 보호된다.",
+      "TerminateInstances 작업에 권한 경계를 적용해 MFA를 요구한다."
+    ],
+    "answer": [
+      0
+    ],
+    "explanation": "MFA 보호 API 접근은 정책 statement의 Condition 요소에 aws:MultiFactorAuthPresent 키가 true 인지 검사하는 조건을 넣어 구현한다. 이 키는 사용자가 MFA로 인증한 임시 자격 증명(AssumeRole·GetSessionToken으로 발급)을 쓸 때만 true가 된다. 따라서 TerminateInstances를 허용하는 statement에만 이 조건을 달면, MFA 인증을 거친 세션에서만 종료가 가능해진다.\n\n장기 액세스 키나 루트 자격 증명에는 이 키가 존재하지 않으므로 MFA 보호 대상으로 쓸 수 없다. 평소 작업(RunInstances·DescribeInstances 등)은 조건 없이 허용하고, 파괴적 작업만 MFA 조건이 달린 별도 statement로 분리하는 것이 전형적인 패턴이다.",
+    "choiceExplanations": [
+      "정답. 특정 작업에만 MFA를 요구하려면 해당 statement의 Condition에 aws:MultiFactorAuthPresent: true 를 넣습니다.",
+      "모든 EC2 권한을 빼고 관리자가 대신 종료하는 방식은 개발자 생산성을 해치고 자동화도 막는다. 문제는 'MFA 조건부 허용'을 요구한다.",
+      "MFA 디바이스를 등록·강제하는 것만으로는 특정 작업이 MFA 인증 세션에서만 실행되도록 강제되지 않는다. 정책 Condition에 aws:MultiFactorAuthPresent 를 넣어야 한다.",
+      "권한 경계는 권한의 상한을 정할 뿐, '이 작업은 MFA가 있어야 허용'이라는 조건부 허용을 구현하는 도구가 아니다. 그 일은 Condition 키가 한다."
+    ],
+    "title": "민감한 작업에만 MFA를 강제하기",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "Secure API access with MFA",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_configure-api-require.html"
+      }
+    ]
+  },
+  // source: iam-cognito-user-pool-vs-identity-pool
+  {
+    "id": "q15",
+    "slug": "iam-cognito-user-pool-vs-identity-pool",
+    "scope": "final",
+    "concept": [
+      "cognito",
+      "user-pool",
+      "identity-pool"
+    ],
+    "scenario": "한 모바일 앱은 (1) 사용자가 이메일·비밀번호로 가입·로그인하고 인증 토큰을 받아야 하고, (2) 로그인한 사용자가 자신의 사진을 S3에 직접 올리도록 AWS 임시 자격 증명을 받아야 한다. Amazon Cognito의 두 구성 요소를 올바르게 짝지은 설명을 모두 고르시오. (2개를 고르세요)",
+    "choices": [
+      "사용자 풀(user pool)이 IAM 역할 기반의 AWS 임시 자격 증명을 직접 발급한다.",
+      "사용자 풀(user pool)은 사용자 디렉터리로서 가입·로그인을 처리하고 JWT 토큰을 발급한다.",
+      "자격 증명 풀(identity pool)은 토큰을 받아 IAM 역할 기반의 AWS 임시 자격 증명을 발급한다.",
+      "자격 증명 풀(identity pool)은 사용자의 비밀번호를 저장하고 로그인 화면을 제공한다."
+    ],
+    "answer": [
+      1,
+      2
+    ],
+    "explanation": "Amazon Cognito는 두 구성 요소로 나뉜다. 사용자 풀(user pool)은 웹·모바일 앱의 사용자 디렉터리이자 OIDC IdP로, 가입·로그인·MFA 같은 인증을 처리하고 ID·액세스 토큰(JWT)을 발급한다.\n\n자격 증명 풀(identity pool)은 사용자 풀 같은 IdP가 발급한 토큰을 받아, IAM 역할에 연결된 AWS 임시 자격 증명을 발급한다. 이 자격 증명으로 사용자는 S3·DynamoDB 같은 AWS 서비스를 직접 호출할 수 있다. 즉 '인증(누구인가)'은 사용자 풀, 'AWS 리소스 접근 자격 증명(무엇을 할 수 있는가)'은 자격 증명 풀이 담당한다.",
+    "choiceExplanations": [
+      "AWS 임시 자격 증명을 발급하는 것은 자격 증명 풀의 역할이다. 사용자 풀은 인증과 JWT 발급을 담당한다.",
+      "정답. 사용자 풀은 가입·로그인을 처리하고 JWT를 발급하는 디렉터리, 자격 증명 풀은 그 토큰으로 AWS 임시 자격 증명을 발급하는 구성 요소입니다.",
+      "정답. 사용자 풀은 가입·로그인을 처리하고 JWT를 발급하는 디렉터리, 자격 증명 풀은 그 토큰으로 AWS 임시 자격 증명을 발급하는 구성 요소입니다.",
+      "비밀번호 저장·로그인 화면 제공은 사용자 풀의 역할이다. 자격 증명 풀은 사용자 디렉터리가 아니라 자격 증명 발급기다."
+    ],
+    "title": "Cognito 사용자 풀과 자격 증명 풀의 역할 구분",
+    "difficulty": "medium",
+    "references": [
+      {
+        "title": "Amazon Cognito user pools",
+        "url": "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html"
+      },
+      {
+        "title": "Amazon Cognito identity pools",
+        "url": "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-identity.html"
+      }
+    ]
+  },
+];

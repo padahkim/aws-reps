@@ -8,6 +8,7 @@ export const quiz: Question[] = [
   // source: aws-basics-region-selection-criteria
   {
     "id": "q1",
+    "slug": "aws-basics-region-selection-criteria",
     "scope": "final",
     "concept": [
       "region",
@@ -43,6 +44,7 @@ export const quiz: Question[] = [
   // source: aws-basics-multi-az-high-availability
   {
     "id": "q2",
+    "slug": "aws-basics-multi-az-high-availability",
     "scope": "final",
     "concept": [
       "availability-zone",
@@ -77,6 +79,7 @@ export const quiz: Question[] = [
   // source: aws-basics-service-scope-global-regional-az
   {
     "id": "q3",
+    "slug": "aws-basics-service-scope-global-regional-az",
     "scope": "final",
     "concept": [
       "global-service",
@@ -112,6 +115,7 @@ export const quiz: Question[] = [
   // source: aws-basics-ebs-same-az-attach
   {
     "id": "q4",
+    "slug": "aws-basics-ebs-same-az-attach",
     "scope": "final",
     "concept": [
       "ebs",
@@ -147,6 +151,7 @@ export const quiz: Question[] = [
   // source: aws-basics-console-cli-sdk-same-api-sigv4
   {
     "id": "q5",
+    "slug": "aws-basics-console-cli-sdk-same-api-sigv4",
     "scope": "final",
     "concept": [
       "api",
@@ -182,6 +187,7 @@ export const quiz: Question[] = [
   // source: aws-basics-most-secure-app-credentials-iam-role
   {
     "id": "q6",
+    "slug": "aws-basics-most-secure-app-credentials-iam-role",
     "scope": "final",
     "concept": [
       "iam-role",
@@ -217,6 +223,7 @@ export const quiz: Question[] = [
   // source: aws-basics-credential-provider-chain-order
   {
     "id": "q7",
+    "slug": "aws-basics-credential-provider-chain-order",
     "scope": "final",
     "concept": [
       "credentials",
@@ -251,6 +258,7 @@ export const quiz: Question[] = [
   // source: aws-basics-403-access-denied-vs-signature-mismatch
   {
     "id": "q8",
+    "slug": "aws-basics-403-access-denied-vs-signature-mismatch",
     "scope": "final",
     "concept": [
       "troubleshooting",
@@ -290,6 +298,7 @@ export const quiz: Question[] = [
   // source: aws-basics-minimal-operational-overhead-managed-serverless
   {
     "id": "q9",
+    "slug": "aws-basics-minimal-operational-overhead-managed-serverless",
     "scope": "final",
     "concept": [
       "pricing",
@@ -325,6 +334,7 @@ export const quiz: Question[] = [
   // source: aws-basics-spot-instance-interruption-tolerant-workload
   {
     "id": "q10",
+    "slug": "aws-basics-spot-instance-interruption-tolerant-workload",
     "scope": "final",
     "concept": [
       "pricing",
@@ -360,6 +370,7 @@ export const quiz: Question[] = [
   // source: aws-basics-shared-responsibility-model
   {
     "id": "q11",
+    "slug": "aws-basics-shared-responsibility-model",
     "scope": "final",
     "concept": [
       "shared-responsibility",

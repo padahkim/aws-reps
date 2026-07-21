@@ -1,4 +1,5 @@
 import type { ChapterMeta, Question, SectionMeta } from "../../schema";
+import { quiz as drills } from "./drills.ts";
 
 /**
  * 원본: content/iam_guide.jsx(9섹션 + EvalEngine 시뮬레이터) + content/aws-dva-iam-guide-2.jsx
@@ -22,8 +23,34 @@ export const chapterMeta: ChapterMeta = {
   prerequisites: ["ch0-1"],
 };
 
-// 두 원본 모두 퀴즈 성분 없음 (축2 리포트). 퀴즈 연결은 #44 (예고편 범위 제한 해제됨).
-export const quiz: Question[] = [];
+// 두 원본 모두 퀴즈 성분 없음 (축2 리포트) — aws-cloud-drills iam.json 15문항 중 전면 확장된
+// 본문(#68·10섹션)이 커버하는 11문항을 선별 연결 (이슈 #44. drills.ts 는 15문항 전체 생성물 —
+// 선별은 여기서 한다). 제외 4문항은 본문 미등장 주제 — 해당 주제 챕터 변환 시 회수 (#29 코멘트):
+//   iam-getfederationtoken-custom-broker — GetFederationToken은 §07 STS 4종에 없음
+//   iam-service-linked-role-purpose — 서비스 연결 역할 본문 미등장
+//   iam-roles-anywhere-on-premises — Roles Anywhere 본문 미등장
+//   iam-cognito-user-pool-vs-identity-pool — 본문은 Cognito를 페더레이션 IdP 예시로만 언급
+const CHAPTER_SCOPE = new Set([
+  "iam-ec2-role-instead-of-access-keys", // §07 "코드에는 키 대신 롤"
+  "iam-cross-account-assume-role", // §07 교차 계정 AssumeRole
+  "iam-permissions-boundary-effective-permissions", // §05 권한 경계 교집합
+  "iam-lambda-least-privilege-dynamodb", // §04·§09 최소 권한
+  "iam-cognito-identity-pool-mobile-app", // §07 웹/모바일 페더레이션(Cognito)
+  "iam-explicit-deny-precedence", // §06 명시적 Deny 우선
+  "iam-identity-vs-resource-based-policy", // §04·§06 리소스 기반 정책
+  "iam-source-ip-condition-key", // §04 Condition + aws:SourceIp
+  "iam-access-analyzer-external-access", // §09 보안 도구
+  "iam-scp-does-not-grant-permissions", // §05 SCP 가드레일
+  "iam-mfa-protected-api-terminate", // §04 aws:MultiFactorAuthPresent
+]);
+export const quiz: Question[] = drills.filter((q) => q.slug !== undefined && CHAPTER_SCOPE.has(q.slug));
+// 선별은 안정 식별자 slug 기준 (#69 Codex 리뷰 — positional id는 원본 재정렬 시 조용히 다른
+// 문항을 고른다). 개수 가드: slug가 원본에서 개명·삭제되면 빌드에서 즉시 실패시킨다.
+if (quiz.length !== CHAPTER_SCOPE.size) {
+  const found = new Set(quiz.map((q) => q.slug));
+  const missing = [...CHAPTER_SCOPE].filter((s) => !found.has(s));
+  throw new Error(`ch0-2 quiz 선별 실패: ${quiz.length}문항 (기대 ${CHAPTER_SCOPE.size}) — 원본에 없는 slug: ${missing.join(", ")}`);
+}
 
 /**
  * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).

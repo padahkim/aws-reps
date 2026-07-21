@@ -8,6 +8,7 @@ export const quiz: Question[] = [
   // source: s3-presigned-url-creator-permissions
   {
     "id": "q1",
+    "slug": "s3-presigned-url-creator-permissions",
     "scope": "final",
     "concept": [
       "presigned-url",
@@ -42,6 +43,7 @@ export const quiz: Question[] = [
   // source: s3-sse-kms-audit-trail-choice
   {
     "id": "q2",
+    "slug": "s3-sse-kms-audit-trail-choice",
     "scope": "final",
     "concept": [
       "encryption",
@@ -78,6 +80,7 @@ export const quiz: Question[] = [
   // source: s3-cross-account-bucket-policy-vs-iam
   {
     "id": "q3",
+    "slug": "s3-cross-account-bucket-policy-vs-iam",
     "scope": "final",
     "concept": [
       "bucket-policy",
@@ -114,6 +117,7 @@ export const quiz: Question[] = [
   // source: s3-bucket-keys-reduce-kms-cost
   {
     "id": "q4",
+    "slug": "s3-bucket-keys-reduce-kms-cost",
     "scope": "final",
     "concept": [
       "bucket-key",
@@ -150,6 +154,7 @@ export const quiz: Question[] = [
   // source: s3-event-notification-sqs-fifo-eventbridge
   {
     "id": "q5",
+    "slug": "s3-event-notification-sqs-fifo-eventbridge",
     "scope": "final",
     "concept": [
       "event-notifications",
@@ -185,6 +190,7 @@ export const quiz: Question[] = [
   // source: s3-static-website-public-access-setup
   {
     "id": "q6",
+    "slug": "s3-static-website-public-access-setup",
     "scope": "final",
     "concept": [
       "static-website-hosting",
@@ -225,6 +231,7 @@ export const quiz: Question[] = [
   // source: s3-presigned-put-browser-upload
   {
     "id": "q7",
+    "slug": "s3-presigned-put-browser-upload",
     "scope": "final",
     "concept": [
       "presigned-url",
@@ -260,6 +267,7 @@ export const quiz: Question[] = [
   // source: s3-read-after-write-strong-consistency
   {
     "id": "q8",
+    "slug": "s3-read-after-write-strong-consistency",
     "scope": "final",
     "concept": [
       "consistency",
@@ -294,6 +302,7 @@ export const quiz: Question[] = [
   // source: s3-versioning-mfa-delete-protection
   {
     "id": "q9",
+    "slug": "s3-versioning-mfa-delete-protection",
     "scope": "final",
     "concept": [
       "versioning",
@@ -329,6 +338,7 @@ export const quiz: Question[] = [
   // source: s3-lifecycle-transition-cold-storage
   {
     "id": "q10",
+    "slug": "s3-lifecycle-transition-cold-storage",
     "scope": "final",
     "concept": [
       "lifecycle",
@@ -364,6 +374,7 @@ export const quiz: Question[] = [
   // source: s3-multipart-upload-large-file-resilience
   {
     "id": "q11",
+    "slug": "s3-multipart-upload-large-file-resilience",
     "scope": "final",
     "concept": [
       "multipart-upload",
@@ -399,6 +410,7 @@ export const quiz: Question[] = [
   // source: s3-cors-browser-preflight-blocked
   {
     "id": "q12",
+    "slug": "s3-cors-browser-preflight-blocked",
     "scope": "final",
     "concept": [
       "cors",
@@ -434,6 +446,7 @@ export const quiz: Question[] = [
   // source: s3-block-public-access-overrides-policy
   {
     "id": "q13",
+    "slug": "s3-block-public-access-overrides-policy",
     "scope": "final",
     "concept": [
       "block-public-access",
@@ -469,6 +482,7 @@ export const quiz: Question[] = [
   // source: s3-presigned-url-role-credential-expiry
   {
     "id": "q14",
+    "slug": "s3-presigned-url-role-credential-expiry",
     "scope": "final",
     "concept": [
       "presigned-url",
@@ -504,6 +518,7 @@ export const quiz: Question[] = [
   // source: s3-enforce-encryption-on-upload
   {
     "id": "q15",
+    "slug": "s3-enforce-encryption-on-upload",
     "scope": "final",
     "concept": [
       "encryption",
