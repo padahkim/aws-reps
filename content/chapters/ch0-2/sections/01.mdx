@@ -1,67 +1,44 @@
-import { ChLink, Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
-import { IamStructureSvg } from "../figs";
+import { ChLink, ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
 
 {/* 텍스트를 품는 커스텀 컴포넌트(Note·ExamLi)는 한 줄로 쓴다 — 여러 줄이면 MDX가
     내용을 블록(문단)으로 파싱해 p 태그가 중첩된다. */}
 
-<Fig caption="주체(유저·그룹·롤)에 정책(JSON)을 연결하면, 그 주체가 리소스에 접근할 수 있게 된다.">
-  <IamStructureSvg />
-</Fig>
+IAM(Identity and Access Management)은 <b>누가(인증)</b> AWS에 접근할 수 있고, 각자 <b>무엇을(인가)</b> 할 수 있는지를 통제하는 서비스입니다. 모든 AWS API 요청은 실행 전에 IAM을 거쳐 허용/거부가 결정됩니다 — 즉 IAM은 AWS 계정의 **관문**이고, AWS의 모든 보안의 출발점입니다.
 
-<SubTitle>4가지 구성 요소</SubTitle>
+<SubTitle>세 가지 기본 성질</SubTitle>
 
 <Table
-  head={["요소", "무엇인가", "한 줄 비유"]}
+  head={["성질", "의미"]}
   rows={[
     [
-      "유저 (User)",
+      "글로벌 서비스",
       <>
-        사람이나 애플리케이션을 나타내는 <b>영구 신원</b>. 비밀번호(콘솔용)와 액세스
-        키(API용)를 가질 수 있음
+        <b>리전에 종속되지 않습니다.</b> 리전을 선택할 필요가 없고, 만든 유저·롤·정책은 전
+        세계 모든 리전에서 동일하게 적용됩니다
       </>,
-      "사원증을 가진 직원",
     ],
     [
-      "그룹 (Group)",
-      "유저의 묶음. 그룹에 정책을 붙이면 소속 유저 전원에게 적용",
-      "“개발팀” 부서",
+      "무료",
+      "IAM 자체는 추가 비용이 없습니다. 사용하는 리소스에만 과금됩니다",
     ],
     [
-      "롤 (Role)",
+      "기본은 전부 거부",
       <>
-        고정 자격증명이 없는, <b>필요할 때 빌려 쓰는 신원</b>. EC2·Lambda 같은 서비스나
-        다른 계정의 유저가 맡을(assume) 수 있고, 맡는 순간 <b>임시 자격증명</b>이 발급됨
+        아무 정책이 없으면 아무것도 할 수 없습니다. 필요한 권한만 명시적으로 부여하는{" "}
+        <b>최소 권한 원칙(Least Privilege)</b>이 AWS 보안의 대원칙입니다
       </>,
-      "방문증 — 아무나 발급받을 수 있게 정해둔 규칙에 따라 잠깐 빌려 쓰고 반납",
-    ],
-    [
-      "정책 (Policy)",
-      "권한을 정의하는 JSON 문서. 주체(유저/그룹/롤)에 연결해야 효력 발생",
-      "출입 허가 목록",
     ],
   ]}
 />
 
-<SubTitle>정책 JSON의 3대 키워드</SubTitle>
+<Note>“IAM 유저는 어느 리전에 생성되는가?” 같은 함정 문제가 나옵니다 — 답은 “리전 개념이 없다(글로벌)”.</Note>
 
-- **Effect** — `Allow` 또는 `Deny`. 기본은 전부 거부(암묵적 Deny)이고, **명시적 Deny는 어떤 Allow보다 항상 이긴다**
-- **Action** — 허용/거부할 API 동작. 예: `s3:GetObject`, `dynamodb:PutItem`
-- **Resource** — 대상 리소스의 ARN. 예: `arn:aws:s3:::my-bucket/*`
+<SubTitle>DVA에서 IAM의 위치</SubTitle>
 
-<Note>평가 순서 감각: 명시적 Deny 있으면 → 거부 / 없고 Allow 있으면 → 허용 / 둘 다 없으면 → 거부(기본값).</Note>
-
-<SubTitle>왜 “유저의 액세스 키”가 아니라 “롤”인가</SubTitle>
-
-EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를 코드나 서버에 박아두면 유출 시
-영구적으로 악용됩니다. 대신 **인스턴스에 롤을 부여**하면 SDK가 임시 자격증명을
-자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 — <ChLink id="ch0-1">ch0-1의 자격증명 탐색 체인</ChLink> 마지막
-단계(붙어 있는 IAM 롤)가 바로 이것입니다. **“AWS 위에서 도는 코드에는 키 대신 롤”** — 이
-한 문장이 DVA 전체를 관통하는 정답 패턴입니다.
+DVA에서 IAM은 IAM 자체 문제뿐 아니라 **거의 모든 서비스 문제의 배경**입니다. “Lambda가 S3를 못 읽어요”, “EC2가 DynamoDB 접근 실패” 유형은 대부분 IAM 롤/정책 문제이고, <ChLink id="ch0-1">ch0-1</ChLink>에서 본 것처럼 모든 도구(콘솔·CLI·SDK)가 결국 같은 API를 부르기 때문에 그 관문도 항상 IAM 하나입니다. 정책 평가 로직과 롤(Role) 개념은 이 챕터에서 반드시 완벽하게 잡고 갑니다.
 
 <ExamPoint>
-  <ExamLi><b>“EC2/Lambda/ECS에서 다른 AWS 서비스에 접근” → 정답은 거의 항상 IAM 롤.</b> 액세스 키를 코드/환경변수/AMI에 넣는 선택지는 오답</ExamLi>
-  <ExamLi><b>최소 권한 원칙(Least Privilege)</b>: <Code>*</Code> 전체 허용보다 필요한 Action·Resource만 허용하는 선택지가 정답</ExamLi>
-  <ExamLi>정책 JSON을 보여주고 “이 요청은 허용되는가?”를 묻는 문제 — Deny 우선 규칙과 Resource ARN 매칭을 읽을 줄 알아야 함</ExamLi>
-  <ExamLi>교차 계정 접근, 임시 권한 → <b>STS AssumeRole</b> 키워드</ExamLi>
-  <ExamLi>루트 계정은 일상 업무에 쓰지 않고 MFA로 잠가둔다 — 베스트 프랙티스형 문항</ExamLi>
+  <ExamLi><b>IAM은 글로벌 서비스</b> — 리전 선택 없음. 리전을 묻는 선택지는 함정</ExamLi>
+  <ExamLi>서비스 접근 실패 시나리오의 1순위 용의자는 <b>IAM 롤/정책</b></ExamLi>
+  <ExamLi>“가장 적절한 권한 설계”를 고르는 기준은 항상 <b>최소 권한 원칙</b></ExamLi>
 </ExamPoint>

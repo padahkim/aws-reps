@@ -1,0 +1,35 @@
+import { Code, Note, SubTitle, Table } from "../../ui";
+
+두 원본의 시험 직전 정리를 한 장으로 합쳤습니다. 아래 표와 리스트가 술술 나오면 이 챕터는 통과입니다.
+
+<SubTitle>개념 한 줄 정리</SubTitle>
+
+<Table
+  head={["개념", "한 줄 정리"]}
+  rows={[
+    ["유저", "실제 사람 1명과 매핑되는 영구 신원 — 비밀번호·액세스 키 보유"],
+    ["그룹", "유저만 포함(중첩 불가), 권한 일괄 관리"],
+    ["롤", "빌려 쓰는 임시 신원 — EC2·Lambda 등 서비스와 교차 계정에 부여, 자동 순환"],
+    ["정책", "권한을 정의한 JSON — Effect·Action·Resource(+Principal·Condition), 연결해야 효력"],
+    ["평가 규칙", "명시적 Deny > 명시적 Allow > 암묵적 Deny(기본값)"],
+    ["유효 권한", "SCP ∩ Permission Boundary ∩ Identity Policy — 교집합"],
+    ["STS", "임시 자격증명 발급소 — AssumeRole 계열 3종 + GetSessionToken, 반환값엔 SessionToken·만료"],
+    ["액세스 키", "CLI/SDK용 자격증명 — 공유·하드코딩 금지, 순환"],
+    ["감사", "자격 증명 보고서(계정) + 액세스 어드바이저(유저)"],
+    ["ARN", <Code>arn:aws:service:region:account:resource</Code>],
+  ]}
+/>
+
+<SubTitle>시험 직전 최종 체크 — 이것만은 반드시</SubTitle>
+
+- IAM은 **글로벌 서비스**다 (리전 없음, 무료)
+- **명시적 Deny는 어떤 Allow도 이긴다** — “Allow *인데 왜 막히지?” = 어딘가의 Deny
+- EC2/Lambda가 AWS를 호출한다 → 무조건 **롤**, 액세스 키 하드코딩은 오답
+- 롤을 서비스에 지정하려면 작업자에게 <Code>iam:PassRole</Code> 필요 — 전달 후 못 쓰면 **신뢰 정책 Principal** 확인
+- **동일 계정** = 자격 증명 정책 ∪ 리소스 정책(합집합) / **교차 계정** = 둘 다 Allow
+- 정책 변수 <Code>{"${aws:username}"}</Code> 하나로 사용자별 동적 정책 처리
+- 권한 경계는 **유저·롤에만**(그룹 불가), 유효 권한은 **교집합**
+- 인라인 정책은 주체와 함께 삭제, 고객 관리형은 재사용·버전 관리
+- User = 영구 자격, Role = 임시로 맡는 신원(자동 순환)
+
+<Note>빈출도 표기는 DVA-C02의 일반적 출제 경향 기반 학습 우선순위 지표이며, 실제 시험 구성은 회차마다 다를 수 있습니다.</Note>

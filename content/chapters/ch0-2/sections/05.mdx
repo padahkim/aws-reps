@@ -1,0 +1,87 @@
+import { Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { PolicyTypesSvg, WarnBox } from "../figs";
+
+정책은 여러 종류가 있고, 실제 허용되는 권한(<b>유효 권한</b>)은 이들의 **교집합**입니다. 어느 한 경계라도 막으면 그 동작은 불가능합니다.
+
+<Fig caption="유효 권한 = SCP ∩ Permission Boundary ∩ Identity Policy. 경계 밖의 권한은 정책에서 Allow해도 무효다.">
+  <PolicyTypesSvg />
+</Fig>
+
+<Table
+  head={["유형", "붙는 곳", "역할"]}
+  rows={[
+    [
+      "Identity-based",
+      "유저·그룹·롤",
+      "“이 신원이 무엇을 할 수 있는가”. 가장 흔한 정책",
+    ],
+    [
+      "Resource-based",
+      "리소스 (S3 버킷 정책, SQS/SNS/Lambda 정책)",
+      <>
+        <Code>Principal</Code>로 “누가” 접근 가능한지 명시. <b>교차 계정</b>에 유용
+      </>,
+    ],
+    [
+      "Permission Boundary",
+      <>유저·롤 (<b>그룹 불가</b>)</>,
+      "그 주체가 가질 수 있는 권한의 상한선. 권한을 부여하지 않고 한계만 설정",
+    ],
+    [
+      "SCP",
+      "AWS Organizations의 계정/OU 전체",
+      "조직 차원의 최대 권한 경계. 여기 없으면 어떤 정책도 소용없음",
+    ],
+    [
+      "Session Policy",
+      "AssumeRole 호출 시 인라인 전달",
+      "해당 세션에만 적용되는 임시 축소 정책",
+    ],
+  ]}
+/>
+
+<SubTitle>Permission Boundary 자세히 — 415강 함정 포인트</SubTitle>
+
+- <b>유저와 롤에만</b> 설정 가능 — **그룹에는 불가** (선택지 함정 단골)
+- 자체로는 아무 권한도 부여하지 않습니다 — <b>상한선만</b> 정의
+- 유효 권한 = 자격 증명 기반 정책 ∩ 권한 경계 (교집합)
+- 활용: 개발자에게 “정책 만들 권한”을 주되 자기 권한을 스스로 올리는 **권한 상승(privilege escalation)을 차단**할 때
+
+<SubTitle>Managed vs Inline</SubTitle>
+
+<Table
+  head={["유형", "관리 주체", "특징"]}
+  rows={[
+    [
+      "AWS 관리형",
+      "AWS",
+      <>
+        AWS가 유지·업데이트. 신규 서비스/API 출시 시 자동 반영. 예:{" "}
+        <Code>AdministratorAccess</Code>, <Code>PowerUserAccess</Code>
+      </>,
+    ],
+    [
+      "고객 관리형",
+      "고객",
+      <>
+        재사용 가능, <b>버전 관리·롤백 지원</b>, 세밀한 제어 — 모범 사례로 권장
+      </>,
+    ],
+    [
+      "인라인",
+      "고객",
+      <>
+        특정 주체 하나에 1:1로 종속. <b>주체를 삭제하면 정책도 함께 삭제</b>
+      </>,
+    ],
+  ]}
+/>
+
+<WarnBox>“여러 유저가 같은 인라인 정책을 공유한다”는 서술은 성립하지 않습니다 — 인라인은 1:1 전속이고, 공유·재사용이 필요하면 관리형 정책입니다.</WarnBox>
+
+<ExamPoint>
+  <ExamLi><b>유효 권한 = 교집합</b> — Boundary/SCP는 권한을 “부여”하지 않고 “상한”만 설정</ExamLi>
+  <ExamLi>Permission Boundary는 <b>그룹에 못 건다</b> — 유저·롤만</ExamLi>
+  <ExamLi>재사용·버전 관리가 필요하면 <b>고객 관리형</b>, 주체와 운명을 같이해도 되면 인라인</ExamLi>
+  <ExamLi>교차 계정 접근을 여는 쪽은 <b>Resource-based 정책의 Principal</b></ExamLi>
+</ExamPoint>
