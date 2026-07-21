@@ -8,10 +8,169 @@ import { C } from "../ui";
  * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
  * EvalEngine 은 iam_guide.jsx 의 인터랙티브 정책 평가 시뮬레이터 이식본(#68) —
  * useState 를 쓰므로 파일 전체를 "use client"로 둔다 (body.tsx 클라이언트 경계 안이라 무해).
+ * CardGrid/InfoCard/PointBox/AccentRow 는 iam_guide 의 TwoCol·Card·Note·색 보더 행
+ * 프리미티브 이식(#75) — 본문 기조를 표 중심에서 iam_guide 카드·콜아웃 중심으로 되돌린다.
  */
 
 const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
+
+/** iam_guide TwoCol 이식 — 카드들을 반응형 그리드로 배치한다. */
+export function CardGrid({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+        gap: 12,
+        margin: "1rem 0",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+const CARD_TONE = {
+  blue: C.blue,
+  amber: C.amberText,
+  teal: C.teal,
+  red: C.red,
+  ink: C.inkSoft,
+} as const;
+
+/**
+ * iam_guide Card+Chip 이식 — 색 제목 + (선택) 한 줄 비유 + 본문.
+ * items 를 주면 Table rows 관례처럼 ReactNode 배열을 목록으로 그린다.
+ */
+export function InfoCard({
+  tone = "blue",
+  title,
+  sub,
+  items,
+  children,
+}: {
+  tone?: keyof typeof CARD_TONE;
+  title: ReactNode;
+  sub?: ReactNode;
+  items?: ReactNode[];
+  children?: ReactNode;
+}) {
+  const color = CARD_TONE[tone];
+  return (
+    <div
+      style={{
+        background: C.card,
+        border: `1px solid ${C.line}`,
+        borderRadius: 12,
+        padding: "0.9rem 1rem",
+        color: C.ink,
+      }}
+    >
+      <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
+      {sub && <div style={{ fontSize: "0.78rem", color: C.inkSoft, marginTop: 2 }}>{sub}</div>}
+      {children && (
+        <div style={{ fontSize: "0.88rem", color: C.inkSoft, marginTop: 6, lineHeight: 1.65 }}>
+          {children}
+        </div>
+      )}
+      {items && (
+        <ul
+          style={{
+            fontSize: "0.88rem",
+            color: C.inkSoft,
+            lineHeight: 1.7,
+            margin: "6px 0 0",
+            paddingLeft: 18,
+          }}
+        >
+          {items.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const POINT_TONE = {
+  blue: [C.blue, C.blueSoft],
+  amber: [C.amberText, C.amberSoft],
+  teal: [C.teal, C.tealSoft],
+  red: [C.red, C.redSoft],
+} as const;
+
+/** iam_guide Note(▸ DVA 포인트) 콜아웃 이식 — 톤·제목 지정형. 함정 전용은 WarnBox. */
+export function PointBox({
+  tone = "blue",
+  title = "DVA 포인트",
+  children,
+}: {
+  tone?: keyof typeof POINT_TONE;
+  title?: string;
+  children: ReactNode;
+}) {
+  const [c, bg] = POINT_TONE[tone];
+  return (
+    <div
+      style={{
+        background: bg,
+        borderLeft: `4px solid ${c}`,
+        borderRadius: "0 10px 10px 0",
+        padding: "0.8rem 1.1rem",
+        margin: "1.1rem 0",
+        color: C.ink,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: MONO,
+          fontSize: "0.72rem",
+          fontWeight: 700,
+          color: c,
+          letterSpacing: 1,
+          marginBottom: 4,
+        }}
+      >
+        ▸ {title}
+      </div>
+      <div style={{ fontSize: "0.9rem", lineHeight: 1.65 }}>{children}</div>
+    </div>
+  );
+}
+
+/** iam_guide 색 보더 행 이식 — 용어(색 볼드) + 설명 한 행. 정책 유형·치트시트용. */
+export function AccentRow({
+  color,
+  term,
+  children,
+}: {
+  color: string;
+  term: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px 12px",
+        padding: "10px 14px",
+        background: C.card,
+        border: `1px solid ${C.line}`,
+        borderLeft: `4px solid ${color}`,
+        borderRadius: 8,
+        margin: "8px 0",
+        color: C.ink,
+      }}
+    >
+      <b style={{ color, fontSize: "0.88rem", minWidth: 150, flex: "none" }}>{term}</b>
+      <span style={{ fontSize: "0.88rem", color: C.inkSoft, lineHeight: 1.6, flex: "1 1 260px" }}>
+        {children}
+      </span>
+    </div>
+  );
+}
 
 /** 블록 코드 — ch1-1 figs 전례. 내용은 \n 이스케이프 한 줄 템플릿으로 받는다. */
 export function CodeBlock({ children }: { children: string }) {
@@ -54,151 +213,225 @@ export function WarnBox({ children }: { children: ReactNode }) {
   );
 }
 
-export function IamStructureSvg() {
+/** IAM = AWS 계정의 관문 — iam_guide DiagOverview 이식(#75). */
+export function OverviewGateSvg() {
   return (
-    <svg viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+    <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
       <defs>
-        <marker id="arrow-iam" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={C.inkSoft} />
+        <marker id="arrow-gate" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
         </marker>
       </defs>
 
-      <text x={130} y={34} fontSize={15} fontWeight={900} fill={C.blue} textAnchor="middle">
-        ① 주체 (누가)
-      </text>
-      <text x={390} y={34} fontSize={15} fontWeight={900} fill={C.amberText} textAnchor="middle">
-        ② 정책 (무엇을 해도 되는가)
-      </text>
-      <text x={646} y={34} fontSize={15} fontWeight={900} fill={C.teal} textAnchor="middle">
-        ③ 리소스 (대상)
-      </text>
+      {/* 요청 주체들 */}
+      {[
+        ["개발자", 40],
+        ["애플리케이션", 105],
+        ["AWS 서비스", 170],
+      ].map(([t, y], i) => (
+        <g key={i}>
+          <rect x={20} y={y as number} width={120} height={46} rx={9} fill={C.blueSoft} stroke={C.blue} strokeWidth={1.5} />
+          <text x={80} y={(y as number) + 28} fontSize={12} fontWeight={700} fill={C.blue} textAnchor="middle">{t}</text>
+          <line x1={140} y1={(y as number) + 23} x2={250} y2={150} stroke={C.inkSoft} strokeWidth={1.5} strokeDasharray="4 3" />
+        </g>
+      ))}
 
-      {/* 유저 */}
-      <rect x={40} y={56} width={180} height={86} rx={12} fill={C.blueSoft} stroke={C.blue} strokeWidth={2} />
-      <text x={130} y={84} fontSize={14} fontWeight={900} fill={C.blue} textAnchor="middle">
-        👤 유저 (User)
-      </text>
-      <text x={130} y={106} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        사람/앱의 영구 신원
-      </text>
-      <text x={130} y={124} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        비밀번호 · 액세스 키 보유
-      </text>
+      {/* IAM 관문 */}
+      <rect x={250} y={90} width={130} height={120} rx={10} fill="#FFF" stroke={C.ink} strokeWidth={2} />
+      <text x={315} y={120} fontSize={19} fontWeight={900} fill={C.ink} textAnchor="middle">IAM</text>
+      <text x={315} y={140} fontSize={10.5} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>인증 + 인가</text>
+      <g transform="translate(292,152)">
+        <rect width={46} height={40} rx={5} fill="none" stroke={C.amber} strokeWidth={2} />
+        <path d="M12 40 v-14 a11 11 0 0 1 22 0 v14" fill="none" stroke={C.amber} strokeWidth={2} />
+      </g>
 
-      {/* 그룹 */}
-      <rect x={40} y={156} width={180} height={76} rx={12} fill={C.blueSoft} stroke={C.blue} strokeWidth={2} strokeDasharray="5 4" />
-      <text x={130} y={184} fontSize={14} fontWeight={900} fill={C.blue} textAnchor="middle">
-        👥 그룹 (Group)
-      </text>
-      <text x={130} y={206} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        유저 묶음. 정책을 묶어서
-      </text>
-      <text x={130} y={222} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        배포하는 관리 편의 도구
-      </text>
+      {/* 허용 시 → 리소스 */}
+      <line x1={380} y1={150} x2={450} y2={150} stroke={C.teal} strokeWidth={2} markerEnd="url(#arrow-gate)" />
+      <text x={415} y={141} fontSize={10.5} fontWeight={700} fill={C.teal} textAnchor="middle">허용 시</text>
+
+      {/* AWS 계정 리소스 */}
+      <rect x={460} y={60} width={320} height={180} rx={12} fill={C.tealSoft} stroke={C.teal} strokeWidth={1.5} strokeDasharray="5 4" />
+      <text x={620} y={86} fontSize={11.5} fontWeight={900} fill={C.teal} textAnchor="middle" fontFamily={MONO}>AWS 계정 리소스</text>
+      {[
+        ["S3", 480, 105],
+        ["EC2", 560, 105],
+        ["DynamoDB", 640, 105],
+        ["Lambda", 720, 105],
+        ["IAM", 480, 165],
+        ["SNS", 560, 165],
+        ["RDS", 640, 165],
+        ["SQS", 720, 165],
+      ].map(([t, x, y], i) => (
+        <g key={i}>
+          <rect x={x as number} y={y as number} width={70} height={44} rx={7} fill="#FFF" stroke={C.teal} strokeWidth={1.5} />
+          <text x={(x as number) + 35} y={(y as number) + 27} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle" fontFamily={MONO}>{t}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/** 유저·그룹·롤·정책 관계도 — iam_guide DiagComponents 이식(#75, 기존 자작 IamStructureSvg 대체). */
+export function ComponentsSvg() {
+  return (
+    <svg viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      <defs>
+        <marker id="arrow-comp-amber" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={C.amber} />
+        </marker>
+        <marker id="arrow-comp-red" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={C.red} />
+        </marker>
+      </defs>
+
+      {/* 그룹: 유저 4명 */}
+      <rect x={30} y={40} width={250} height={220} rx={12} fill={C.blueSoft} stroke={C.blue} strokeWidth={1.5} strokeDasharray="5 4" />
+      <text x={45} y={64} fontSize={12} fontWeight={900} fill={C.blue} fontFamily={MONO}>GROUP: Developers</text>
+      {[
+        [60, 90],
+        [170, 90],
+        [60, 175],
+        [170, 175],
+      ].map(([x, y], i) => (
+        <g key={i}>
+          <rect x={x} y={y} width={90} height={60} rx={9} fill="#FFF" stroke={C.blue} strokeWidth={1.5} />
+          <circle cx={x + 45} cy={y + 22} r={9} fill="none" stroke={C.blue} strokeWidth={1.6} />
+          <path d={`M${x + 30} ${y + 46} a15 15 0 0 1 30 0`} fill="none" stroke={C.blue} strokeWidth={1.6} />
+          <text x={x + 45} y={y + 56} fontSize={9} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>User</text>
+        </g>
+      ))}
+
+      {/* 그룹 → 정책 연결 */}
+      <line x1={280} y1={150} x2={340} y2={150} stroke={C.amber} strokeWidth={2} markerEnd="url(#arrow-comp-amber)" />
+      <text x={310} y={141} fontSize={10} fontWeight={700} fill={C.amberText} textAnchor="middle">연결</text>
+
+      {/* 정책 */}
+      <rect x={345} y={110} width={130} height={80} rx={10} fill={C.amberSoft} stroke={C.amber} strokeWidth={2} />
+      <path d="M362 128 h96 M362 145 h96 M362 162 h70" stroke={C.amber} strokeWidth={2} strokeLinecap="round" opacity={0.7} />
+      <text x={410} y={183} fontSize={10.5} fontWeight={900} fill={C.amberText} textAnchor="middle" fontFamily={MONO}>Policy (권한)</text>
 
       {/* 롤 */}
-      <rect x={40} y={246} width={180} height={96} rx={12} fill="#FFF" stroke={C.red} strokeWidth={2.5} />
-      <text x={130} y={274} fontSize={14} fontWeight={900} fill={C.red} textAnchor="middle">
-        🎭 롤 (Role)
-      </text>
-      <text x={130} y={296} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        누구나 &ldquo;빌려 쓸 수 있는&rdquo; 신원
-      </text>
-      <text x={130} y={313} fontSize={11.5} fill={C.inkSoft} textAnchor="middle">
-        고정 자격증명 없음
-      </text>
-      <text x={130} y={330} fontSize={11.5} fontWeight={700} fill={C.red} textAnchor="middle">
-        → 임시 자격증명 자동 발급
-      </text>
+      <rect x={520} y={40} width={250} height={130} rx={12} fill={C.redSoft} stroke={C.red} strokeWidth={2} />
+      <text x={535} y={64} fontSize={12.5} fontWeight={900} fill={C.red} fontFamily={MONO}>🎭 ROLE (임시 권한)</text>
+      <g transform="translate(540,80)">
+        <circle cx={14} cy={14} r={13} fill="none" stroke={C.red} strokeWidth={2} />
+        <path d="M20 14 h20 M40 14 l-5 -5 M40 14 l-5 5" stroke={C.red} strokeWidth={2} fill="none" />
+      </g>
+      <text x={595} y={98} fontSize={10.5} fill={C.ink} fontFamily={MONO}>AssumeRole로</text>
+      <text x={595} y={114} fontSize={10.5} fill={C.ink} fontFamily={MONO}>일시적으로 위임</text>
+      <text x={535} y={152} fontSize={9.5} fill={C.inkSoft} fontFamily={MONO}>EC2 · Lambda · 교차계정 · 페더레이션</text>
 
-      {/* 정책 문서 */}
-      <rect x={300} y={80} width={180} height={230} rx={12} fill={C.amberSoft} stroke={C.amber} strokeWidth={2.5} />
-      <text x={390} y={108} fontSize={14} fontWeight={900} fill={C.amberText} textAnchor="middle">
-        📜 정책 (Policy)
-      </text>
-      <text x={390} y={126} fontSize={11} fill={C.inkSoft} textAnchor="middle">
-        JSON 문서
-      </text>
-      <rect x={316} y={140} width={148} height={150} rx={8} fill={C.ink} />
-      <text x={328} y={164} fontSize={10.5} fill={C.codeFg} fontFamily={MONO}>
-        {"{"}
-      </text>
-      <text x={336} y={182} fontSize={10.5} fill="#8FE3C0" fontFamily={MONO}>
-        &quot;Effect&quot;:
-      </text>
-      <text x={336} y={197} fontSize={10.5} fill="#fff" fontFamily={MONO}>
-        &nbsp;&nbsp;&quot;Allow&quot;,
-      </text>
-      <text x={336} y={218} fontSize={10.5} fill="#8FE3C0" fontFamily={MONO}>
-        &quot;Action&quot;:
-      </text>
-      <text x={336} y={233} fontSize={10.5} fill="#fff" fontFamily={MONO}>
-        &nbsp;&nbsp;&quot;s3:GetObject&quot;,
-      </text>
-      <text x={336} y={254} fontSize={10.5} fill="#8FE3C0" fontFamily={MONO}>
-        &quot;Resource&quot;:
-      </text>
-      <text x={336} y={269} fontSize={10.5} fill="#fff" fontFamily={MONO}>
-        &nbsp;&nbsp;&quot;arn:aws:s3:::...&quot;
-      </text>
-      <text x={328} y={286} fontSize={10.5} fill={C.codeFg} fontFamily={MONO}>
-        {"}"}
-      </text>
+      {/* 롤에도 정책 연결 */}
+      <path d="M520 150 C 500 150, 490 155, 479 155" stroke={C.amber} strokeWidth={2} fill="none" markerEnd="url(#arrow-comp-amber)" />
 
-      {/* 리소스 */}
-      <rect x={560} y={70} width={172} height={60} rx={12} fill={C.tealSoft} stroke={C.teal} strokeWidth={2} />
-      <text x={646} y={106} fontSize={13.5} fontWeight={700} fill={C.teal} textAnchor="middle">
-        🪣 S3 버킷
-      </text>
-      <rect x={560} y={146} width={172} height={60} rx={12} fill={C.tealSoft} stroke={C.teal} strokeWidth={2} />
-      <text x={646} y={182} fontSize={13.5} fontWeight={700} fill={C.teal} textAnchor="middle">
-        🗄 DynamoDB 테이블
-      </text>
-      <rect x={560} y={222} width={172} height={60} rx={12} fill={C.tealSoft} stroke={C.teal} strokeWidth={2} />
-      <text x={646} y={258} fontSize={13.5} fontWeight={700} fill={C.teal} textAnchor="middle">
-        λ Lambda 함수 …
-      </text>
-
-      {/* 화살표 */}
-      <line x1={220} y1={100} x2={296} y2={150} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <line x1={220} y1={194} x2={296} y2={195} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <line x1={220} y1={290} x2={296} y2={245} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <text x={258} y={180} fontSize={11} fill={C.inkSoft} fontWeight={700}>
-        정책 연결
-      </text>
-      <line x1={480} y1={195} x2={556} y2={176} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <text x={518} y={168} fontSize={11} fill={C.inkSoft} fontWeight={700}>
-        접근 허용
-      </text>
-
-      {/* 하단: 롤 플로우 */}
-      <rect x={40} y={368} width={692} height={76} rx={12} fill={C.redSoft} stroke={C.red} strokeWidth={2} />
-      <text x={60} y={394} fontSize={12.5} fontWeight={900} fill={C.red}>
-        ★ DVA 단골 패턴 — 롤을 통한 임시 자격증명
-      </text>
-      <text x={60} y={418} fontSize={12.5} fill={C.ink}>
-        EC2 / Lambda
-      </text>
-      <line x1={150} y1={414} x2={230} y2={414} stroke={C.red} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <text x={190} y={405} fontSize={10.5} fill={C.red} textAnchor="middle">
-        롤을 맡음(assume)
-      </text>
-      <text x={238} y={418} fontSize={12.5} fill={C.ink}>
-        🎭 IAM 롤
-      </text>
-      <line x1={308} y1={414} x2={418} y2={414} stroke={C.red} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <text x={363} y={405} fontSize={10.5} fill={C.red} textAnchor="middle">
-        STS가 발급
-      </text>
-      <text x={426} y={418} fontSize={12.5} fill={C.ink}>
-        🔑 임시 자격증명 (자동 만료·갱신)
-      </text>
-      <line x1={632} y1={414} x2={674} y2={414} stroke={C.red} strokeWidth={2} markerEnd="url(#arrow-iam)" />
-      <text x={682} y={418} fontSize={12.5} fill={C.ink}>
-        AWS API
-      </text>
+      {/* 롤을 맡는 주체(Trust) */}
+      <rect x={520} y={210} width={250} height={120} rx={12} fill="#FFF" stroke={C.red} strokeWidth={1.5} strokeDasharray="5 4" />
+      <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>역할을 맡는 주체 (Trust)</text>
+      {[
+        ["EC2 / Lambda", 262],
+        ["다른 AWS 계정의 유저", 287],
+        ["Google · SAML 등 외부 ID", 312],
+      ].map(([t, y], i) => (
+        <text key={i} x={545} y={y as number} fontSize={10.5} fill={C.ink} fontFamily={MONO}>• {t}</text>
+      ))}
+      <path d="M645 210 C 645 195, 645 185, 645 174" stroke={C.red} strokeWidth={1.5} fill="none" strokeDasharray="4 3" markerEnd="url(#arrow-comp-red)" />
+      <text x={660} y={196} fontSize={9.5} fill={C.red}>assume</text>
     </svg>
+  );
+}
+
+/** 정책 JSON 해부 — iam_guide DiagPolicyJSON 이식(#75). 코드 + 필드별 주석 카드 2열. */
+export function PolicyAnatomy() {
+  // [코드 라인, 강조 필드명, 코드 강조색(어두운 배경용), 칩 색(밝은 카드용), 주석]
+  const rows: { t: string; k?: string; code?: string; chip?: string; note?: string }[] = [
+    { t: `{` },
+    { t: `  "Version": "2012-10-17",`, k: "Version", code: "#8FA0B4", chip: C.inkSoft, note: "정책 언어 버전 — 항상 이 값 (고정 문자열, 사실상 필수)" },
+    { t: `  "Id": "S3-Account-Permissions",`, k: "Id", code: "#8FA0B4", chip: C.inkSoft, note: "정책 식별자 (선택)" },
+    { t: `  "Statement": [{`, k: "Statement", code: "#8FB8EF", chip: C.blue, note: "권한 규칙의 배열 — 핵심 블록" },
+    { t: `    "Sid": "AllowS3Read",`, k: "Sid", code: "#8FA0B4", chip: C.inkSoft, note: "문장 식별자 (선택, 설명용)" },
+    { t: `    "Effect": "Allow",`, k: "Effect", code: "#6FD3C4", chip: C.teal, note: "Allow 또는 Deny (필수) — Deny가 언제나 우선" },
+    { t: `    "Principal": { "AWS": ["arn:aws:iam::123456789012:root"] },`, k: "Principal", code: "#8FB8EF", chip: C.blue, note: "“누가” — 리소스 기반 정책에서 사용" },
+    { t: `    "Action": ["s3:GetObject"],`, k: "Action", code: "#FFB55C", chip: C.amberText, note: "허용/거부할 API 동작 (필수)" },
+    { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, k: "Resource", code: "#F4A08A", chip: C.red, note: "대상 리소스의 ARN (필수)" },
+    { t: `    "Condition": {`, k: "Condition", code: "#6FD3C4", chip: C.teal, note: "적용 조건 (IP·MFA·태그 등) — 선택" },
+    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }` },
+    { t: `    }` },
+    { t: `  }]` },
+    { t: `}` },
+  ];
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gap: 12,
+        margin: "1rem 0",
+      }}
+    >
+      <pre
+        style={{
+          fontFamily: MONO,
+          fontSize: "0.74rem",
+          lineHeight: 1.85,
+          background: C.ink,
+          color: "#C7D2E0",
+          borderRadius: 11,
+          padding: "1rem 1.1rem",
+          overflowX: "auto",
+          margin: 0,
+        }}
+      >
+        {rows.map((r, i) => (
+          <div key={i}>
+            {r.k ? (
+              <>
+                <span style={{ color: "#7D8FA6" }}>{r.t.slice(0, r.t.indexOf(`"`))}</span>
+                <span style={{ color: r.code }}>&quot;{r.k}&quot;</span>
+                <span>{r.t.slice(r.t.indexOf(`"`) + r.k.length + 2)}</span>
+              </>
+            ) : (
+              <span style={{ color: "#7D8FA6" }}>{r.t}</span>
+            )}
+          </div>
+        ))}
+      </pre>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rows
+          .filter((r) => r.note)
+          .map((r, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "flex-start",
+                padding: "7px 10px",
+                background: C.card,
+                border: `1px solid ${C.line}`,
+                borderRadius: 8,
+                color: C.ink,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: MONO,
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color: r.chip,
+                  border: `1px solid ${r.chip}`,
+                  background: "#FFF",
+                  padding: "1px 7px",
+                  borderRadius: 5,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {r.k}
+              </span>
+              <span style={{ fontSize: "0.8rem", color: C.inkSoft, lineHeight: 1.55 }}>{r.note}</span>
+            </div>
+          ))}
+      </div>
+    </div>
   );
 }
 
