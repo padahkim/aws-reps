@@ -9,6 +9,7 @@ AWS DVA-C02 학습 사이트. 백지에서 시작하는 독립 프로젝트다.
 - 작업 브랜치(`feat/*`·`fix/*`·`docs/*`·`chore/*`)는 최신 `develop`에서 분기한다. 앱이 자동 생성한 `claude/*` 워크트리 브랜치는 베이스가 낡았을 수 있으니 그 위에서 작업 금지 — `git switch -c feat/<주제> develop`으로 갈아탄다. 한 브랜치 = 한 주제.
 - **착지 필수**: 세션 종료 전, 작업을 `/land` 스킬로 착지시킨다 (절차는 `.claude/skills/land/SKILL.md`). **모든 작업 단위는 PR 착지가 기본이다** (2026-07-21 정책, #48) — 브랜치 push 후 표준 본문(land 스킬 참조)으로 PR을 만들고 사용자 승인을 기다려 머지한다. 사용자가 세션 중 "바로 머지해"라고 명시한 경우에만 즉시 착지(develop 직접 머지·push). **머지도 보고도 없는 방치 금지** (schema.ts 고립 사고 재발 방지).
 - 예외: 오탈자·한두 줄 수준의 단일 커밋은 `develop` 직접 커밋을 허용한다.
+- 병렬 작업은 **상설 워크트리 `../aws-reps-wt`** 를 재사용한다 (2026-07-22 도입 — 워크트리 누적 방지, 워크트리는 고정하고 브랜치만 갈아끼운다): 시작 시 그 안에서 `git fetch origin && git switch -c feat/<주제> origin/develop`, 착지 후 `git switch --detach develop`으로 파킹. 앱에서는 "새 워크트리" 생성 대신 EnterWorktree로 이 경로를 지정한다. 앱 자동 생성 워크트리(`.claude/worktrees/*`)는 착지 후 land 스킬의 잔재 정리가 제거한다.
 
 ## Task management
 
