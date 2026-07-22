@@ -1,6 +1,6 @@
 # ARCHITECTURE_REVIEW.md — aws-reps 아키텍처 진단 리포트
 
-> **지위**: **진단·건강검진 리포트**(프롬프트 `docs/prompts/아키텍처점검.md` 산출물). 현행 구조를 쉽게 설명하는 **안내서는 자매 문서 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md)**(프롬프트 `아키텍처안내.md` 산출물)의 몫이며, 이 리포트는 그 안내서를 as-built 기준선으로 삼아 **코드와 대조·채점**한다 — 구조 설명을 여기서 재생성하지 않고 링크로 잇는다. 설계 *제안* 초안 [`APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 제안 문서로 남기고 §5에서 현행과 대조한다.
+> **지위**: **진단·건강검진 리포트**(프롬프트 `docs/prompts/아키텍처점검.md` 산출물). 현행 구조를 쉽게 설명하는 **안내서는 자매 문서 `docs/ARCHITECTURE.md`**(프롬프트 `아키텍처안내.md` 산출물 — **별도 세션·PR로 착지 예정이라 이 브랜치엔 아직 없다**)의 몫이며, 이 리포트는 그것이 착지하면 as-built 기준선으로 삼아 대조·채점한다. **안내서 착지 전까지는 아래 §3이 as-built 기준을 자체 보유**하므로 이 리포트는 단독으로 성립한다. 설계 *제안* 초안 [`APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 제안 문서로 남기고 §5에서 현행과 대조한다.
 > **작성 방법**: 읽기 전용 진단 + 5축 병렬 심층 리뷰 후 각 발견을 코드에 대해 반증 검증(21건 발견 / 21건 확정 / 0건 반증) + 자동 리뷰(Codex) 2라운드 반영. 모든 판단에 `파일:라인` 근거.
 > **기준 커밋**: 진단 시점 `develop` 계열(24f7625). 파일 수·라인은 이 시점 기준이며, 코드가 정본이다 — 이름이 나오는 파일이 옮겨졌으면 코드를 따른다.
 
@@ -12,7 +12,7 @@
 - **배포**: `output: "export"` — **서버 런타임 없는 순수 정적 사이트(SSG)**. `develop` push → Vercel 프리뷰(+`/_source` 검수), `main` → 프로덕션. 진도는 `localStorage`뿐, 로그인 없음.
 - **핵심 결정 3가지**: ① 콘텐츠 2계층 — 레거시 날것 원본(import 금지·검수 전용)과 규약 v3 구조화 챕터를 분리하고, 앱 **데이터**는 `lib/content.ts` 단일 통로로 소비한다(단 MDX 렌더 팔레트는 루트 `mdx-components.tsx`가 `content/chapters/ui`를 직접 참조하는 둘째 통로가 있다 — §4-C). ② 규약(`content/schema.ts`)이 챕터 계약의 단일 진실이고, 값 수준 계약의 **상당수**를 빌드 게이트(`validate-content.mts`)가, 섹션 수 불일치를 `body.tsx` 모듈평가 assert가 잡는다(단 일부 값 불변식은 미강제 — §5 M-1·M-2). ③ 본문 표현은 TSX 셸 + MDX 산문으로, 섹션 단위 정적 라우트(`/chapters/{id}/{n}`)로 프리렌더된다.
 - **구조 규모**: 레거시 원본 **28개**(27 `.jsx` + 1 `.html`) → 구조화 챕터 **4개**(ch0-1/0-2/1-1/1-2) 등록. 이 4개가 CURRICULUM §5의 **릴리즈 1(MVP) 콘텐츠 세트와 정확히 일치**한다.
-- **건강 상태 (루브릭 총점 = 3.3 / 5)**: 코드 결함으로 분류된 발견 21건 = 높음 0 / 중간 3 / 낮음 18 — **깨진 코드로 인한 릴리즈 차단은 없다**. 구조화 콘텐츠 파이프라인·규약 경계·강건성은 견고(4점대), 상태·진도 계층이 확정 설계 대비 가장 뒤처져 있음(2점). **별건 — MVP 범위 결손**: CURRICULUM이 MVP로 요구하는 학습/복습 루프(오답노트·재출제, 에픽 #53=Phase1)의 상태 계층이 구조적으로 부재하다(§7-C) — 릴리즈 1을 이 없이 낼지는 인간의 범위 결정 사항으로 플래그한다.
+- **건강 상태 (루브릭 총점 = 3.3 / 5)**: **관측 21건** = 높음 0 / 중간 3 / 낮음 18 — 단 이 21건이 전부 "코드 결함"은 아니다: 실제 코드 debt는 소수(발견 B·D-6)이고, 다수는 합리적 단순화(D-1·D-2)·MVP 스코프 결손(D-3~D-5·D-7)·격리된 legacy 관찰이다. **깨진 코드로 인한 릴리즈 차단은 없다**. 구조화 파이프라인·규약 경계·강건성 견고(4점대), 상태·진도 최저(2점). **별건 — MVP 범위 결손**: CURRICULUM이 MVP로 요구하는 학습/복습 루프의 런타임 상태 계층이 부재하다(§7-C) — 그 계층은 이 진단으로 신설한 **에픽 #86(Phase3 · MVP-유저 기능)**이며(개념카드 세션 #53은 별개 축), 릴리즈 1을 이 없이 낼지는 인간의 범위 결정 사항으로 플래그한다.
 
 ---
 
@@ -96,10 +96,10 @@ flowchart LR
 flowchart TD
   DEV["npm run dev"] --> PREDEV["predev: gen-source-routes.mjs<br/>app/%5Fsource 라우트 생성(gitignore)"]
   BUILD["npm run build"] --> PREBUILD["prebuild"]
-  PREBUILD --> VAL["validate-content.mts<br/>값 계약 검사"]:::gate
-  PREBUILD --> GEN["gen-source-routes --build<br/>preview만 /_source 유지·prod 제외"]
+  PREBUILD -->|"① validate"| VAL["validate-content.mts<br/>값 계약 검사"]:::gate
   VAL -->|위반시 exit 1| STOP([빌드 중단]):::stop
-  VAL --> NB["next build<br/>(모든 build: 로컬·preview·prod — CI만 제외)"]
+  VAL -->|"통과 → ② 라우트 생성"| GEN["gen-source-routes --build<br/>preview만 /_source 유지·prod 제외"]
+  GEN -->|"prebuild 완료 → ③"| NB["next build<br/>(모든 build: 로컬·preview·prod — CI만 제외)"]
   NB --> ASSERT["body.tsx 모듈평가 assert<br/>SECTIONS≠meta.sections → 프리렌더 실패"]:::gate
 
   CI["GitHub CI · PR/push→develop"] --> TC["typecheck (tsc --noEmit)"]:::gate
@@ -181,7 +181,7 @@ flowchart LR
 ### 3-3. 축3 — 빌드·툴링·하네스
 
 - **`validate-content.mts`** (값 수준 계약 검사, `prebuild`+CI 연결): 순수 함수 `validateChapters()`를 export해 픽스처가 직접 먹인다. 검사 항목 = 챕터 id 유일, 섹션 최소1·title·num(비어있음/중복), prerequisites(실존·자기참조), 문항 concept·choices≥2·answer(비어있음/범위/중복)·choiceExplanations 길이, 세션 id 유일·concept.section 실존·q/a 비어있음·diagram edges=nodes-1.
-- **`validate-content.test.mts`** (검사기 회귀 픽스처): 각 규칙을 고의로 깨뜨린 입력이 잡히는지 + 적법 입력(빈 quiz·session 없음 등)이 통과하는지 확인.
+- **`validate-content.test.mts`** (검사기 회귀 픽스처): **주요** 규칙을 고의로 깨뜨린 입력이 잡히는지 + 적법 입력(빈 quiz·session 없음 등)이 통과하는지 확인. 단 **모든 코드를 다 덮지는 않는다** — 예: `SESSION_ID_EMPTY`(공백 세션 id) 분기(`validate-content.mts:171`)는 픽스처가 없어, 그 공백 검사만 퇴행해도 `validate:test`가 통과한다. 회귀 커버리지는 규칙 전수가 아니라 주요 규칙에 한정.
 - **`gen-source-routes.mjs`**: `/_source` 검수 라우트·매니페스트 생성. `--build`는 `VERCEL_ENV=preview`에서만 라우트를 유지하고 그 외엔 제거.
 - **`import-drills.mts`**: aws-cloud-drills `<subject>.json` → `content/chapters/<id>/drills.ts`(커밋되는 생성물, 손편집 금지). `SUBJECT_TO_CHAPTER` 매핑 = s3→ch1-1, lambda→ch1-2, aws-basics→ch0-1, iam→ch0-2.
 - **`git_guard.py`** (PreToolUse 훅, `.claude/settings.json` 등록): gh CLI 기본 차단(홈 마커+개인 계정일 때만 허용) + 파괴적 명령(`rm -rf`·`push --force`·`reset --hard`·`clean -f`·`branch -D`) 차단.
@@ -236,7 +236,7 @@ flowchart LR
 `concept`·`section.title`·세션 `q/a`는 비어있음을 검사하나, `q.scenario`(`schema.ts:107`)·`q.explanation`(`:110`)·개별 choices·`SessionMixedItem`의 scenario/service/why/contrast(`:221`은 id만 검사)·`SessionDiagram.prompt`는 **미검사**. 빈 `explanation`은 채점 후 해설 패널이 공백으로 렌더되고(`chapter-quiz.tsx:196-200`), 빈 `scenario`는 빈 문항으로 렌더된다(`:91`) — 전부 게이트 통과. 원칙 없는 누락. → **이슈 [#77](https://github.com/padahkim/aws-reps/issues/77)** 에 M-1과 함께 포함.
 
 **M-3 · CI가 `next build`를 돌리지 않아 body-assert·MDX 오류가 CI를 빠져나감 — 그리고 hydration 오류는 어떤 build도 못 잡음** (`gate-coverage`)
-CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 `registry`를 import하나 `body`는 lazy `import()`라 평가되지 않는다(`registry.ts:34-38`). 따라서 **섹션 수 불일치 assert·섹션 인덱스 초과·MDX 파싱 오류**는 `next build`(로컬 `npm run build` 또는 Vercel — CI만 build를 안 돌림)에서 검출된다. 그러나 **MDX hydration 오류(다중행 텍스트 태그 → 중첩 `<p>`, `schema.ts:26-27`)는 build도 못 잡는다** — 프리렌더는 HTML을 방출할 뿐 브라우저에서 hydrate하지 않으므로, 이 부류는 CI·build 둘 다 통과해 **브라우저 열람(수동 프리뷰 확인)에서만** 드러난다. 결함 PR이 CI green으로 머지될 수 있다. *완화*: land 스킬이 프리뷰 확인을 필수화하므로 프로덕션 전에 잡힌다(그래서 중간). 파싱류는 의도된 CI 결정(#28)이라 이슈화 선택; hydration류는 게이트가 원천적으로 없어 브라우저 수동 확인이 유일한 방어다.
+CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 `registry`를 import하나 `body`는 lazy `import()`라 평가되지 않는다(`registry.ts:34-38`). 따라서 **섹션 수 불일치 assert·MDX 파싱 오류**는 `next build`(로컬 `npm run build` 또는 Vercel — CI만 build를 안 돌림)에서 검출된다(섹션 인덱스 초과 `if (!S)`는 빌드가 유효 param `1..sectionCount`만 생성해 발동하지 않는 **런타임 방어**다 — §4-B, build 검출 아님). 그러나 **MDX hydration 오류(다중행 텍스트 태그 → 중첩 `<p>`, `schema.ts:26-27`)는 build도 못 잡는다** — 프리렌더는 HTML을 방출할 뿐 브라우저에서 hydrate하지 않으므로, 이 부류는 CI·build 둘 다 통과해 **브라우저 열람(수동 프리뷰 확인)에서만** 드러난다. 결함 PR이 CI green으로 머지될 수 있다. *완화*: land 스킬이 프리뷰 확인을 필수화하므로 프로덕션 전에 잡힌다(그래서 중간). 파싱류는 의도된 CI 결정(#28)이라 이슈화 선택; hydration류는 게이트가 원천적으로 없어 브라우저 수동 확인이 유일한 방어다.
 
 ### 낮음 (18건 — 요지)
 
@@ -262,7 +262,7 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
 | D-1 | `lib/contract/` 어댑터 3파일 (types/adapter/registry, 내부 AppChapterMeta/AppQuestion) — 규약 churn 흡수 | `lib/contract/` **부재**. `lib/content.ts`가 schema 타입 **직접 re-export**(평행 타입 없음), 검증은 빌드 게이트로 이관 | **합리적 단순화** — 규약이 v3 확정·단일진실이라 평행 타입은 항등 매핑 의례. 능력 손실 0 (`lib/content.ts:2-4`) |
 | D-2 | `components/Quiz.tsx` + `ChapterProvider.tsx` (context로 quiz 주입, props 금지) | `components/`·context **부재**. `chapter-quiz.tsx`가 **props**로 받고 형제 섹션 페이지로 배선 | **합리적 단순화** — context는 자유-jsx 본문 "내부"에서 quiz를 읽으려던 것. v3가 퀴즈를 독립 섹션 페이지(N+1)로 올려 문제 자체가 소멸(`[sec]/page.tsx:72`) |
 | D-3 | `app/review/` 오답노트 라우트 + standalone Quiz | **부재**(디렉터리·라우트·내비 없음) | **MVP·미구현** — 리포 정본 CURRICULUM §4-3(`docs/CURRICULUM.md:119`)이 오답노트 기록·재출제를 MVP 앱 요구로 명시. 전용 보드 에픽은 미확인. 배포 의존은 0이나 **스코프상 MVP 결손이지 "게이트 뒤"가 아니다** |
-| D-4 | **확정된**[인간 2026-07-14] Leitner 상자·`dva.progress.v1`/`dva.review.v1`·attempts/correct/box/dueAt/graduatedAt·숙달 5상태·due·약점개념·도메인 커버리지 대시보드·`lib/progress/store.ts` | **전부 미구현**. `lib/progress.ts` 읽음추적만, 퀴즈 결과 비저장 | **MVP·미구현** — 확정 설계(quiz 오답 재출제/Leitner). CURRICULUM §4-3가 MVP로 요구, 전용 보드 에픽 미확인. (별개 축: 개념카드 **인출 세션**은 에픽 #53=**Phase1 MVP**, #58 Done·#59/#74 Todo로 일부 착수.) 선행 hook `globalQuestionKey`는 죽은 stub |
+| D-4 | **확정된**[인간 2026-07-14] Leitner 상자·`dva.progress.v1`/`dva.review.v1`·attempts/correct/box/dueAt/graduatedAt·숙달 5상태·due·약점개념·도메인 커버리지 대시보드·`lib/progress/store.ts` | **전부 미구현**. `lib/progress.ts` 읽음추적만, 퀴즈 결과 비저장 | **MVP·미구현** — 확정 설계(quiz 오답 재출제/Leitner). CURRICULUM §4-3가 MVP로 요구, 이 진단으로 에픽 **#86(Phase3)** 신설. (별개 축: 개념카드 **인출 세션**은 에픽 #53=**Phase1**, #58 Done·#59/#74 Todo로 일부 착수.) 선행 hook `globalQuestionKey`는 죽은 stub |
 | D-5 | 3대시보드 지표(전체 진행률·오늘의 복습·도메인 커버리지) | 홈은 챕터 목록 + 챕터별 읽음 바만(`app/page.tsx:42-63`) | **MVP·미구현** (CURRICULUM §4-4 진도추적/커버리지·D-4 종속) |
 | D-6 | 네임스페이스 `dva.*`, 2키, `{chapters:{visitedAt}}`, 내부 `v` 필드 + read-repair | `aws-reps.read.v1`, 1키, `{[id]:number[]}`, 버전 필드 없음 | **debt(낮음)** — 확정 §4 스펙과 이름·모델 불일치. 네임스페이스 변경 시 구 키를 **compat-read**해 읽음 진도를 보존해야 한다 — `aws-reps.read.v1`은 섹션을 연 사용자면 실제로 채워지는 데이터라 "비용 0"이 아니다(도그푸딩 단일 사용자라 규모만 작다). 퀴즈 이력은 애초 미저장이라 Leitner 상태는 전원 빈 값에서 시작 |
 | D-7 | 완료(ch) ⇔ 열람 ∧ finalQ 마지막시도 ≥80% (D7) | 방문=읽음, 퀴즈 페이지 방문만으로 진도 100% 도달(`[sec]/page.tsx:79`) | **MVP·미구현/재조정** — 의도된 MVP 단순화(#7)로 `progress.ts`가 "읽음 진도"라 정직히 라벨하나, 확정 완료 조건(finalQ≥80%)과 라이브 divergence. 학습루프가 MVP라 §2-3 착수 시 재조정 필요 |
@@ -283,7 +283,7 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
 | **강건성** | **4** | 빈 quiz·session 없음·파싱실패·notFound·done>total·복수정답 전부 처리. 감점 = `[sec]` 빈-레지스트리 비대칭 + ProgressBar 무clamp(둘 다 잠재). `lib/progress.ts:14-27`, `lib/content.ts:30-39` |
 | **총점** | **3.3** | 단순 평균 (4+2+3+4+3+4)/6 = 20/6 |
 
-**가장 낮은 2개 = 다음 우선순위**: ① **상태·진도(2)** — 확정 설계 대비 가장 뒤처짐(재조정 debt D-6·D-7). 단 **정면 해소의 소유가 불명확하다**: 개념카드 세션 #53(Phase1)은 비저장 `useState`라 이 축을 안 올리고, 실제 결손인 **퀴즈 지속·Leitner·오답노트 계층엔 전용 추적 이슈가 없다**(D-4) — 그 에픽 신설이 선결이다(현행 보드 미등록). ② **빌드·툴링·하네스(3)** — 지금 값싸게 올릴 수 있는 축(validate 커버리지 M-1·M-2 = #77, 경계 lint B). 즉 **근래 손볼 것은 하네스(게이트 하드닝), 큰 재작업은 상태·진도(에픽, 우선 이슈부터)** 로 갈린다.
+**가장 낮은 2개 = 다음 우선순위**: ① **상태·진도(2)** — 확정 설계 대비 가장 뒤처짐(재조정 debt D-6·D-7). 소유가 명확해졌다: 개념카드 세션 #53(Phase1)은 비저장 `useState`라 이 축을 안 올리고, 실제 결손인 **퀴즈 지속·Leitner·오답노트 계층**은 이 진단으로 신설한 에픽 **#86(Phase3)**이다(D-4) — 그 에픽 착수가 정면 해소다. ② **빌드·툴링·하네스(3)** — 지금 값싸게 올릴 수 있는 축(validate 커버리지 M-1·M-2 = #77, 경계 lint B). 즉 **근래 손볼 것은 하네스(게이트 하드닝), 큰 재작업은 상태·진도(에픽, 우선 이슈부터)** 로 갈린다.
 
 ---
 
@@ -292,20 +292,21 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
 ### 7-A. static → server 전환
 
 - **전환 트리거**: 어떤 에픽이 **요청 시점 서버 런타임을 요구할 때** `output: "export"` 제거가 관문(`next.config.ts:8` 주석이 이미 지시). 단 전부가 서버를 요구하진 않는다 — 인증·계정 진도는 정적 유지 + 클라이언트 인증(Cognito 임시 자격증명 → 외부 API)으로도 가능하고, AI 채점만 서버가 사실상 전제다(§7-B).
-- **제거 시 깨지는/바뀌는 것**: ① 배포 모델(정적 호스팅 → SSR/ISR, Vercel 함수). ② `/_source` gen-route 우회(정적 export 전용 Next 버그 회피)가 불필요해짐. ③ `dynamicParams=false`+`generateStaticParams` 패턴은 유지 가능하나 ISR/SSR 옵션이 열림. ④ 진도가 localStorage(기기 로컬) → 서버 DB(계정 귀속)로 이관 필요.
+- **제거 시 열리는/바뀌는 것**: ① 배포 모델에 SSR/ISR·Vercel 함수 옵션이 열림(정적 호스팅은 그대로도 가능). ② `/_source` gen-route 우회(정적 export 전용 Next 버그 회피)가 불필요해짐. ③ `dynamicParams=false`+`generateStaticParams` 패턴은 유지 가능하나 ISR/SSR 옵션이 열림.
+- **엮지 말 것**: 진도의 서버 DB 이관은 `output:export` 제거의 **결과가 아니다** — 옵션을 지워도 기존 페이지는 계속 정적 프리렌더되고 진도는 localStorage로 남을 수 있다. 진도 이관은 '**계정 도입**'이 부르는 별개 변경이고, 그마저 클라 인증 경로(Cognito 임시 자격증명)면 서버 DB·`output:export` 해제 없이도 가능하다(§7-B).
 - **국소성 — 콘텐츠 경계만 좁고, 진도는 아니다**: 콘텐츠 경계(`lib/content.ts`)는 단일 파일이라 전환 표면이 좁다. 그러나 진도는 "한 모듈 교체"가 아니다 — `lib/progress.ts`는 **동기 클라이언트 모듈**(`"use client"`, `lib/progress.ts:1,14-53`)이고 3개 클라이언트 소비자(`useReadSections` 훅·`markSectionRead`)가 이를 동기 호출한다. 계정 귀속으로 가려면 **소비자 3곳의 동기→비동기 전환 + 로딩/에러 처리가 필수**이고, 백엔드는 **선택**이다: (a) Next 서버 경로 — 인증된 Route Handler/Server Action(+`output:export` 해제), 또는 (b) 정적 유지 — 클라이언트 인증(Cognito 임시 자격증명 등)으로 허용된 외부 API 직접 호출(장기 DB 시크릿을 번들에 안 넣음). 인증 방식이 spike 미결이라 어느 경로도 아직 확정 아니지만, 확실한 건 "파일 하나 스왑이 아니다"이다.
 
 ### 7-B. 에픽 준비도
 
 - **인증**: 진도 모델 마이그레이션이 핵심 — 현행 `aws-reps.read.v1`(익명·기기·**동기 localStorage**)를 계정 귀속으로 옮기려면 ① 구 키 **compat-read**로 기존 읽음 진도 보존(§7-A·D-6 — 비어있지 않을 수 있는 실 데이터), ② 확정 §4-1 스펙(`dva.progress.v1`/`dva.review.v1`)과 네임스페이스·모델 재조정, ③ 소비자 3곳의 동기→비동기 전환 + 백엔드 선택(Next 서버 경로 또는 정적+클라 인증 — §7-A, spike 미결). 어느 쪽이든 파일 하나 교체가 아니다. `globalQuestionKey`(죽은 stub)가 그 gk 합성 지점을 예약해 둠.
-- **유저 기능(학습 루프, 전부 Phase1 MVP)**: 두 갈래로 나뉜다. ① **개념카드 인출 세션**(에픽 #53) — SessionData 규약·섹션 카드는 #58로 착수됨(ch0-1 적용, 열림 상태는 비저장 useState), #59/#74가 잔여. ② **퀴즈 Leitner/오답노트 저장소**(확정 LEARNING_LOOP·D-4) — `dva.progress/review` 상태 계층·재출제·숙달·대시보드가 **백지**. 규약(`schema.ts`)은 세션 데이터 타입을 확정해 뒀으나 퀴즈 결과의 **런타임 지속 계층이 없다**. 이 ②가 상태·진도 축을 2점으로 누른 주 원인.
+- **유저 기능(학습 루프 — 두 갈래, 둘 다 MVP지만 Phase가 다름)**: ① **개념카드 인출 세션** = 에픽 **#53(Phase1)** — SessionData 규약·섹션 카드는 #58로 착수됨(ch0-1 적용, 열림 상태는 비저장 useState), #59/#74가 잔여. ② **퀴즈 Leitner/오답노트 저장소**(확정 LEARNING_LOOP·D-4) = 이 진단으로 신설한 에픽 **#86(Phase3 · MVP-유저 기능)** — `dva.progress/review` 상태 계층·재출제·숙달·대시보드가 **백지**. 규약(`schema.ts`)은 데이터 타입을 확정해 뒀으나 퀴즈 결과의 **런타임 지속 계층이 없다**. 이 ②(#86)가 상태·진도 축을 2점으로 누른 주 원인이다.
 - **AI 채점**: 서버/데이터 계층이 전제. 현 구조에 해당 스캐폴딩 0 — output:export 해제 + Route Handler + (문항·답안·채점) 데이터 계층 신설이 필요. `Question`·`SessionConcept` 규약은 채점 대상 데이터 형태를 이미 제공.
 
 ### 7-C. MVP(Phase1~4) 결손 (구조만 — 콘텐츠 분량·품질은 범위 외)
 
 - **콘텐츠 세트**: ✅ **구조적 완비**. 릴리즈 1 = ch0-1·ch0-2·1-1·1-2 (CURRICULUM §5) = 등록된 4챕터와 정확히 일치.
 - **앱 셸**: ✅ 커리큘럼 내비·챕터 로더·섹션 퀴즈 엔진(즉시 채점·해설·복수정답)·읽음 진도 동작.
-- **MVP 결손 (구조) — 학습/복습 루프가 MVP 범위인데 상태 계층이 부재**: 리포 정본 CURRICULUM이 **오답 노트 기록·재출제를 MVP 앱 요구로 명시**하고(§4-3, `docs/CURRICULUM.md:119`), 릴리즈 1의 존재 이유를 그 학습 루프의 도그푸딩으로 둔다(§5, `:124`). 보드가 이를 확증한다 — 인출 학습 에픽 **#53 = Phase1 MVP-콘텐츠**(#58 개념카드 Done, #59/#74 Todo)이고, MVP=Phase1~4다. 즉 이 루프는 MVP 게이트 *뒤*가 아니다. (초안 검토 때 세션 메모리의 "AI 채점은 MVP 게이트·#33 후"를 근거로 deferred로 분류했으나, 그 메모리는 **AI 자기설명 채점**(#33 spike·Phase4-AI — 별개 하위 기능이자 실제 릴리즈 게이트)을 가리킨 것이라 오적용이었다.) 따라서 as-built에는 **CURRICULUM이 요구하는 MVP 기능이자 그 상태 계층(퀴즈 결과 저장·오답노트 라우트·Leitner)이 구조적으로 부재**하다(D-3·D-4·D-5). 코드 자체는 안 깨졌으므로 "높음(릴리즈 차단)" 발견은 아니지만, **"릴리즈 차단 결손 0"이라 단정할 수는 없다** — 릴리즈 1을 이 루프 없이 낼지는 **범위 정의권자(인간)의 결정**이며, 세션이 메모리로 대신 정할 사안이 아니라 여기서 명시적으로 플래그한다.
+- **MVP 결손 (구조) — 학습/복습 루프가 MVP 범위인데 상태 계층이 부재**: 리포 정본 CURRICULUM이 **오답 노트 기록·재출제를 MVP 앱 요구로 명시**하고(§4-3, `docs/CURRICULUM.md:119`), 릴리즈 1의 존재 이유를 그 학습 루프의 도그푸딩으로 둔다(§5, `:124`). 보드가 이를 확증한다 — 개념카드 인출은 **#53(Phase1, #58 Done)**, 퀴즈 지속·Leitner·오답노트는 이 진단으로 신설한 **#86(Phase3)**, 둘 다 MVP(Phase1~4) 안이다. 즉 이 루프는 MVP 게이트 *뒤*가 아니다. (초안 검토 때 세션 메모리의 "AI 채점은 MVP 게이트·#33 후"를 근거로 deferred로 분류했으나, 그 메모리는 **AI 자기설명 채점**(#33 spike·Phase4-AI — 별개 하위 기능이자 실제 릴리즈 게이트)을 가리킨 것이라 오적용이었다.) 따라서 as-built에는 **CURRICULUM이 요구하는 MVP 기능이자 그 상태 계층(퀴즈 결과 저장·오답노트 라우트·Leitner)이 구조적으로 부재**하다(D-3·D-4·D-5). 코드 자체는 안 깨졌으므로 "높음(릴리즈 차단)" 발견은 아니지만, **"릴리즈 차단 결손 0"이라 단정할 수는 없다** — 릴리즈 1을 이 루프 없이 낼지는 **범위 정의권자(인간)의 결정**이며, 세션이 메모리로 대신 정할 사안이 아니라 여기서 명시적으로 플래그한다.
 - **하네스 하드닝**(선택, 릴리즈 전 권장): 게이트 커버리지(이슈 [#77](https://github.com/padahkim/aws-reps/issues/77) — M-1·M-2·section.num)와 경계 lint(발견 B)는 값싸고 회귀를 막는다 — 잔여 24챕터(#29) 저작이 시작되면 이 백스톱의 가치가 커진다.
 
 ---
