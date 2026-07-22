@@ -1,7 +1,7 @@
 # ARCHITECTURE — aws-reps 구조 안내
 
-> **문서 상태**: 살아있는 문서 · 최종 반영 2026-07-22 · 점검 커밋 `2f1db5f` (branch `content/ch1-2-interactive-restore`)
-> **갱신법**: 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 새 세션에 재실행해 이 문서를 다시 그린다. 진단·점수는 이 문서가 아니라 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
+> **문서 상태**: **비교용 임시 초안** (`ARCHITECTURE2.md` — 정본 정리는 #83) · 콘텐츠 검증 기준 커밋 `2f1db5f` · 작성 2026-07-22
+> **갱신법**: 이 파일은 임시본이다 — 살아있는 **정본은 `docs/ARCHITECTURE.md`**이고, 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **그 파일**을 다시 그린다(이 `ARCHITECTURE2.md`가 아니다). 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
 > **읽는 순서**: "한눈에"만 읽어도 감이 온다. 코드를 만질 사람은 "빠른 시작 → 디렉터리 지도 → 콘텐츠 파이프라인"까지.
 
 ---
@@ -31,7 +31,7 @@ npm run dev
 - `npm run dev`는 `predev` 훅이 먼저 돈다 → `scripts/gen-source-routes.mjs`가 `/_source`(원본 검수 도구) 라우트를 생성한 뒤 Next dev가 시작된다. **수동 코드생성 단계는 없다.**
 - 패키지 매니저는 **npm 고정**이다(`package-lock.json` 커밋됨, yarn/pnpm 혼용 금지).
 
-**선행 조건 — Node 버전**: 리포가 `engines`/`.nvmrc`로 버전을 못 박아두지 않았다(온보딩 갭). Next 16 + React 19 기준 **Node 20.9+** 가 필요하고, CI와 로컬 검증은 **Node 24**를 쓴다 → **Node 22 LTS 이상 권장**. (스크립트 `scripts/*.mts`를 Node가 직접 실행하며 타입 스트리핑에 최신 Node가 필요해 CI가 24를 고정한다.)
+**선행 조건 — Node 버전**: 리포가 `engines`/`.nvmrc`로 버전을 못 박아두지 않았다(온보딩 갭). 실질 최소치는 Next 16(20.9+)이 아니라 **검증·빌드 스크립트가 좌우한다** — `scripts/*.mts`를 Node가 직접 실행해 네이티브 TS 타입 스트리핑이 필요하고, 이는 Node 20·초기 22엔 없다(안정화 22.18+). 20.9로는 dev는 뜨지만 `npm run validate`·`npm run build`가 깨진다. 그러니 **Node 22.18+(권장 24 — CI·로컬 검증과 동일)** 를 쓴다.
 
 자주 쓰는 스크립트:
 
@@ -215,7 +215,7 @@ flowchart TD
 ## 9. 용어 · 더 읽기
 
 - **SSG** (Static Site Generation) — 빌드 때 페이지를 미리 렌더해 정적 파일로 내보내는 방식. 여기선 `output: "export"`.
-- **RSC / 서버 컴포넌트** — 클라이언트 JS 없이 서버(빌드 시)에서 렌더되는 컴포넌트. `"use client"`가 붙은 것만 브라우저에서 동작.
+- **RSC / 서버 컴포넌트** — 클라이언트 JS 없이 서버(빌드 시)에서 렌더되는 컴포넌트. `"use client"`는 그 자리에서 **클라이언트 경계를 선언**한다 — 경계 아래로 import되는 모듈은 지시어가 없어도 클라이언트 번들에 포함돼 브라우저에서 돈다(예: `app/progress-bar.tsx`는 지시어 없이도 클라이언트 컴포넌트가 import해 클라에서 실행). 즉 지시어는 "이 모듈만 클라"가 아니라 "여기서부터 클라"라는 뜻이다.
 - **MDX** — Markdown 안에서 JSX 컴포넌트를 쓰는 형식. 섹션 본문 형식.
 - **규약 v3** — `content/schema.ts`가 정의한 챕터 모듈 계약(무엇을 export해야 하는가). v3에서 본문이 TSX 함수 → MDX 파일로 이동.
 - **hydration** — 정적 HTML에 클라이언트 JS가 붙어 상호작용이 살아나는 과정. 진도는 그 이후 채워진다.
