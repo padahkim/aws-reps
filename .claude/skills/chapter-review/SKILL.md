@@ -19,7 +19,7 @@ description: 챕터 하나의 언어 품질(번역투·용어 일관성)을 1회
   - `intro.mdx`·`outro.mdx`·`sections/*.mdx` — 본문 산문
   - `body.tsx`·`figs.tsx` — JSX 안의 한국어 문자열(문단·그림 캡션·라벨)
   - `drills.ts` — 퀴즈 문항·선택지·해설(`title`·`question`·`explanation` 등)
-  - `session.ts` — 인출 세션 카드의 질문/답(`q`·`a`)
+  - `session.ts` — 인출 세션 카드의 질문·답·심화 질문(`q`·`a`·`why` — 셋 다 학습자에게 렌더된다, `section-concepts.tsx`)
   - `meta.ts` — 챕터 제목·설명
 - **스캔 제외**: import 문, 컴포넌트 이름, `id`/`ap-northeast-2` 같은 코드·식별자, 영어 원어 병기(`가용영역(AZ)`의 AZ 등)는 대상이 아니다.
 
