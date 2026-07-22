@@ -1,9 +1,8 @@
-# ARCHITECTURE.md — aws-reps 현행 아키텍처 (as-built)
+# ARCHITECTURE_REVIEW.md — aws-reps 아키텍처 진단 리포트
 
-> **지위**: **현행 기술 문서**. 코드에서 직접 확인한 as-built 사실만 담는다 — 제안이 아니라 관측이다.
-> 설계 제안 문서 [`docs/APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`docs/LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 그대로 남기고, 이 문서가 그 제안이 실제로 무엇으로 구현/변형/폐기됐는지를 §5에서 대조한다.
-> **작성 방법**: 읽기 전용 진단 + 5축 병렬 심층 리뷰 후 각 발견을 코드에 대해 반증 검증(21건 발견 / 21건 확정 / 0건 반증). 모든 판단에 `파일:라인` 근거를 붙였다.
-> **기준 커밋**: `content/ch0-2-iam-guide-rewrite` 브랜치 (24f7625 계열). 파일 수·라인은 이 시점 기준이며, 코드가 정본이다.
+> **지위**: **진단·건강검진 리포트**(프롬프트 `docs/prompts/아키텍처점검.md` 산출물). 현행 구조를 쉽게 설명하는 **안내서는 자매 문서 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md)**(프롬프트 `아키텍처안내.md` 산출물)의 몫이며, 이 리포트는 그 안내서를 as-built 기준선으로 삼아 **코드와 대조·채점**한다 — 구조 설명을 여기서 재생성하지 않고 링크로 잇는다. 설계 *제안* 초안 [`APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 제안 문서로 남기고 §5에서 현행과 대조한다.
+> **작성 방법**: 읽기 전용 진단 + 5축 병렬 심층 리뷰 후 각 발견을 코드에 대해 반증 검증(21건 발견 / 21건 확정 / 0건 반증) + 자동 리뷰(Codex) 2라운드 반영. 모든 판단에 `파일:라인` 근거.
+> **기준 커밋**: 진단 시점 `develop` 계열(24f7625). 파일 수·라인은 이 시점 기준이며, 코드가 정본이다 — 이름이 나오는 파일이 옮겨졌으면 코드를 따른다.
 
 ---
 
@@ -11,7 +10,7 @@
 
 - **스택**: Next.js 16 (App Router) + React 19 + TypeScript strict. 본문은 `@next/mdx` (remark/rehype 플러그인 **0개**). 스크립트는 Node 네이티브 TS(strip-types)로 직접 실행.
 - **배포**: `output: "export"` — **서버 런타임 없는 순수 정적 사이트(SSG)**. `develop` push → Vercel 프리뷰(+`/_source` 검수), `main` → 프로덕션. 진도는 `localStorage`뿐, 로그인 없음.
-- **핵심 결정 3가지**: ① 콘텐츠 2계층 — 레거시 날것 원본(import 금지·검수 전용)과 규약 v3 구조화 챕터를 분리하고, 앱은 `lib/content.ts` **단일 통로**로만 소비한다. ② 규약(`content/schema.ts`)이 챕터 계약의 단일 진실이고, 값 수준 위반은 빌드 게이트(`validate-content.mts`)가, 섹션 수 불일치는 `body.tsx` 모듈평가 assert가 잡는다. ③ 본문 표현은 TSX 셸 + MDX 산문으로, 섹션 단위 정적 라우트(`/chapters/{id}/{n}`)로 프리렌더된다.
+- **핵심 결정 3가지**: ① 콘텐츠 2계층 — 레거시 날것 원본(import 금지·검수 전용)과 규약 v3 구조화 챕터를 분리하고, 앱 **데이터**는 `lib/content.ts` 단일 통로로 소비한다(단 MDX 렌더 팔레트는 루트 `mdx-components.tsx`가 `content/chapters/ui`를 직접 참조하는 둘째 통로가 있다 — §4-C). ② 규약(`content/schema.ts`)이 챕터 계약의 단일 진실이고, 값 수준 계약의 **상당수**를 빌드 게이트(`validate-content.mts`)가, 섹션 수 불일치를 `body.tsx` 모듈평가 assert가 잡는다(단 일부 값 불변식은 미강제 — §5 M-1·M-2). ③ 본문 표현은 TSX 셸 + MDX 산문으로, 섹션 단위 정적 라우트(`/chapters/{id}/{n}`)로 프리렌더된다.
 - **구조 규모**: 레거시 원본 **28개**(27 `.jsx` + 1 `.html`) → 구조화 챕터 **4개**(ch0-1/0-2/1-1/1-2) 등록. 이 4개가 CURRICULUM §5의 **릴리즈 1(MVP) 콘텐츠 세트와 정확히 일치**한다.
 - **건강 상태 (루브릭 총점 = 3.3 / 5)**: 코드 결함으로 분류된 발견 21건 = 높음 0 / 중간 3 / 낮음 18 — **깨진 코드로 인한 릴리즈 차단은 없다**. 구조화 콘텐츠 파이프라인·규약 경계·강건성은 견고(4점대), 상태·진도 계층이 확정 설계 대비 가장 뒤처져 있음(2점). **별건 — MVP 범위 결손**: CURRICULUM이 MVP로 요구하는 학습/복습 루프(오답노트·재출제, 에픽 #53=Phase1)의 상태 계층이 구조적으로 부재하다(§7-C) — 릴리즈 1을 이 없이 낼지는 인간의 범위 결정 사항으로 플래그한다.
 
@@ -28,15 +27,16 @@ flowchart TD
   R -->|/chapters/id| CP["app/chapters/[id]/page.tsx<br/>섹션 목차"]:::srv
   R -->|/chapters/id/n| SP["app/chapters/[id]/[sec]/page.tsx<br/>섹션 페이지"]:::srv
 
-  H --> LC["lib/content.ts<br/>앱↔콘텐츠 유일 통로"]:::gate
+  H --> LC["lib/content.ts<br/>앱↔콘텐츠 데이터 통로"]:::gate
   CP --> LC
   SP --> LC
   LC --> REG["content/registry.ts<br/>수동 등록 4챕터"]:::content
   REG --> SCH["content/schema.ts<br/>규약 v3 단일진실"]:::content
 
-  SP -->|await entry.loadBody| BODY["content/chapters/id/body.tsx<br/>use client shim"]:::cli
-  BODY -->|dynamic import<br/>챕터별 청크| MDX["sections/NN.mdx<br/>+ figs.tsx"]:::content
-  BODY --> UI["content/chapters/ui.tsx<br/>Sec·Table·ExamPoint…"]:::content
+  SP -->|"loadBody() 동적 import — 챕터별 청크 경계"| BODY["content/chapters/id/body.tsx<br/>use client shim"]:::cli
+  BODY -->|정적 import| MDX["sections/NN.mdx<br/>+ figs.tsx"]:::content
+  BODY -->|정적 import| UI["content/chapters/ui.tsx<br/>Sec·Table·ExamPoint…"]:::content
+  MDXC["mdx-components.tsx<br/>MDX 렌더 통합(루트)"]:::srv -->|정적 import Code·P| UI
 
   H -.->|use client| HP["home-progress.tsx"]:::cli
   SP -.->|use client| MR["mark-read.tsx"]:::cli
@@ -54,7 +54,7 @@ flowchart TD
   classDef gate fill:#171E26,stroke:#171E26,color:#fff;
 ```
 
-> 파란=서버 컴포넌트, 주황=`"use client"`, 청록=콘텐츠 영역, 빨강=상태(localStorage), 검정=경계 통로. **서버 렌더 경계는 라우트 셸(`page.tsx`들·홈)까지다** — 그 안의 챕터 본문은 전부 클라이언트다: `body.tsx`가 `"use client"`이고 섹션 MDX·`intro/outro`·`figs.tsx`·`ui.tsx`를 정적 import하므로 **본문 서브트리 전체(산문 포함)가 클라이언트 컴포넌트 그래프**에 들어간다(`content/chapters/ch0-2/body.tsx:1-20`). 퀴즈·개념카드·읽음진도는 그 위에 얹히는 별도 클라이언트 리프다. `loadBody()`의 동적 `import()`로 챕터별 청크가 분리된다(`content/registry.ts:20-22`) — 즉 hydration·번들 경계는 "상호작용 위젯"이 아니라 "챕터 본문 전체"다.
+> 파란=서버 컴포넌트, 주황=`"use client"`, 청록=콘텐츠, 빨강=상태, 검정=데이터 통로. **두 경계를 구분해야 한다** — (1) **서버 프리렌더**: `output:"export"`에선 `"use client"` 본문까지 `next build`가 정적 HTML로 미리 렌더한다(본문 산문도 HTML에 포함 → SEO/초기 표시 O). "서버 없음"이 아니라 "요청 시점 서버 없음". (2) **클라이언트 모듈·hydration 경계**: `body.tsx`가 `"use client"`라 정적 import한 섹션 MDX·`intro/outro`·`figs.tsx`·`ui.tsx`까지 **본문 서브트리 전체가 클라 모듈 그래프에 들어가 JS를 싣고 hydrate**된다(`content/chapters/ch0-2/body.tsx:1-20`). 클라 JS가 전혀 없는 순수 서버는 라우트 셸(`page.tsx`들)뿐이다. **청크 분리 지점은 `registry.ts`의 `loadBody()` 동적 import(SP→BODY)** 이고 BODY→MDX/figs/ui는 정적 import라, 챕터 본문 청크는 body 진입점 하나로 묶인다. 퀴즈·개념카드·진도는 그 위 별도 클라 리프. 데이터 통로는 `lib/content.ts` 하나이나, MDX 렌더 팔레트만은 루트 `mdx-components.tsx`가 `content/chapters/ui`를 직접 참조하는 둘째 결합이다(§4-C).
 
 ### 2-B. 콘텐츠 파이프라인 — 레거시에서 렌더까지
 
@@ -165,9 +165,9 @@ flowchart LR
 
 ### 3-1. 축1 — 콘텐츠 파이프라인 (2계층)
 
-- **① 레거시 날것 원본**: `content/*.jsx`(27) + `content/aws-dva-stage0.html`(1) = **28개**. 앱은 이들을 **절대 import 하지 않는다**. 검수 도구 `/_source`만이 `readFileSync`로 **문자열**을 읽어 브라우저에서 Babel-standalone으로 변환·렌더한다(`app/_source/SourcePage.tsx:16-19`, `app/_source/BabelRender.tsx`). 이유: 일부 원본이 SWC가 거부하는 구문(escape 안 한 날 `>` 등)을 담고 있어, 번들러 그래프에 넣으면 dev 서버 전체가 sticky 500으로 죽는다(`BabelRender.tsx:10-17`). `/_source` 라우트는 `predev`가 만들고(gitignore, `app/%5Fsource/`) `prebuild --build`가 preview 외 빌드에서 제거한다 — 실유저 배포본에 9MB 원본이 실리지 않는다.
+- **① 레거시 날것 원본**: `content/*.jsx`(27) + `content/aws-dva-stage0.html`(1) = **28개**. 앱은 이들을 **절대 import 하지 않는다**. 검수 도구 `/_source`만이 `readFileSync`로 **문자열**을 읽어 브라우저에서 Babel-standalone으로 변환·렌더한다(`app/_source/SourcePage.tsx:16-19`, `app/_source/BabelRender.tsx`). 이유(과거·방어적): 원본이 SWC가 거부하는 구문을 담을 수 있고 — 대표 사례인 dynamodb의 escape 안 한 날 `>`(`stock > :zero`)는 `ca8634a`에서 이미 수정됐고 기준 커밋의 27개는 현재 모두 파싱된다 — 그런 파일이 번들러 그래프에 들어가면 dev 서버 전체가 sticky 500으로 죽는다(`BabelRender.tsx:10-17`). 격리 설계는 그 과거 사고와 향후 불완전 원본·번들 비호환을 대비한다. `/_source` 라우트는 `predev`가 만들고(gitignore, `app/%5Fsource/`) `prebuild --build`가 preview 외 빌드에서 제거한다 — 실유저 배포본에 9MB 원본이 실리지 않는다.
 - **② 구조화 챕터**: `content/chapters/{id}/` (규약 v3). 파일 구조 = `meta.ts`(순수 데이터) + `body.tsx`(`"use client"` shim) + `intro/outro/sections/NN.mdx`(산문) + `figs.tsx`(챕터 도식·로컬 컴포넌트) + 선택 `session.ts`·`drills.ts`.
-- **앱이 보는 경로**: `content/registry.ts`(소비하는 유일 목록, **수동 등록**) → `lib/content.ts`(앱↔콘텐츠 **유일 통로**, 평행 타입 없이 schema 타입 re-export).
+- **앱이 보는 경로**: `content/registry.ts`(소비하는 유일 목록, **수동 등록**) → `lib/content.ts`(앱↔콘텐츠 **데이터 통로**, 평행 타입 없이 schema 타입 re-export). 단 데이터가 아닌 **MDX 렌더 팔레트**는 루트 `mdx-components.tsx`가 `content/chapters/ui`의 `Code`·`P`를 직접 import한다 — 데이터 경로와 별개의 둘째 결합(§4-C).
 - **마이그레이션 현황**: **4/28 등록**. 등록 4개 = ch0-1(4섹션), ch0-2(10섹션), ch1-1(18섹션), ch1-2(20섹션) = 릴리즈 1 세트. 원본 28개의 내역 = 이행완료 8 + 미이행 19 + 템플릿 1.
 - **MDX 규정 준수**: 구조화 MDX **60개 파일**(52 섹션 + 8 intro/outro) 전수 스캔 결과 코드펜스 0·다중행 텍스트태그 0·`<style>`/외부리소스/`window`/`document` 0·볼드 flanking 실패 0 — **완전 준수**. 예시(`content/chapters/ch0-2/sections/06.mdx`): `../../ui` 프리미티브와 `../figs` 로컬 컴포넌트를 import하고, `>`는 `&gt;`로, 텍스트 담는 컴포넌트는 한 줄로 쓴다.
 
@@ -206,16 +206,17 @@ flowchart LR
 | 챕터 id 유일 / 섹션 최소1·title·num·중복 / prereq 실존·자기참조 | **validate-content** | `validate-content.mts:28-93` |
 | 문항 concept≥1 / choices≥2 / answer 비어있음·범위·중복 / choiceExpl 길이 | **validate-content** | `validate-content.mts:100-159` |
 | 세션 id 유일·비어있음 / concept.section 실존 / q·a 비어있음 / diagram edges=nodes-1 | **validate-content** | `validate-content.mts:166-221` |
-| 본문 섹션 수 = meta.sections.length / 섹션 인덱스 범위 | **body.tsx 모듈평가 assert** (프리렌더 전용) | `content/chapters/ch0-2/body.tsx:22-24,40` |
+| 본문 섹션 수 = meta.sections.length | **body.tsx 모듈평가 assert** (프리렌더 시 body import → 발동) | `content/chapters/ch0-2/body.tsx:22-24` |
+| 섹션 인덱스 범위 (`if (!S)`) | **없음** — 런타임 방어일 뿐(빌드는 `1..sectionCount`만 생성해 발동 안 함) | `content/chapters/ch0-2/body.tsx:40` |
 | MDX 규정(코드펜스·다중행 태그·`<style>`·외부리소스·볼드 flanking) | **없음** (저자·리뷰 규율) | §5 발견 M-3 |
 | `Question.id` 유일·비어있음 | **없음** | §5 발견 M-1 |
 | q.scenario·q.explanation·choices·mixed 필드·diagram.prompt 비어있음 | **없음** | §5 발견 M-2 |
-| section.num "01".."NN" 형식 | **없음** (비어있음·중복만) | §5 발견 L |
-| 앱 ↛ content 직접 import | **없음** (docstring 규율만) | §5 발견 B |
+| section.num 제로패딩 형식(00 시작 허용) | **없음** (비어있음·중복만) | §5 발견 L |
+| 앱 데이터 ↛ content 직접 import | **없음** (규율만; MDX UI 결합은 예외) | §5 발견 B / §4-C |
 
 ### 4-C. 경계 침범 여부
 
-- **"앱은 content/를 직접 import 안 함"**: ✅ **성립**. `grep` 결과 `@/content`를 import하는 파일은 `lib/content.ts` 하나뿐(+검수 전용 `app/_source`는 문자열로 읽음). 단 **규약(convention)일 뿐 기계적 강제 없음** — ESLint 설정·`no-restricted-imports`·dependency-cruiser 부재(§5 발견 B).
+- **"앱은 content/를 직접 import 안 함" — 데이터는 성립, UI 결합 1건 존재**: 앱 **데이터**는 `lib/content.ts` 한 통로로만 흐른다(+검수 전용 `app/_source`는 문자열로 읽음). 그러나 루트 `mdx-components.tsx:2`가 `@/content/chapters/ui`의 `Code`·`P`를 **직접 import**한다 — @next/mdx의 앱 전역 통합 지점이라 검수 도구도 아니고, MDX 기본 요소를 콘텐츠 팔레트에 매핑하려면 필연적 결합이다. 즉 경계는 "**데이터 단일 통로 + MDX 렌더의 UI 결합 1건**"이고 "유일 통로"는 데이터에 한정된 표현이다. 어느 쪽도 **기계적 강제가 없다**(ESLint·`no-restricted-imports`·dependency-cruiser 부재) — 실제로 이 UI 결합이 최초 진단의 `app/`-한정 grep을 조용히 빠져나갔다는 사실 자체가 발견 B(무강제)를 예증한다.
 - **본문 네거티브 규정**: 구조화 콘텐츠 위반 **0건**. 레거시 원본은 63건(`window.` 14·`document.` 15·`<style` 19·`fonts.googleapis` 15)이나 import 금지 + `/_source` prod 제외로 **완전 격리** — 배포본 영향 0.
 - **팔레트 중복(경계 존중형)**: `chapter-quiz.tsx:13-14`·`section-concepts.tsx:16-17`이 `ui.tsx`의 색값을 import하지 않고 **복제**한다 — 앱이 content/를 직접 import하지 않기 위한 의도적 중복(문서화됨). 색 드리프트 리스크는 작으나 평행 상수다.
 - **registry 수동 등록 확장성**: 챕터당 import 1줄 + 배열 1항목(`content/registry.ts:26-47`). 4→28로 갈 때 손 유지 목록이지만, id 유일성·계약은 게이트가 잡는다. 자동 발견(glob) 없음 — 정적 import 요구·명시성 위해 의도적. `session`은 ch0-1만 배선됨(신규 챕터가 session.ts 추가 시 registry 배선을 잊기 쉬운 수동 footgun).
@@ -247,7 +248,7 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
   - 모듈평가 assert가 import 배열 길이만 보고 `sections/` 디렉터리 파일 수는 안 봄 — orphan `NN.mdx`가 조용히 미렌더될 수 있음(현재 0건).
   - `globalQuestionKey`(`lib/content.ts:55`)는 **죽은 코드**(호출부 0) — 미구현 학습 루프를 위한 선행 stub.
 - **legacy 4건** (전부 격리·설계상 의도): dynamodb 메모리 stale(아래), 미이행 중복쌍 3(API GW·CI/CD·메시징), 이행완료 원본 8개 잔존(검수용, manifest에 상태 마커 없음), 네거티브 규정 63건 격리.
-- **section.num 형식 미강제**(`static-ceiling`): "01".."NN" 형식을 게이트가 안 봄. 문자열 일치(`:187`)로 우연히 맞물려 드리프트가 안 잡힘. → 이슈 [#77](https://github.com/padahkim/aws-reps/issues/77)에 포함.
+- **section.num 형식 미강제**(`static-ceiling`): 제로패딩 2자리 형식을 게이트가 안 봄(비어있음·중복만, `:61-74`). 문자열 일치(`:187`)로 우연히 맞물려 meta.num·mdx 파일명·body import 순서 드리프트가 안 잡힘. → 이슈 [#77](https://github.com/padahkim/aws-reps/issues/77)에 포함. **주의**: `schema.ts:90`은 "01".."NN"으로 적었으나 ch0-1은 **"00"부터** 쓴다(동기 서문, `ch0-1/meta.ts:28`). #77 규칙은 "01 시작"이 아니라 "**제로패딩 연속(00 시작 허용)**"으로 정의해야 현행 ch0-1을 빌드에서 깨뜨리지 않는다.
 - **ch0-1 인트로를 섹션 index 1에 렌더 — 규약 line 41 기준 deviation**(`consistency`): `INTRO_AT=1`(`ch0-1/body.tsx:25`) — 00이 동기 부여 서문이라 의도·문서화된 선택이지만, **규약 문구가 자기모순적이다**: `schema.ts:41`(+`:16-18`)은 인트로를 "첫 섹션 페이지 상단"으로 못박는 반면 `schema.ts:14`는 인트로/아웃트로 "배치"를 body 책임으로 넘긴다. ch0-1은 그 틈에서 기본(index 0)을 벗어나므로 **line 41 기준으론 명백한 예외**다 — "버그 아님"으로 뭉개기보다 예외로 기록해야 저자·검증기에 안 숨는다. 정리 방향: 규약 문구를 "명시적 인트로 인덱스 허용"으로 다듬거나, 이 이탈을 계약 예외로 명시. (검증기가 인트로-at-0을 강제하면 ch0-1을 false-flag한다.)
 
 ### 메모리 정정 (§5-M-stale)
@@ -277,12 +278,12 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
 | **콘텐츠 파이프라인** | **4** | 2계층 분리 깔끔·격리 완전, MDX 60파일 100% 준수, 구조화 위반 0. 감점 = MDX 무게이트(저자규율) + 수동 registry(4→28 손유지). `content/registry.ts:26-47`, 60 mdx 스캔 0위반 |
 | **상태·진도** | **2** | 읽음추적은 동작·hydration 안전·파싱강건. 그러나 **확정 학습루프(Leitner/시도/숙달) 전부 미구현**, 퀴즈결과 소실, 네임스페이스·완료조건 divergence, 계정 귀속 경로 0. `lib/progress.ts:10-12`, `chapter-quiz.tsx:38-39` |
 | **빌드·툴링·하네스** | **3** | validate 계약 견고 + 회귀픽스처 + Node24 CI + git_guard. 알려진 부채 = 게이트 커버리지 구멍(M-1·M-2·M-3), 형식·경계 무게이트. `validate-content.mts`, `ci.yml:31-35` |
-| **규약·경계 일관성** | **4** | schema 단일진실 준수·평행타입 0, 경계 성립, draft 괴리 관리 양호(의도·문서화). 감점 = 경계 기계 강제 부재(발견 B) + 일부 불변식 무강제. `lib/content.ts:1-19`, 구조화 0위반 |
+| **규약·경계 일관성** | **4** | schema 단일진실 준수·평행타입 0, 데이터 경계 성립(+MDX 렌더 UI 결합 1건은 필연, §4-C), draft 괴리 관리 양호. 감점 = 경계 기계 강제 부재(발견 B — UI 결합이 grep을 빠져나감) + 일부 불변식 무강제. `lib/content.ts:1-19`, `mdx-components.tsx:2` |
 | **확장성·서버 준비도** | **3** | SSG로 동작·전환지점 국소화(config 1줄)·SSR 호환 라우팅. 감점 = 서버 스캐폴딩 0 + 3에픽(인증·DB·AI) 순net-new 대량 + 로컬→계정 마이그레이션. `next.config.ts:4-10`, `lib/progress.ts` |
 | **강건성** | **4** | 빈 quiz·session 없음·파싱실패·notFound·done>total·복수정답 전부 처리. 감점 = `[sec]` 빈-레지스트리 비대칭 + ProgressBar 무clamp(둘 다 잠재). `lib/progress.ts:14-27`, `lib/content.ts:30-39` |
 | **총점** | **3.3** | 단순 평균 (4+2+3+4+3+4)/6 = 20/6 |
 
-**가장 낮은 2개 = 다음 우선순위**: ① **상태·진도(2)** — 확정 설계 대비 가장 뒤처지고 재조정 debt(D-6·D-7)를 안고 있으나, 정면 해소는 학습루프 에픽(#53) 타이밍에 종속. ② **빌드·툴링·하네스(3)** — 지금 값싸게 올릴 수 있는 축(validate 커버리지 M-1·M-2, 경계 lint B). 즉 **근래 손볼 것은 하네스(게이트 하드닝), 큰 재작업은 상태·진도(에픽)** 로 갈린다.
+**가장 낮은 2개 = 다음 우선순위**: ① **상태·진도(2)** — 확정 설계 대비 가장 뒤처짐(재조정 debt D-6·D-7). 단 **정면 해소의 소유가 불명확하다**: 개념카드 세션 #53(Phase1)은 비저장 `useState`라 이 축을 안 올리고, 실제 결손인 **퀴즈 지속·Leitner·오답노트 계층엔 전용 추적 이슈가 없다**(D-4) — 그 에픽 신설이 선결이다(현행 보드 미등록). ② **빌드·툴링·하네스(3)** — 지금 값싸게 올릴 수 있는 축(validate 커버리지 M-1·M-2 = #77, 경계 lint B). 즉 **근래 손볼 것은 하네스(게이트 하드닝), 큰 재작업은 상태·진도(에픽, 우선 이슈부터)** 로 갈린다.
 
 ---
 
@@ -290,13 +291,13 @@ CI는 typecheck+validate+validate:test만 실행(`ci.yml:31-35`). `validate`는 
 
 ### 7-A. static → server 전환
 
-- **전환 트리거**: 인증·DB·AI 채점 중 하나라도 서버 런타임을 요구하는 순간. `output: "export"` 제거가 관문(`next.config.ts:8` 주석이 이미 지시).
+- **전환 트리거**: 어떤 에픽이 **요청 시점 서버 런타임을 요구할 때** `output: "export"` 제거가 관문(`next.config.ts:8` 주석이 이미 지시). 단 전부가 서버를 요구하진 않는다 — 인증·계정 진도는 정적 유지 + 클라이언트 인증(Cognito 임시 자격증명 → 외부 API)으로도 가능하고, AI 채점만 서버가 사실상 전제다(§7-B).
 - **제거 시 깨지는/바뀌는 것**: ① 배포 모델(정적 호스팅 → SSR/ISR, Vercel 함수). ② `/_source` gen-route 우회(정적 export 전용 Next 버그 회피)가 불필요해짐. ③ `dynamicParams=false`+`generateStaticParams` 패턴은 유지 가능하나 ISR/SSR 옵션이 열림. ④ 진도가 localStorage(기기 로컬) → 서버 DB(계정 귀속)로 이관 필요.
-- **국소성 — 콘텐츠 경계만 좁고, 진도는 아니다**: 콘텐츠 경계(`lib/content.ts`)는 단일 파일이라 전환 표면이 좁다. 그러나 진도는 "한 모듈 교체"가 아니다 — `lib/progress.ts`는 **동기 클라이언트 모듈**(`"use client"`, `lib/progress.ts:1,14-53`)이고 3개 클라이언트 소비자(`useReadSections` 훅·`markSectionRead`)가 이를 동기 호출한다. 계정 귀속으로 가려면 DB 자격증명이 클라이언트 그래프에 들어갈 수 없으므로 **인증된 Route Handler/Server Action + 비동기 클라이언트 전송 + 소비자 3곳의 로딩/에러 처리**가 필요하다. 파일 하나 스왑이 아니라 소비자의 동기→비동기 전환을 동반하는 변경이다.
+- **국소성 — 콘텐츠 경계만 좁고, 진도는 아니다**: 콘텐츠 경계(`lib/content.ts`)는 단일 파일이라 전환 표면이 좁다. 그러나 진도는 "한 모듈 교체"가 아니다 — `lib/progress.ts`는 **동기 클라이언트 모듈**(`"use client"`, `lib/progress.ts:1,14-53`)이고 3개 클라이언트 소비자(`useReadSections` 훅·`markSectionRead`)가 이를 동기 호출한다. 계정 귀속으로 가려면 **소비자 3곳의 동기→비동기 전환 + 로딩/에러 처리가 필수**이고, 백엔드는 **선택**이다: (a) Next 서버 경로 — 인증된 Route Handler/Server Action(+`output:export` 해제), 또는 (b) 정적 유지 — 클라이언트 인증(Cognito 임시 자격증명 등)으로 허용된 외부 API 직접 호출(장기 DB 시크릿을 번들에 안 넣음). 인증 방식이 spike 미결이라 어느 경로도 아직 확정 아니지만, 확실한 건 "파일 하나 스왑이 아니다"이다.
 
 ### 7-B. 에픽 준비도
 
-- **인증**: 진도 모델 마이그레이션이 핵심 — 현행 `aws-reps.read.v1`(익명·기기·**동기 localStorage**)를 계정 귀속으로 옮기려면 ① 구 키 **compat-read**로 기존 읽음 진도 보존(§7-A·D-6 — 비어있지 않을 수 있는 실 데이터), ② 확정 §4-1 스펙(`dva.progress.v1`/`dva.review.v1`)과 네임스페이스·모델 재조정, ③ 인증 + Route Handler/Server Action + 소비자 3곳의 동기→비동기 전환이 필요하다 — 파일 하나 교체가 아니다. `globalQuestionKey`(죽은 stub)가 그 gk 합성 지점을 예약해 둠.
+- **인증**: 진도 모델 마이그레이션이 핵심 — 현행 `aws-reps.read.v1`(익명·기기·**동기 localStorage**)를 계정 귀속으로 옮기려면 ① 구 키 **compat-read**로 기존 읽음 진도 보존(§7-A·D-6 — 비어있지 않을 수 있는 실 데이터), ② 확정 §4-1 스펙(`dva.progress.v1`/`dva.review.v1`)과 네임스페이스·모델 재조정, ③ 소비자 3곳의 동기→비동기 전환 + 백엔드 선택(Next 서버 경로 또는 정적+클라 인증 — §7-A, spike 미결). 어느 쪽이든 파일 하나 교체가 아니다. `globalQuestionKey`(죽은 stub)가 그 gk 합성 지점을 예약해 둠.
 - **유저 기능(학습 루프, 전부 Phase1 MVP)**: 두 갈래로 나뉜다. ① **개념카드 인출 세션**(에픽 #53) — SessionData 규약·섹션 카드는 #58로 착수됨(ch0-1 적용, 열림 상태는 비저장 useState), #59/#74가 잔여. ② **퀴즈 Leitner/오답노트 저장소**(확정 LEARNING_LOOP·D-4) — `dva.progress/review` 상태 계층·재출제·숙달·대시보드가 **백지**. 규약(`schema.ts`)은 세션 데이터 타입을 확정해 뒀으나 퀴즈 결과의 **런타임 지속 계층이 없다**. 이 ②가 상태·진도 축을 2점으로 누른 주 원인.
 - **AI 채점**: 서버/데이터 계층이 전제. 현 구조에 해당 스캐폴딩 0 — output:export 해제 + Route Handler + (문항·답안·채점) 데이터 계층 신설이 필요. `Question`·`SessionConcept` 규약은 채점 대상 데이터 형태를 이미 제공.
 
