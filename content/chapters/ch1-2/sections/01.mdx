@@ -1,7 +1,11 @@
-import { Table } from "../../ui";
-import { WarnBox } from "../figs";
+import { Fig, Table } from "../../ui";
+import { WarnBox, LambdaFlowOverviewSvg, KeyNumbersGrid } from "../figs";
 
 서버리스는 “서버가 없다”가 아니라 <b>서버를 관리·프로비저닝하지 않는다</b>는 뜻입니다. Lambda에서 개척되어 지금은 관리형 전반(DynamoDB, S3, API Gateway, Cognito, SQS, Step Functions, Fargate 등)을 포괄합니다. 표준 서버리스 웹앱 = CloudFront+S3(정적) · Cognito(인증) · API Gateway → Lambda → DynamoDB(API).
+
+<Fig caption="이벤트 소스가 Lambda를 트리거하고, Lambda는 실행 역할로 대상 서비스에 접근한다. 화살표 색 = 호출 방식(파랑 동기·앰버 비동기·청록 폴링).">
+  <LambdaFlowOverviewSvg />
+</Fig>
 
 <Table
   head={["Amazon EC2", "AWS Lambda"]}
@@ -19,5 +23,9 @@ import { WarnBox } from "../figs";
 />
 
 과금 = <b>요청 수 + 컴퓨팅 시간(GB-초 = RAM×초)</b>. 프리 티어 월 100만 요청 + 40만 GB-초, 초과 시 요청 $0.20/100만 건. 함수당 최대 10GB RAM이며 <b>RAM을 늘리면 CPU·네트워크 성능도 함께 향상</b>됩니다(시험 단골). 런타임: Node.js, Python, Java, .NET, Ruby + Custom Runtime API(Rust, Go 등).
+
+핵심 수치를 한눈에 — 상세 한도표는 마지막 20 한도 총정리에 있습니다.
+
+<KeyNumbersGrid />
 
 <WarnBox>Lambda 컨테이너 이미지는 반드시 <b>Lambda Runtime API를 구현</b>해야 한다. “임의의 Docker 이미지를 실행”하고 싶다면 정답은 <b>ECS/Fargate</b>다(빈출 함정).</WarnBox>
