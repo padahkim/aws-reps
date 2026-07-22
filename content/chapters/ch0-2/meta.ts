@@ -59,6 +59,9 @@ if (quiz.length !== CHAPTER_SCOPE.size) {
   throw new Error(`ch0-2 quiz 선별 실패: ${quiz.length}문항 (기대 ${CHAPTER_SCOPE.size}) — 원본에 없는 slug: ${missing.join(", ")}`);
 }
 
+// 인출 세션 (이슈 #74) — 데이터는 ./session.ts, meta 가 단일 진실 통로 (ch0-1 전례).
+export { session } from "./session.ts";
+
 /**
  * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).
  * 순서 = 본문 섹션 순서 = 섹션 페이지 URL 번호(1-based) 순서.
