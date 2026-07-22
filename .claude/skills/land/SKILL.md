@@ -176,13 +176,40 @@ gh issue edit "$N" --body-file /tmp/issue-$N.md
 - PR 착지 대기(B-1까지) 상태에서는 하지 않는다 — 머지가 승인된 뒤(B-3)가 갱신 시점이다.
 - gh 차단 머신에서는 생략하되 보고에 "**체크박스 미갱신 — 웹에서 체크 필요**"와 달성 항목 목록을 명시한다.
 
+## 잔재 정리 — 착지 완료 시 (A-3·B-3 직후)
+
+A-3·B-3의 브랜치 삭제는 방금 착지한 브랜치만 다룬다. 여기서는 **과거 세션이 남긴 잔재**를 함께 쓸어낸다 (2026-07-22 도입 — 머지 완료된 로컬 브랜치 27개·워크트리 5개가 방치돼 있던 사고의 재발 방지). PR 착지 대기(B-1까지) 상태에서는 하지 않는다.
+
+```bash
+# 1) develop에 이미 머지된 로컬 브랜치 일괄 삭제
+#    (develop/main 제외, 워크트리에 체크아웃된 브랜치는 "+" 표시라 자동 제외, -d라 미머지는 어차피 거부됨)
+git branch --merged develop | grep -vE '^[+*]|develop$|main' | xargs -n1 git branch -d 2>/dev/null || true
+
+# 2) 앱 자동 생성 워크트리(.claude/worktrees/*) 중 착지가 끝난 것 제거
+#    안전 조건: 현재 세션 워크트리가 아니고 + 클린하고 + HEAD가 이미 develop에 포함된 것만
+SELF=$(git rev-parse --show-toplevel)
+for W in "$MAIN"/.claude/worktrees/*/; do
+  [ -d "$W" ] || continue
+  W=${W%/}
+  [ "$W" = "$SELF" ] && continue                              # 자기 자신은 건드리지 않는다
+  [ -n "$(git -C "$W" status --porcelain)" ] && continue      # 더러우면 다른 세션 진행 중일 수 있다 — 건너뛰고 보고
+  git merge-base --is-ancestor "$(git -C "$W" rev-parse HEAD)" develop \
+    && git worktree remove "$W"
+done
+git worktree prune
+```
+
+- 더러워서 건너뛴 워크트리가 있으면 보고에 명시한다 — 사용자가 병렬 세션 여부를 판단한다.
+- `eval/*` 등 `.claude/worktrees/` 밖의 수동 워크트리는 이 정리 대상이 아니다 — 사용자가 직접 관리한다.
+- 현재 세션이 앱 자동 생성 워크트리 안이라면 자기 워크트리는 남는다 — 세션 종료 후 다음 착지 세션의 이 단계가 치운다.
+
 ## 하네스 변경 시 — main 전파
 
 착지한 변경에 CLAUDE.md · `.claude/` · `scripts/` 가 포함되면, develop 착지 직후 `develop`→`main` 머지·push까지 한다 (CLAUDE.md Branch strategy 참조 — 새 세션 워크트리가 main에서 분기하므로).
 
 ## 보고
 
-develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과, 보드 갱신 결과(또는 "보드 미갱신"), 이슈 체크박스 갱신 결과(미달성 항목 포함, 또는 "체크박스 미갱신")를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
+develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과, 보드 갱신 결과(또는 "보드 미갱신"), 이슈 체크박스 갱신 결과(미달성 항목 포함, 또는 "체크박스 미갱신"), 잔재 정리 결과(삭제한 브랜치·워크트리 수, 더러워서 건너뛴 워크트리)를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
 
 ## 주의
 
