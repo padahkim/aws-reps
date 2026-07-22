@@ -18,6 +18,13 @@
  *   content/chapters/{id}/outro.mdx      — 말미 체크리스트 (마지막 섹션 페이지 하단. 없으면 생략)
  *   content/chapters/{id}/figs.tsx       — 챕터 도식 SVG + 챕터 로컬 컴포넌트 (mdx가 import)
  *
+ * 인터랙티브 이식 원칙 (#68 EvalEngine 관행 → #71 규칙화):
+ *   • 레거시 원본 변환 시 학습용 인터랙티브(시뮬레이터·슬라이더 등 상태 있는 학습 장치)는
+ *     figs.tsx 로 기본 이식한다 — 원본 로직 유지, ui.tsx 팔레트 적용. 정적으로 격하하는
+ *     건은 예외이며 건별 사유를 해당 변환 이슈 코멘트로 남긴다.
+ *   • useState 가 필요하면 figs.tsx 전체를 "use client" 로 두는 것이 적법하다
+ *     (body.tsx 클라이언트 경계 안이라 무해 — ch0-2·ch1-2 전례).
+ *
  * MDX 규정 (v3 — 위반 시의 증상까지 기록해 둔다):
  *   • remark/rehype 플러그인 금지 — Next 16+Turbopack에서 플러그인 지원 불안정 (#15 결정 코멘트).
  *     Mermaid·하이라이트가 필요해지면 플러그인이 아니라 클라이언트 컴포넌트로 도입한다.
