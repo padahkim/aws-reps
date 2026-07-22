@@ -20,10 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 24 고정: scripts/*.mts를 node로 직접 실행하므로 type stripping이 필요하다.
+      # Node 버전 정본은 .nvmrc (로컬 nvm/fnm과 CI가 같은 파일을 읽는다).
+      # scripts/*.mts를 node로 직접 실행하므로 type stripping(Node 24+)이 필요하다.
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
