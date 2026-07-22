@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
 
@@ -189,13 +189,30 @@ function FlowBox({
   );
 }
 
-/** 원본 Arrow 헬퍼 이식 — animate 는 경로를 따라 도는 점(SMIL animateMotion). */
+/**
+ * prefers-reduced-motion 감지 — SMIL 은 CSS 미디어쿼리로 못 끄므로 JS 로 분기한다.
+ * useEffect 는 클라이언트에서만 실행되어 프리렌더에 안전 (초기값 false → 하이드레이션 후 반영).
+ */
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+/** 원본 Arrow 헬퍼 이식 — animate 는 경로를 따라 도는 점(SMIL animateMotion). dur 로 유량을 표현한다. */
 function FlowArrow({
-  d, color, mid, label, lx, ly, dash = false, animate = false,
+  d, color, mid, label, lx, ly, dash = false, animate = false, dur = 2.2,
 }: {
   d: string; color: string; mid: string;
-  label?: string; lx?: number; ly?: number; dash?: boolean; animate?: boolean;
+  label?: string; lx?: number; ly?: number; dash?: boolean; animate?: boolean; dur?: number;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   return (
     <g>
       <path
@@ -203,9 +220,9 @@ function FlowArrow({
         strokeDasharray={dash ? "6 5" : "none"}
         markerEnd={`url(#${mid})`} opacity={0.9}
       />
-      {animate && (
+      {animate && !reducedMotion && (
         <circle r={4} fill={color}>
-          <animateMotion dur="2.2s" repeatCount="indefinite" path={d} />
+          <animateMotion dur={`${dur}s`} repeatCount="indefinite" path={d} />
         </circle>
       )}
       {label && (
@@ -232,7 +249,7 @@ export function InvocationModeExplorer() {
   const mid = "arr-inv";
   const caption: Record<typeof mode, string> = {
     sync: "호출자가 결과를 기다립니다 — 에러도 그대로 돌려받으며, 재시도는 클라이언트 책임입니다.",
-    async: "이벤트가 내부 큐에 적재되고 호출자는 즉시 202를 받습니다 — 실패 시 자동 재시도(총 3회 시도)되므로 함수는 멱등해야 합니다.",
+    async: "이벤트가 내부 큐에 적재되고 호출자는 즉시 202를 받습니다 — 함수 오류는 자동 재시도(총 3회 시도)되므로 함수는 멱등해야 하고, 스로틀·서비스 오류는 큐로 되돌려 최대 6시간 재시도됩니다.",
     poll: "큐·스트림은 Lambda를 직접 호출하지 못하므로, ESM이 소스를 대신 폴링해 배치를 동기 호출합니다.",
   };
 
@@ -283,12 +300,13 @@ export function InvocationModeExplorer() {
           <FlowBox x={460} y={30} w={150} h={56} label="λ Lambda" color={C.ink} />
           <FlowBox x={230} y={160} w={170} h={56} label="실패 대상" sub="DLQ 또는 Destination" color={C.red} />
           <FlowBox x={470} y={160} w={170} h={56} label="성공 대상" sub="Destination (SQS·SNS·λ·EB)" color={C.teal} />
-          <FlowArrow d="M160,58 L230,58" color={C.amber} mid={mid} label="202 즉시 반환" lx={195} ly={48} animate />
+          <FlowArrow d="M160,50 L230,50" color={C.amber} mid={mid} label="이벤트 적재" lx={195} ly={40} animate />
+          <FlowArrow d="M230,72 L160,72" color={C.inkSoft} mid={mid} label="202 즉시 반환" lx={195} ly={100} dash />
           <FlowArrow d="M390,58 L460,58" color={C.amber} mid={mid} animate />
-          <FlowArrow d="M500,86 C480,130 420,150 400,160" color={C.red} mid={mid} label="3회 실패 후" lx={430} ly={128} dash />
+          <FlowArrow d="M500,86 C480,130 420,150 400,160" color={C.red} mid={mid} label="함수 오류 3회 후" lx={430} ly={128} dash />
           <FlowArrow d="M545,86 L552,160" color={C.teal} mid={mid} label="성공 시" lx={585} ly={128} dash />
           <text x={360} y={245} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-            기본 재시도 2회 (총 3회 시도) → 그래도 실패하면 DLQ/Destination으로
+            함수 오류: 총 3회 시도 후 DLQ/Destination · 스로틀·서비스 오류: 최대 6시간 백오프 재시도
           </text>
         </FlowSvg>
       )}
@@ -302,7 +320,7 @@ export function InvocationModeExplorer() {
           <FlowArrow d="M180,105 L280,105" color={C.teal} mid={mid} label="배치(레코드 묶음)" lx={230} ly={125} animate />
           <FlowArrow d="M460,92 L540,92" color={C.amber} mid={mid} animate />
           <text x={360} y={185} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-            SQS: 성공한 메시지 삭제 · Kinesis/DDB Streams: 샤드 순서 보장, 성공할 때까지 재시도
+            SQS: 성공한 메시지 삭제 · Kinesis/DDB Streams: 샤드 순서 보장, 성공 또는 만료까지 재시도(횟수·수명 제한 설정 가능)
           </text>
         </FlowSvg>
       )}
@@ -357,7 +375,7 @@ export function ReservedConcurrencySlider() {
         >
           {reserved > 0 && (
             <span style={{ fontFamily: MONO, fontSize: "0.75rem", color: C.amberText, whiteSpace: "nowrap" }}>
-              중요 함수 A: {reserved}
+              함수 A: {reserved}
             </span>
           )}
         </div>
@@ -368,17 +386,21 @@ export function ReservedConcurrencySlider() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // minWidth 0 + overflow hidden 필수 — nowrap 라벨이 flex 최소 폭을 키워
+            // 바 비율 자체를 왜곡한다 (#80 Codex 리뷰). 극단값에선 라벨이 잘리는 게 맞다.
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
           <span style={{ fontFamily: MONO, fontSize: "0.75rem", color: C.teal, whiteSpace: "nowrap" }}>
-            나머지 모든 함수 공유 풀: {otherPool}
+            공유 풀: {otherPool}
           </span>
         </div>
       </div>
       <p style={{ fontSize: "0.88rem", color: C.inkSoft, lineHeight: 1.65, margin: "12px 0 0" }}>
-        함수 A는 트래픽이 폭주해도 <b style={{ color: C.amberText }}>{reserved}</b>을 넘지
+        중요 함수 A는 트래픽이 폭주해도 <b style={{ color: C.amberText }}>{reserved}</b>을 넘지
         못하고(상한), 다른 함수들이 아무리 바빠도 <b style={{ color: C.amberText }}>{reserved}</b>은
-        A를 위해 남아 있습니다(보장). 나머지 함수 전체는 {otherPool}을 나눠 씁니다.
+        A를 위해 남아 있습니다(보장). 나머지 모든 함수는 공유 풀 {otherPool}을 나눠 씁니다.
       </p>
     </SimFrame>
   );
@@ -405,8 +427,9 @@ export function CanaryWeightSlider() {
         <FlowBox x={30} y={75} w={150} h={60} label={'별칭 "prod"'} sub="트래픽 분배" color={C.amber} />
         <FlowBox x={470} y={20} w={200} h={60} label="버전 1 (기존)" sub={`${100 - weight}% 트래픽`} color={C.blue} />
         <FlowBox x={470} y={130} w={200} h={60} label="버전 2 (신규)" sub={`${weight}% 트래픽`} color={C.teal} />
-        <FlowArrow d="M180,95 C330,90 340,55 470,50" color={C.blue} mid={mid} animate={weight < 100} />
-        <FlowArrow d="M180,115 C330,120 340,155 470,160" color={C.teal} mid={mid} animate={weight > 0} />
+        {/* dur ∝ 1/트래픽 비율 — 점 주기가 유량을 표현해야 5/95 가 50/50 처럼 안 보인다 (#80 Codex 리뷰) */}
+        <FlowArrow d="M180,95 C330,90 340,55 470,50" color={C.blue} mid={mid} animate={weight < 100} dur={110 / (100 - weight)} />
+        <FlowArrow d="M180,115 C330,120 340,155 470,160" color={C.teal} mid={mid} animate={weight > 0} dur={110 / weight} />
         <text x={310} y={60} textAnchor="middle" fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>
           {100 - weight}%
         </text>
