@@ -31,7 +31,7 @@ npm run dev
 - `npm run dev`는 `predev` 훅이 먼저 돈다 → `scripts/gen-source-routes.mjs`가 `/_source`(원본 검수 도구) 라우트를 생성한 뒤 Next dev가 시작된다. **수동 코드생성 단계는 없다.**
 - 패키지 매니저는 **npm 고정**이다(`package-lock.json` 커밋됨, yarn/pnpm 혼용 금지).
 
-**선행 조건 — Node 버전**: 리포가 `engines`/`.nvmrc`로 버전을 못 박아두지 않았다(온보딩 갭). 실질 최소치는 Next 16(20.9+)이 아니라 **검증·빌드 스크립트가 좌우한다** — `scripts/*.mts`를 Node가 직접 실행해 네이티브 TS 타입 스트리핑이 필요하고, 이는 Node 20·초기 22엔 없다(안정화 22.18+). 20.9로는 dev는 뜨지만 `npm run validate`·`npm run build`가 깨진다. 그러니 **Node 22.18+(권장 24 — CI·로컬 검증과 동일)** 를 쓴다.
+**선행 조건 — Node 버전**: 버전 정본은 `.nvmrc`(=24)이고 로컬(nvm/fnm)과 CI가 이를 공유한다(#67). `engines`는 의도적으로 두지 않는다 — Vercel이 빌드 Node 선택 입력으로 읽어 현재 정상인 배포를 깨뜨릴 수 있어, 리포가 못 박는 범위를 로컬+CI로 한정했다. 실질 최소치는 Next 16(20.9+)이 아니라 **검증·빌드 스크립트가 좌우한다** — `scripts/*.mts`를 Node가 직접 실행해 네이티브 TS 타입 스트리핑이 필요하고, 이는 Node 20·초기 22엔 없다(안정화 22.18+). 20.9로는 dev는 뜨지만 `npm run validate`·`npm run build`가 깨진다. 그러니 `.nvmrc`대로 **Node 24**(하한 22.18+ — 타입 스트리핑)를 쓴다.
 
 자주 쓰는 스크립트:
 
