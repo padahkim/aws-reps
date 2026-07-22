@@ -6,6 +6,13 @@ import { quiz as drills } from "./drills.ts";
  * (10섹션 심화) 전량 통합 (#68 — stage0 분리 예고편에서 전면 확장).
  * 뼈대는 iam_guide 9섹션, §07(자격증명&보안)만 08 접근 방법·09 보안 도구로 분리해 guide-2의
  * 16·18~23·26·28~29강을 수용 — 총 10섹션 (목차 초안은 #68 코멘트).
+ * 기조(#75): 본문 프로즈는 iam_guide 설명(문장·카드 구성·비유·콜아웃)을 기본으로 재작성 —
+ * 설명성 표는 InfoCard/AccentRow/PointBox(iam_guide TwoCol·Card·Note 이식)로 전환하고,
+ * 순수 매칭표(STS 4종·평가 4케이스 진리표·MFA 디바이스)만 표로 유지. guide-2 유래 심화는
+ * 감량 없이 iam_guide 기조에 맞춰 통합.
+ * 도식: iam_guide DiagOverview→OverviewGateSvg(§01), DiagComponents→ComponentsSvg(§02,
+ * 자작 IamStructureSvg 대체), DiagAuthN→AuthFlowSvg(§03), DiagPolicyJSON→PolicyAnatomy(§04),
+ * DiagPolicyTypes→PolicyTypesSvg(§05), DiagSTS→StsSequenceSvg(§07) — 전부 이식 완료.
  * 인터랙티브: iam_guide EvalEngine(정책 평가 시뮬레이터)을 figs.tsx로 격하 없이 이식.
  * guide-2 PolicyEvalDiagram은 EvalEngine의 DECISION FLOW 패널과 중복이라 별도 이식 안 함.
  * 사실 수정: reports/{axis1,axis2}/{iam_guide,aws-dva-iam-guide-2}.md 수정 지시 전부 반영 —

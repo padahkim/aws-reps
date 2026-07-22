@@ -1,37 +1,24 @@
-import { ChLink, ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
+import { ChLink, ExamLi, ExamPoint, Fig, SubTitle } from "../../ui";
+import { CardGrid, InfoCard, OverviewGateSvg, WarnBox } from "../figs";
 
-{/* 텍스트를 품는 커스텀 컴포넌트(Note·ExamLi)는 한 줄로 쓴다 — 여러 줄이면 MDX가
-    내용을 블록(문단)으로 파싱해 p 태그가 중첩된다. */}
+{/* 텍스트를 품는 커스텀 컴포넌트(InfoCard·WarnBox·ExamLi)는 한 줄로 쓴다 — 여러 줄이면
+    MDX가 내용을 블록(문단)으로 파싱해 p 태그가 중첩된다. */}
 
 IAM(Identity and Access Management)은 <b>누가(인증)</b> AWS에 접근할 수 있고, 각자 <b>무엇을(인가)</b> 할 수 있는지를 통제하는 서비스입니다. 모든 AWS API 요청은 실행 전에 IAM을 거쳐 허용/거부가 결정됩니다 — 즉 IAM은 AWS 계정의 **관문**이고, AWS의 모든 보안의 출발점입니다.
 
+<Fig caption="개발자·애플리케이션·AWS 서비스 — 누가 요청하든 IAM(인증+인가)이라는 관문을 통과해야 계정 리소스에 닿는다.">
+  <OverviewGateSvg />
+</Fig>
+
 <SubTitle>세 가지 기본 성질</SubTitle>
 
-<Table
-  head={["성질", "의미"]}
-  rows={[
-    [
-      "글로벌 서비스",
-      <>
-        <b>리전에 종속되지 않습니다.</b> 리전을 선택할 필요가 없고, 만든 유저·롤·정책은 전
-        세계 모든 리전에서 동일하게 적용됩니다
-      </>,
-    ],
-    [
-      "무료",
-      "IAM 자체는 추가 비용이 없습니다. 사용하는 리소스에만 과금됩니다",
-    ],
-    [
-      "기본은 전부 거부",
-      <>
-        아무 정책이 없으면 아무것도 할 수 없습니다. 필요한 권한만 명시적으로 부여하는{" "}
-        <b>최소 권한 원칙(Least Privilege)</b>이 AWS 보안의 대원칙입니다
-      </>,
-    ],
-  ]}
-/>
+<CardGrid>
+  <InfoCard title="🌐 글로벌 서비스"><b>리전에 종속되지 않습니다.</b> 리전을 선택할 필요가 없고, 만든 유저·롤·정책은 전 세계 모든 리전에서 동일하게 적용됩니다.</InfoCard>
+  <InfoCard title="💰 무료">IAM 자체는 추가 비용이 없습니다. 사용하는 리소스에만 과금됩니다.</InfoCard>
+  <InfoCard title="🔒 기본은 전부 거부">아무 정책이 없으면 아무것도 할 수 없습니다. 필요한 권한만 명시적으로 부여하는 <b>최소 권한 원칙(Least Privilege)</b>이 AWS 보안의 대원칙입니다.</InfoCard>
+</CardGrid>
 
-<Note>“IAM 유저는 어느 리전에 생성되는가?” 같은 함정 문제가 나옵니다 — 답은 “리전 개념이 없다(글로벌)”.</Note>
+<WarnBox>“IAM 유저는 어느 리전에 생성되는가?” 같은 함정 문제가 나옵니다 — 답은 “리전 개념이 없다(글로벌)”.</WarnBox>
 
 <SubTitle>DVA에서 IAM의 위치</SubTitle>
 
