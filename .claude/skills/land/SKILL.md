@@ -119,6 +119,8 @@ PR URL과 "PR 대기"를 사용자에게 보고한다. **여기까지 하면 이
 
 사용자가 PR에 코멘트를 남기면 `gh pr view "$BR" --comments`·`gh api`로 읽어 수정을 반영하고 같은 브랜치에 push한다.
 
+Codex 등 자동 리뷰의 인라인 코멘트는 **건별로 반드시 답글을 남긴다** (2026-07-22 지시, #80 전례) — 반영이면 반영 커밋 해시와 요지, 거부(반영 부적절 판단)면 거부 사유를 쓴다. 어느 쪽이든 무응답으로 넘기지 않는다. 답글: `gh api repos/padahkim/aws-reps/pulls/<PR>/comments/<comment_id>/replies -f body="..."`.
+
 ### B-3. 승인 후 머지 → 동기화
 
 사용자가 승인하면:
