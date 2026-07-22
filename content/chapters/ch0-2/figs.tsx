@@ -363,7 +363,9 @@ export function PolicyAnatomy() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        // min(300px, 100%): 320px급 폰에선 본문 폭이 300px 아래로 내려가므로
+        // 트랙 최소값을 컨테이너 폭으로 캡해야 가로 오버플로가 없다 (#76 Codex 리뷰).
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))",
         gap: 12,
         margin: "1rem 0",
       }}
