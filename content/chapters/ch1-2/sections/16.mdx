@@ -1,5 +1,5 @@
 import { ExamLi, ExamPoint, Table } from "../../ui";
-import { CanaryWeightSlider } from "../figs";
+import { CanaryWeightSlider, SelfQuiz } from "../figs";
 
 작업 중인 함수는 `$LATEST` — <b>가변</b>. <b>게시(publish)</b>하면 V1, V2 … 버전이 생성되며 <b>불변</b>입니다(코드+구성이 고정 — <b>환경 변수도 스냅샷으로 함께 고정</b>, 고유 ARN). <b>Alias</b>는 버전을 가리키는 <b>가변 포인터</b>로 dev/test/prod처럼 운영하며, 사용자에게 안정적인 ARN을 제공한 채 뒤의 버전만 교체(블루/그린)합니다.
 
@@ -27,3 +27,10 @@ import { CanaryWeightSlider } from "../figs";
 <ExamPoint>
   <ExamLi>“안전한 점진 배포” → 버전 게시 + 별칭 가중치 + CodeDeploy.</ExamLi>
 </ExamPoint>
+
+<SelfQuiz items={[
+  {
+    q: "신규 코드 버전을 전체 트래픽의 10%에만 무중단으로 노출하려면?",
+    a: "버전 2개를 발행하고 별칭(Alias) 가중치 라우팅으로 90:10 분배. CodeDeploy로 자동화 + 알람 롤백 가능.",
+  },
+]} />

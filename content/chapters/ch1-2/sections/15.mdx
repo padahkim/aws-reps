@@ -1,5 +1,5 @@
 import { SubTitle } from "../../ui";
-import { WarnBox } from "../figs";
+import { SelfQuiz, WarnBox } from "../figs";
 
 <SubTitle>외부 종속성 패키징</SubTitle>
 
@@ -14,3 +14,10 @@ import { WarnBox } from "../figs";
 <SubTitle>컨테이너 이미지</SubTitle>
 
 함수를 컨테이너 이미지로 배포 — 최대 <b>10GB</b>, 이미지는 <b>ECR</b>에 저장. 이미지는 반드시 <b>Lambda Runtime API를 구현</b>해야 하며(AWS 제공 베이스 이미지 사용 권장), <b>Lambda Runtime Interface Emulator(RIE)</b>로 로컬 테스트가 가능합니다. 모범 사례: 멀티 스테이지 빌드, 안정적인 레이어 → 자주 바뀌는 레이어 순 배치.
+
+<SelfQuiz items={[
+  {
+    q: "배포 패키지가 압축 해제 시 300MB라서 업로드가 거부된다. 해결책 2가지는?",
+    a: "① 컨테이너 이미지로 배포(최대 10GB) ② 의존성을 EFS에 두고 마운트. (레이어를 써도 250MB 합산 한도는 동일)",
+  },
+]} />

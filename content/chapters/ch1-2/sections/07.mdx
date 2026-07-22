@@ -1,5 +1,5 @@
 import { ExamLi, ExamPoint, Fig } from "../../ui";
-import { PermissionSvg } from "../figs";
+import { PermissionSvg, SelfQuiz } from "../figs";
 
 <Fig caption="나가는 권한 = 실행 역할, 들어오는 호출 권한 = 리소스 기반 정책.">
   <PermissionSvg />
@@ -13,3 +13,10 @@ import { PermissionSvg } from "../figs";
   <ExamLi>서비스가 함수를 직접 호출(푸시) → 리소스 기반 정책. Lambda가 폴링(ESM) → 실행 역할. 이 한 줄이 권한 문제의 정답 키.</ExamLi>
   <ExamLi>“S3 이벤트가 함수를 못 부른다” → 리소스 기반 정책 부재.</ExamLi>
 </ExamPoint>
+
+<SelfQuiz items={[
+  {
+    q: "Lambda가 DynamoDB 테이블을 읽을 권한은 어디에 부여하는가? 반대로 API Gateway가 Lambda를 호출할 권한은?",
+    a: "나가는 권한 = Execution Role(IAM 역할). 들어오는 권한 = Lambda의 Resource-based Policy.",
+  },
+]} />
