@@ -1,5 +1,6 @@
 import { Note, SubTitle } from "../../ui";
-import { CodeBlock, LifecycleSim, SelfQuiz } from "../figs";
+import { CodeBlock, LifecycleSim } from "../figs";
+import { SelfQuiz } from "../../interactive";
 
 RAM은 <b>128MB~10,240MB, 1MB 단위</b>. CPU는 직접 설정할 수 없고 <b>RAM에 비례해 할당</b>됩니다 — 약 <b>1,769MB에서 1 vCPU 상당</b>에 도달하고, 그 이상은 <b>멀티스레딩 코드를 작성해야 활용</b>됩니다. “CPU 바운드 작업이 느리면 → RAM을 늘려라”가 정답 패턴입니다.
 

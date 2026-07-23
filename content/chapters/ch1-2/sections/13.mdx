@@ -1,5 +1,6 @@
 import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
-import { ExecEnvLifecycleSvg, ReservedConcurrencySlider, SelfQuiz } from "../figs";
+import { ExecEnvLifecycleSvg, ReservedConcurrencySlider } from "../figs";
+import { SelfQuiz } from "../../interactive";
 
 계정(리전)당 동시 실행 기본 한도 <b>1,000</b>(상향 요청 가능). 함수별 <b>예약 동시성(Reserved Concurrency)</b>은 그 함수의 동시 실행 상한을 지정해 격리합니다 — 무료. <b>0으로 설정하면 모든 호출이 차단</b>되어 폭주·버그 함수의 긴급 차단 스위치로도 씁니다. 한 함수가 폭주해 계정 풀 1,000을 다 쓰면 <b>같은 계정의 다른 모든 함수가 스로틀</b>됩니다(예약 동시성이 필요한 이유이자 시험 시나리오 단골).
 
