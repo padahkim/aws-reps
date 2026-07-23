@@ -11,6 +11,8 @@
  *   content/chapters/{id}/meta.ts        — chapterMeta + quiz + sections (+ session) (순수 데이터, "use client" 금지)
  *   content/chapters/{id}/session.ts     — 인출 세션 데이터. meta.ts 가 re-export (drills.ts 전례).
  *                                          없는 챕터 적법 (ChapterData.session? optional)
+ *   content/chapters/{id}/selfquiz.ts    — 섹션 셀프 퀴즈 문항 (#98). meta.ts 가 re-export.
+ *                                          없는 챕터 적법 (ChapterData.selfQuiz? optional)
  *   content/chapters/{id}/body.tsx       — "use client" shim: <Sec {...sections[i]}> 래핑·
  *                                          섹션 수 assert·인트로/아웃트로 배치만 (본문 내용 금지)
  *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (첫 섹션 페이지 상단. 없으면 생략)
@@ -172,10 +174,27 @@ export interface SessionData {
   mixed: SessionMixedItem[];      // 빈 배열 적법 — 교차 대조 대상이 없는 첫 챕터
 }
 
+// ── 섹션 셀프 퀴즈 (이슈 #98 — 2026-07-24 사용자 결정) ─────────────────────
+
+/**
+ * 섹션 셀프 퀴즈 문항 — 인출 카드 아래에 붙는 자기채점 덱의 데이터.
+ * 역할 분담: 인출 카드 = 서술·정교화(why), 셀프 퀴즈 = 판정형 핵심 사실.
+ * q 는 짧은 시나리오/사실 큐, a 는 맞았는지 스스로 판정 가능한 1~2문장 정답 —
+ * 주제가 카드와 겹쳐도 되지만 문장 재탕은 금지. session.ts 와 파일을 분리하는 이유는
+ * SessionData 가 #53·#59 세션 프레임워크와 공유되는 스키마라 결합을 피하기 위함.
+ * 렌더는 content/chapters/interactive.tsx 의 SelfQuiz (섹션당 1~3문항 소형 덱, #82 상호작용).
+ */
+export interface SelfQuizEntry {
+  section: string;                // 붙을 섹션의 SectionMeta.num ("01") — 실존해야 함
+  q: string;
+  a: string;
+}
+
 /** 각 챕터의 meta.ts가 export 하는 계약. */
 export interface ChapterData {
   chapterMeta: ChapterMeta;
   quiz: Question[];               // 빈 배열 적법 — 앱은 빈 quiz에 강건해야 한다
   sections: SectionMeta[];        // 최소 1개 — 단일 섹션 챕터(ch0-2류) 적법, 빈 배열은 위반
   session?: SessionData;          // 없는 챕터 적법 — 점진 이행 중 (#54 결정 1)
+  selfQuiz?: SelfQuizEntry[];     // 없는 챕터 적법 — selfquiz.ts 를 re-export (#98)
 }

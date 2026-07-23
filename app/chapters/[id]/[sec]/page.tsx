@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { conceptsForSection, getAllChapters, getChapter, sectionCount } from "@/lib/content";
+import { SelfQuiz, conceptsForSection, getAllChapters, getChapter, sectionCount, selfQuizForSection } from "@/lib/content";
 import ChapterQuiz from "../chapter-quiz";
 import MarkRead from "./mark-read";
 import SectionConcepts from "./section-concepts";
@@ -39,6 +39,17 @@ export default async function SectionPage({
   // body 의 afterSection 슬롯으로 넘겨 본문과 아웃트로 "사이"에 놓는다 (규약 v3 섹션 규약).
   const concepts = isQuiz ? [] : conceptsForSection(entry, sections[n - 1].num);
 
+  // 섹션 셀프 퀴즈 (#98) — 인출 카드 "아래"에 자기채점 덱 (2026-07-24 사용자 결정:
+  // 카드 = 서술·정교화, 셀프 퀴즈 = 판정형 핵심 사실 — 층을 분리해 둘 다 렌더).
+  const selfQuizItems = isQuiz ? [] : selfQuizForSection(entry, sections[n - 1].num);
+  const afterSection =
+    concepts.length > 0 || selfQuizItems.length > 0 ? (
+      <>
+        {concepts.length > 0 && <SectionConcepts concepts={concepts} />}
+        {selfQuizItems.length > 0 && <SelfQuiz items={selfQuizItems} />}
+      </>
+    ) : undefined;
+
   // 이전/다음 링크 라벨 — k는 1-based 섹션 번호
   const label = (k: number) =>
     k > sections.length ? "챕터 퀴즈" : `${sections[k - 1].num} ${sections[k - 1].title}`;
@@ -71,10 +82,7 @@ export default async function SectionPage({
       {isQuiz ? (
         <ChapterQuiz quiz={quiz} />
       ) : (
-        <Body
-          section={n - 1}
-          afterSection={concepts.length > 0 ? <SectionConcepts concepts={concepts} /> : undefined}
-        />
+        <Body section={n - 1} afterSection={afterSection} />
       )}
       <MarkRead chapterId={id} sec={n} />
 
