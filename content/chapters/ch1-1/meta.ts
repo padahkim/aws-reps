@@ -29,7 +29,7 @@ export { quiz } from "./drills.ts";
  */
 export const sections: SectionMeta[] = [
   { num: "01", title: "S3 개요 — 버킷·객체·Key", sub: "키/prefix 구조, 크기 한도, 버킷 네이밍", freq: "mid", freqLabel: "빈출 ★★☆ · 기초지만 함정 선지의 재료" },
-  { num: "02", title: "S3 보안 · 버킷 정책", sub: "정책 평가 로직과 크로스 계정이 핵심", freq: "hi", freqLabel: "최빈출 ★★★ · 거의 매 시험" },
+  { num: "02", title: "S3 보안 · 버킷 정책", sub: "정책 평가 로직과 교차 계정이 핵심", freq: "hi", freqLabel: "최빈출 ★★★ · 거의 매 시험" },
   { num: "03", title: "S3 정적 웹사이트", sub: "엔드포인트 형식과 403 트러블슈팅", freq: "lo", freqLabel: "보통 ★☆☆ · 403 시나리오 위주" },
   { num: "04", title: "S3 버전 관리", sub: "Delete Marker 동작과 null 버전", freq: "mid", freqLabel: "빈출 ★★☆ · 복구 시나리오 단골" },
   { num: "05", title: "S3 복제 (CRR / SRR)", sub: "버전 관리 전제 · 기존 객체 미복제 · 체이닝 불가", freq: "mid", freqLabel: "빈출 ★★☆ · 3대 함정이 그대로 선지" },
@@ -43,7 +43,7 @@ export const sections: SectionMeta[] = [
   { num: "13", title: "S3 CORS", sub: "preflight와 설정 위치(요청받는 쪽)", freq: "mid", freqLabel: "빈출 ★★☆ · DVA 단골" },
   { num: "14", title: "S3 MFA Delete", sub: "버전 관리 전제 · 루트 전용 · 콘솔 불가", freq: "lo", freqLabel: "보통 ★☆☆ · 조건 3종 세트" },
   { num: "15", title: "S3 액세스 로그", sub: "같은 리전·같은 계정 + 무한 루프 금지", freq: "lo", freqLabel: "가끔 ★☆☆ · 무한 루프 함정" },
-  { num: "16", title: "미리 서명된 URL (Presigned URL)", sub: "생성자 권한 상속 · 만료 시간", freq: "hi", freqLabel: "최빈출 ★★★ · 임시 접근의 정답" },
+  { num: "16", title: "사전 서명된 URL (Presigned URL)", sub: "생성자 권한 상속 · 만료 시간", freq: "hi", freqLabel: "최빈출 ★★★ · 임시 접근의 정답" },
   { num: "17", title: "S3 액세스 포인트", sub: "용도별 정책 분리 + VPC Origin", freq: "lo", freqLabel: "보통 ★☆☆ · 대규모 접근 관리" },
   { num: "18", title: "S3 Object Lambda", sub: "반환 직전 변환 — 원본은 하나만", freq: "lo", freqLabel: "보통 ★☆☆ · 구성 순서 문제" },
 ];
