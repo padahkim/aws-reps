@@ -38,7 +38,7 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
   // 실존 챕터 id 집합 (prerequisites 참조 검증용)
   const knownIds = new Set(chapters.map((c) => c.chapterMeta.id));
 
-  for (const { chapterMeta, quiz, sections, session } of chapters) {
+  for (const { chapterMeta, quiz, sections, session, selfQuiz } of chapters) {
     const cid = chapterMeta.id;
 
     // ── 섹션 규약 (v2): 최소 1개, 제목 비지 않음, num 챕터 내 유일 ──────
@@ -219,6 +219,26 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
       }
 
       session.mixed.forEach((m, i) => checkId(m.id, `mixed[${i}]`));
+    }
+
+    // ── 셀프 퀴즈 검사 (#98 — selfQuiz 없는 챕터는 적법 → 건너뛴다) ─────────
+    if (selfQuiz) {
+      selfQuiz.forEach((e, i) => {
+        if (!numSeen.has(e.section)) {
+          problems.push({
+            chapterId: cid,
+            code: "SELFQUIZ_SECTION_MISSING",
+            message: `selfQuiz[${i}]: section "${e.section}" 이 실존하지 않는 섹션 num — 덱이 어디에도 안 붙는다`,
+          });
+        }
+        if (e.q.trim() === "" || e.a.trim() === "") {
+          problems.push({
+            chapterId: cid,
+            code: "SELFQUIZ_ITEM_EMPTY",
+            message: `selfQuiz[${i}] (section "${e.section}"): q 또는 a 가 비어 있음`,
+          });
+        }
+      });
     }
   }
 
