@@ -39,14 +39,15 @@ export default async function SectionPage({
   // body 의 afterSection 슬롯으로 넘겨 본문과 아웃트로 "사이"에 놓는다 (규약 v3 섹션 규약).
   const concepts = isQuiz ? [] : conceptsForSection(entry, sections[n - 1].num);
 
-  // 섹션 셀프 퀴즈 (#98) — 인출 카드 "아래"에 자기채점 덱 (2026-07-24 사용자 결정:
-  // 카드 = 서술·정교화, 셀프 퀴즈 = 판정형 핵심 사실 — 층을 분리해 둘 다 렌더).
+  // 섹션 셀프 퀴즈 — 인출 카드 "위"에 자기채점 덱 (#105 결정, #98의 아래 배치를 뒤집음:
+  // 짧은 판정형으로 핵심 사실 숙지를 먼저 확인하고 서술형 인출 연습으로 넘어가는
+  // 쉬운 것→어려운 것 순서. 카드 = 서술·정교화, 셀프 퀴즈 = 판정형 — 층 분리는 유지).
   const selfQuizItems = isQuiz ? [] : selfQuizForSection(entry, sections[n - 1].num);
   const afterSection =
     concepts.length > 0 || selfQuizItems.length > 0 ? (
       <>
-        {concepts.length > 0 && <SectionConcepts concepts={concepts} />}
         {selfQuizItems.length > 0 && <SelfQuiz items={selfQuizItems} />}
+        {concepts.length > 0 && <SectionConcepts concepts={concepts} />}
       </>
     ) : undefined;
 
