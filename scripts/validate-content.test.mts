@@ -142,6 +142,16 @@ expectCaught(
   "SESSION_CONCEPT_EMPTY"
 );
 expectCaught(
+  "concept why.q 공백",
+  [ch(meta("1-1"), [], [section()], sess({ concepts: [concept({ why: { q: "   " } })] }))],
+  "SESSION_WHY_EMPTY"
+);
+expectCaught(
+  "concept why.a 빈 문자열 (모범답 있으면 비지 않아야)",
+  [ch(meta("1-1"), [], [section()], sess({ concepts: [concept({ why: { q: "왜?", a: "" } })] }))],
+  "SESSION_WHY_ANSWER_EMPTY"
+);
+expectCaught(
   "diagram edges 개수 불일치 (nodes-1 아님)",
   [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x"] } }))],
   "SESSION_DIAGRAM_EDGES"
@@ -173,6 +183,21 @@ expectClean("정상 session(섹션 일부에만 카드·도식 없음)", [
     [],
     [section({ num: "00" }), section({ num: "01", title: "t2" })],
     sess({ concepts: [concept({ id: "c1", section: "01" }), concept({ id: "c2", section: "01" })] })
+  ),
+]);
+
+// why 정교화 질문만 (모범답 미기입 — 콘텐츠 이행 전 상태)
+expectClean("정상 session(why 질문만)", [
+  ch(meta("1-1"), [], [section()], sess({ concepts: [concept({ why: { q: "왜 그럴까요?" } })] })),
+]);
+
+// why 질문 + 모범답 (신형식 완성)
+expectClean("정상 session(why 질문+모범답)", [
+  ch(
+    meta("1-1"),
+    [],
+    [section()],
+    sess({ concepts: [concept({ why: { q: "왜 그럴까요?", a: "…이기 때문." } })] })
   ),
 ]);
 

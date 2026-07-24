@@ -198,6 +198,24 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
             message: `session.concepts[${i}] (id "${c.id}"): q 또는 a 가 비어 있음`,
           });
         }
+        // 정교화 질문(#89 ③): why 가 있으면 q 는 필수·비어있지 않음,
+        // 모범답 a 는 옵션이지만 있으면 비어있지 않아야 한다 (빈 게이트 방지).
+        if (c.why !== undefined) {
+          if (c.why.q.trim() === "") {
+            problems.push({
+              chapterId: cid,
+              code: "SESSION_WHY_EMPTY",
+              message: `session.concepts[${i}] (id "${c.id}"): why.q 가 비어 있음 — 정교화 질문이 없으면 why 를 생략하라`,
+            });
+          }
+          if (c.why.a !== undefined && c.why.a.trim() === "") {
+            problems.push({
+              chapterId: cid,
+              code: "SESSION_WHY_ANSWER_EMPTY",
+              message: `session.concepts[${i}] (id "${c.id}"): why.a 가 빈 문자열 — 모범답을 채우거나 a 를 생략하라`,
+            });
+          }
+        }
       });
 
       // 도식: 선형 체인이라 edges 는 nodes 보다 정확히 1 짧다

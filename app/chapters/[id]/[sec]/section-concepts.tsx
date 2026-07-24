@@ -26,6 +26,9 @@ const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 function ConceptCard({ index, concept }: { index: number; concept: SessionConcept }) {
   const [opened, setOpened] = useState(false);
+  // why 모범답(#89 ③)은 카드 답과 별개의 2차 게이트 — 정교화 질문을 먼저 스스로 답한 뒤
+  // 열어야 학습 효과가 산다. why.a 가 없으면 게이트 없이 질문만 낸다.
+  const [whyAnswerOpened, setWhyAnswerOpened] = useState(false);
 
   return (
     <div
@@ -125,8 +128,47 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
                 WHY — 정교화 질문
               </div>
               <p style={{ margin: "5px 0 0", fontSize: "0.87rem", lineHeight: 1.7 }}>
-                {concept.why}
+                {concept.why.q}
               </p>
+              {concept.why.a && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setWhyAnswerOpened((v) => !v)}
+                    aria-expanded={whyAnswerOpened}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginTop: 10,
+                      font: "inherit",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      color: PAL.amberText,
+                      background: "transparent",
+                      border: `1px solid ${PAL.amber}`,
+                      borderRadius: 99,
+                      padding: "3px 11px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {whyAnswerOpened ? "모범 답 닫기" : "먼저 스스로 답한 뒤 — 모범 답 열기"}
+                  </button>
+                  {whyAnswerOpened && (
+                    <p
+                      style={{
+                        margin: "0.7rem 0 0",
+                        paddingTop: "0.7rem",
+                        borderTop: `1px dashed ${PAL.amber}`,
+                        fontSize: "0.87rem",
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      {concept.why.a}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
