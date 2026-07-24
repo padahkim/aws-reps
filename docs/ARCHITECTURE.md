@@ -112,7 +112,7 @@ flowchart TD
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx` 등. |
 | `lib/` | `content.ts`(앱↔콘텐츠 유일 통로) · `progress.ts`(진도 저장소). |
 | `scripts/` | 빌드·검증·하네스 — `validate-content.mts`·`gen-source-routes.mjs`·`git_guard.py` 등. |
-| `docs/` | 이 문서·`CURRICULUM.md`(커리큘럼 도면)·`APP_ARCHITECTURE_DRAFT.md`(옛 제안)·`prompts/`·`_frozen/`(폐기 보관). |
+| `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·`ARCHITECTURE_REVIEW.md`(진단)·`CURRICULUM.md`(도면)·`VERIFIED_FACTS.md`(사실 캐시) + 하위 `design/`(미착수 에픽 설계입력)·`prompts/`(문서 재생성)·`reports/`(활성 사실수정 체크리스트)·`_frozen/`(폐기 보관). |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
 | 루트 | `next.config.ts`(output:export+MDX)·`tsconfig.json`·`mdx-components.tsx`·`package.json`. |
@@ -221,7 +221,7 @@ flowchart TD
 - **hydration** — 정적 HTML에 클라이언트 JS가 붙어 상호작용이 살아나는 과정. 진도는 그 이후 채워진다.
 - **`/_source`** — dev·프리뷰 전용, 레거시 원본을 브라우저 Babel로 미리 보는 검수 도구.
 
-**더 읽기**: [`CLAUDE.md`](../CLAUDE.md) (규칙 전문) · [`docs/CURRICULUM.md`](CURRICULUM.md) (커리큘럼 도면·24챕터 트리) · [`docs/APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md) (초기 *제안* — 구현물 아님, 아래 주의) · 진단은 자매 문서 `docs/ARCHITECTURE_REVIEW.md`(`docs/prompts/아키텍처점검.md`로 생성).
+**더 읽기**: [`CLAUDE.md`](../CLAUDE.md) (규칙 전문) · [`docs/CURRICULUM.md`](CURRICULUM.md) (커리큘럼 도면·24챕터 트리) · [`docs/design/APP_ARCHITECTURE_DRAFT.md`](design/APP_ARCHITECTURE_DRAFT.md) (초기 *제안* — 구현물 아님, 아래 주의) · 진단은 자매 문서 `docs/ARCHITECTURE_REVIEW.md`(`docs/prompts/아키텍처점검.md`로 생성).
 
 > ⚠ **`APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·2키 진도 모델(`dva.progress.v1`/`dva.review.v1`)·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
 
