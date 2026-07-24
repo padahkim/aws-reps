@@ -1,6 +1,5 @@
 import { ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
 import { WarnBox } from "../figs";
-import { SelfQuiz } from "../../interactive";
 
 <b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 핵심 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>(그 밖에 Amazon MSK·자체 관리 Kafka도 ESM 소스지만 DVA 출제는 이 3가지에 집중). 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
 
@@ -52,10 +51,3 @@ import { SelfQuiz } from "../../interactive";
   <ExamLi>구분법: <b>S3·SNS·EventBridge = 비동기(푸시)</b> vs <b>Kinesis·DDB Streams·SQS = ESM(폴링·동기)</b> — 이 구분 자체가 최다 빈출.</ExamLi>
   <ExamLi>“불량 레코드가 샤드를 막는다” → bisect batch on error + 재시도 제한 + 실패 대상 지정.</ExamLi>
 </ExamPoint>
-
-<SelfQuiz items={[
-  {
-    q: "SQS 큐의 메시지를 Lambda로 처리하려 한다. 어떤 호출 모델이며, 누가 누구를 호출하는가?",
-    a: "Event Source Mapping(폴링). Lambda 서비스의 폴러가 SQS를 폴링해서 배치를 만들어 함수를 '동기' 호출한다.",
-  },
-]} />
