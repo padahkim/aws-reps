@@ -1,6 +1,5 @@
 import { ExamLi, ExamPoint, SubTitle, Table } from "../../ui";
 import { WarnBox } from "../figs";
-import { SelfQuiz } from "../../interactive";
 
 <b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. CLI에서는 `--invocation-type Event`(SDK/API는 `InvocationType` 필드)로 비동기 호출합니다. S3·SNS·EventBridge· CodePipeline·SES·CloudWatch Logs(구독) 등이 비동기로 호출합니다.
 
@@ -41,10 +40,3 @@ import { SelfQuiz } from "../../interactive";
   <ExamLi>“S3 이벤트가 실패하면?” → 재시도 3회 후 DLQ가 정답 흐름.</ExamLi>
   <ExamLi>“X분마다 Lambda 실행” → EventBridge 스케줄 규칙 (EC2 크론은 오답).</ExamLi>
 </ExamPoint>
-
-<SelfQuiz items={[
-  {
-    q: "S3 이벤트로 트리거된 Lambda가 실패했다. 기본적으로 몇 번 재시도되며, 최종 실패 이벤트를 놓치지 않으려면?",
-    a: "비동기 호출이므로 2회 자동 재시도(총 3회). 최종 실패 보관은 DLQ(SQS/SNS) 또는 Destinations(onFailure)로.",
-  },
-]} />

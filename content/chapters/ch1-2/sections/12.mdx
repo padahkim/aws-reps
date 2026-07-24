@@ -1,6 +1,5 @@
 import { Note, SubTitle } from "../../ui";
 import { CodeBlock, LifecycleSim } from "../figs";
-import { SelfQuiz } from "../../interactive";
 
 RAM은 <b>128MB~10,240MB, 1MB 단위</b>. CPU는 직접 설정할 수 없고 <b>RAM에 비례해 할당</b>됩니다 — 약 <b>1,769MB에서 1 vCPU 상당</b>에 도달하고, 그 이상은 <b>멀티스레딩 코드를 작성해야 활용</b>됩니다. “CPU 바운드 작업이 느리면 → RAM을 늘려라”가 정답 패턴입니다.
 
@@ -21,18 +20,3 @@ RAM은 <b>128MB~10,240MB, 1MB 단위</b>. CPU는 직접 설정할 수 없고 <b>
 <LifecycleSim />
 
 <b>/tmp</b>: 임시 디스크 <b>512MB~10GB</b>. 실행 컨텍스트가 유지되는 동안 내용이 남아 캐시처럼 쓸 수 있지만 영구 저장은 S3로. /tmp 암호화가 필요하면 KMS Data Key를 직접 생성합니다.
-
-<SelfQuiz items={[
-  {
-    q: "함수 실행이 CPU 부족으로 느리다. CPU를 늘리는 방법은?",
-    a: "메모리 크기를 올린다 — CPU는 메모리에 비례해 할당된다 (약 1,769MB에서 1 vCPU).",
-  },
-  {
-    q: "핸들러 밖에서 DB 커넥션을 초기화하라는 이유는?",
-    a: "INIT 단계 코드는 콜드 스타트 시 1회만 실행되고 웜 호출에서 재사용되므로, 호출마다 커넥션을 새로 맺는 비용을 없앤다.",
-  },
-  {
-    q: "Lambda 최대 실행 시간은? 그보다 긴 작업은?",
-    a: "900초(15분). 초과 작업은 Step Functions로 분할 오케스트레이션하거나 ECS/Fargate·Batch로.",
-  },
-]} />
