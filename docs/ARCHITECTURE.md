@@ -1,7 +1,7 @@
 # ARCHITECTURE — aws-reps 구조 안내
 
-> **문서 상태**: **비교용 임시 초안** (`ARCHITECTURE2.md` — 정본 정리는 #83) · 콘텐츠 검증 기준 커밋 `2f1db5f` · 작성 2026-07-22
-> **갱신법**: 이 파일은 임시본이다 — 살아있는 **정본은 `docs/ARCHITECTURE.md`**이고, 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **그 파일**을 다시 그린다(이 `ARCHITECTURE2.md`가 아니다). 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
+> **문서 상태**: **정본 (living doc)** · 콘텐츠 검증 기준 커밋 `2f1db5f` · 작성 2026-07-22 · 정본 확정 #83
+> **갱신법**: 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **이 파일**을 다시 그린다. 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
 > **읽는 순서**: "한눈에"만 읽어도 감이 온다. 코드를 만질 사람은 "빠른 시작 → 디렉터리 지도 → 콘텐츠 파이프라인"까지.
 
 ---
@@ -227,4 +227,4 @@ flowchart TD
 
 ---
 
-*이 문서는 `docs/prompts/아키텍처안내.md` 프롬프트로 생성된 초안(`ARCHITECTURE2.md`)입니다.*
+*이 문서는 `docs/prompts/아키텍처안내.md` 프롬프트로 생성·유지됩니다.*

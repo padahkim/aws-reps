@@ -1,6 +1,6 @@
 # ARCHITECTURE_REVIEW.md — aws-reps 아키텍처 진단 리포트
 
-> **지위**: **진단·건강검진 리포트**(프롬프트 `docs/prompts/아키텍처점검.md` 산출물). 현행 구조를 쉽게 설명하는 **안내서는 자매 문서 `docs/ARCHITECTURE.md`**(프롬프트 `아키텍처안내.md` 산출물 — **별도 세션·PR로 착지 예정이라 이 브랜치엔 아직 없다**)의 몫이며, 이 리포트는 그것이 착지하면 as-built 기준선으로 삼아 대조·채점한다. **안내서 착지 전까지는 아래 §3이 as-built 기준을 자체 보유**하므로 이 리포트는 단독으로 성립한다. 설계 *제안* 초안 [`APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 제안 문서로 남기고 §5에서 현행과 대조한다.
+> **지위**: **진단·건강검진 리포트**(프롬프트 `docs/prompts/아키텍처점검.md` 산출물). 현행 구조를 쉽게 설명하는 **안내서는 자매 문서 `docs/ARCHITECTURE.md`**(프롬프트 `아키텍처안내.md` 산출물 — #83에서 정본 착지)의 몫이며, 이 리포트는 그 안내서를 as-built 기준선으로 삼아 대조·채점한다. **아래 §3도 as-built 기준을 자체 보유**하므로 이 리포트는 단독으로도 성립한다. 설계 *제안* 초안 [`APP_ARCHITECTURE_DRAFT.md`](APP_ARCHITECTURE_DRAFT.md)·[`LEARNING_LOOP_DRAFT.md`](LEARNING_LOOP_DRAFT.md)는 제안 문서로 남기고 §5에서 현행과 대조한다.
 > **작성 방법**: 읽기 전용 진단 + 5축 병렬 심층 리뷰 후 각 발견을 코드에 대해 반증 검증(21건 발견 / 21건 확정 / 0건 반증) + 자동 리뷰(Codex) 2라운드 반영. 모든 판단에 `파일:라인` 근거.
 > **기준 커밋**: 진단 시점 `develop` 계열(24f7625). 파일 수·라인은 이 시점 기준이며, 코드가 정본이다 — 이름이 나오는 파일이 옮겨졌으면 코드를 따른다.
 
