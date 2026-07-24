@@ -13,7 +13,7 @@
 기술적으로 핵심만 추리면:
 
 - **순수 정적 사이트(SSG)** — Next.js를 `output: "export"`로 빌드해 **서버 런타임이 없다**. 어디에나 정적 파일로 배포되고, 진도 같은 상태는 브라우저 localStorage에만 산다(로그인 없음).
-- **콘텐츠와 앱이 분리** — 앱(`app/`)은 "셸"이고, 학습 내용은 `content/`의 챕터 모듈이다. 둘 사이엔 **단 하나의 통로**(`lib/content.ts`)만 있다.
+- **콘텐츠와 앱이 분리** — 앱(`app/`)은 "셸"이고, 학습 내용은 `content/`의 챕터 모듈이다. 둘 사이의 **데이터 통로는 `lib/content.ts` 하나**뿐이다 — 단 MDX 렌더 팔레트만은 루트 `mdx-components.tsx`가 `content/chapters/ui`를 직접 참조하는 둘째 결합이다(§5).
 - **콘텐츠는 규약(계약) 기반** — 모든 챕터는 `content/schema.ts`가 정의한 규약 v3를 따른다. 무엇이 계약인지의 단일 진실이 이 파일이다.
 - **콘텐츠가 2계층** — 아직 변환 안 된 **레거시 원본**(27개 `.jsx`, 앱엔 안 실림)과 **구조화된 챕터**(현재 4개)가 공존한다. 마이그레이션이 진행 중이다.
 - **가벼운 스택** — Next.js 16 · React 19 · MDX · TypeScript. 상태관리·CSS 프레임워크 라이브러리 없음(인라인 스타일 + `globals.css`).
@@ -137,7 +137,7 @@ flowchart TD
 
 MDX 규정: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
 
-**앱이 콘텐츠를 보는 길**: 챕터를 만들면 `content/registry.ts`에 **손으로 등록**한다(import 줄 + 배열 항목, 배열 순서 = 학습 순서). 앱은 `lib/content.ts`(`getAllChapters`·`getChapter`·`sectionCount`·`conceptsForSection`·`groupByPhase` 등)로만 접근하고 `content/`를 직접 import하지 않는다.
+**앱이 콘텐츠를 보는 길**: 챕터를 만들면 `content/registry.ts`에 **손으로 등록**한다(import 줄 + 배열 항목, 배열 순서 = 학습 순서). 앱은 `lib/content.ts`(`getAllChapters`·`getChapter`·`sectionCount`·`conceptsForSection`·`groupByPhase` 등)로만 접근하고 `content/`를 직접 import하지 않는다 — **예외는 루트 `mdx-components.tsx` 하나**로, MDX 렌더 팔레트(`content/chapters/ui`의 `Code`·`P`)를 직접 import한다(데이터 통로가 아니라 렌더 통합 지점).
 
 ```mermaid
 flowchart LR
@@ -160,7 +160,7 @@ flowchart LR
   mdx --> bodytsx
 ```
 
-**마이그레이션 현황**: `content/chapters/`에 **4개** 구조화 완료 — `ch0-1`(4섹션)·`ch0-2`(10)·`ch1-1`(18)·`ch1-2`(20), 전부 registry 등록됨. 인출 `session`은 현재 **ch0-1만** 보유. `docs/CURRICULUM.md` 트리는 총 **24개** 챕터를 계획한다 → **4/24 구조화**(레거시 원본 27개는 별개 계층).
+**마이그레이션 현황**: `content/chapters/`에 **4개** 구조화 완료 — `ch0-1`(4섹션)·`ch0-2`(10)·`ch1-1`(18)·`ch1-2`(20), 전부 registry 등록됨. 인출 `session`은 현재 **ch0-1·ch0-2** 보유. `docs/CURRICULUM.md` 트리는 총 **24개** 챕터를 계획한다 → **4/24 구조화**(레거시 원본 27개는 별개 계층).
 
 ---
 
