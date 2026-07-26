@@ -9,10 +9,12 @@ description: 작업 브랜치를 develop에 착지시킨다 — 기본은 PR 착
 
 ## 착지 모드 판별 — 둘 다 정상 경로
 
-이 리포는 두 가지 형태로 작업된다. **어느 쪽도 이상 상황이 아니다** — 모드를 판별해 해당 경로를 그대로 따르고, 우회 판단을 하지 않는다 (#62).
+이 리포는 여러 워크트리로 작업된다. **어느 쪽도 이상 상황이 아니다** — 모드를 판별해 해당 경로를 그대로 따르고, 우회 판단을 하지 않는다 (#62).
 
-- **워크트리 모드** — 세션 워크트리에서 작업하고 `develop`은 메인 워크트리에 체크아웃돼 있다. develop 조작은 전부 `git -C "$MAIN"`.
-- **단일 워크트리 모드** — 메인 워크트리에서 `git switch -c feat/<주제> develop`으로 작업한다. develop이 어느 워크트리에도 체크아웃돼 있지 않으므로 `MAIN`이 빈 값이 되는 것이 **정상**이다.
+판별의 축은 **"`develop`을 지금 누가 들고 있는가" 하나뿐이다** (2026-07-27, #131). 예전에는 "내가 주 워크트리인가"도 함께 봐서, CLAUDE.md가 권장하는 **상설 워크트리 병렬 작업**(`../aws-reps-wt`에서 작업 + `--detach` 파킹)을 이상 상황으로 오판했다 — 그 규약을 지키면 develop이 어느 워크트리에도 체크아웃되지 않는데, 그게 곧 `MODE=abort` 조건이었다.
+
+- **위임 모드** — `develop`이 어느 워크트리에 체크아웃돼 있다. develop 조작은 전부 `git -C "$MAIN"`으로 그 워크트리에 맡긴다.
+- **직접 모드** — `develop`을 든 워크트리가 없다. **지금 워크트리가 직접** `git switch develop`으로 잡아 다룬다. 메인 워크트리에서 `git switch -c feat/<주제> develop`으로 작업한 경우도, 상설 워크트리에서 작업하고 develop이 놀고 있는 경우도 여기다.
 
 ```bash
 BR=<착지할 작업 브랜치>
@@ -22,22 +24,29 @@ MAIN=$(git worktree list --porcelain \
   | awk '/^worktree /{w=$2} /^branch refs\/heads\/develop$/{print w}')
 
 if [ -n "$MAIN" ]; then
-  MODE=worktree
-elif git show-ref --verify --quiet refs/heads/develop \
-  && [ "$(git rev-parse --path-format=absolute --git-dir)" \
-     = "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
-  # develop 브랜치는 있고, 지금이 주 워크트리다 → 단일 워크트리 모드
-  # --path-format=absolute 필수: 하위 디렉토리에서 실행하면 --git-dir은 절대경로,
-  # --git-common-dir은 상대경로(../.git)로 나와 비교가 헛돈다 (#63 Codex 리뷰)
-  MODE=single
+  MODE=delegate
+elif git show-ref --verify --quiet refs/heads/develop; then
+  MODE=direct
   MAIN=$(git rev-parse --show-toplevel)   # 아래 git -C "$MAIN" 이 그대로 성립하게
 else
-  MODE=abort
+  MODE=abort                              # develop 브랜치 자체가 없다 = 리포가 예상과 다르다
 fi
 ```
 
-- `MODE=single`이면 **develop을 조작하기 직전에 이 워크트리에서 `git switch develop`을 한 번 한다** (A-1·B-3에 명시). 그 뒤로는 아래의 모든 `git -C "$MAIN"` 명령이 같은 워크트리를 가리키므로 그대로 쓴다.
-- `MODE=abort`이면 진짜 이상 상황이다 — develop 브랜치 자체가 없거나(리포가 예상과 다름), 세션 워크트리에 있는데 메인 워크트리가 develop이 아닌 다른 브랜치로 옮겨져 있다. 멈추고 사용자에게 보고한다 (`git -C ""`는 위험하니 절대 이어가지 않는다).
+- `MODE=direct`이면 **develop을 조작하기 직전에 이 워크트리에서 `git switch develop`을 한 번 한다** (A-1·B-3에 명시). 그 뒤로는 아래의 모든 `git -C "$MAIN"` 명령이 같은 워크트리를 가리키므로 그대로 쓴다.
+- **남의 워크트리를 건드리지 않는다는 보장은 git 자신이 준다** — develop이 다른 워크트리에 있으면 `git switch develop`은 `fatal: 'develop' is already used by worktree at …`로 **거부한다**. 즉 직접 모드가 성립했다는 것 자체가 "지금 아무도 develop을 안 쓴다"의 증거이고, 이 모드는 다른 워크트리 경로를 아예 만지지 않는다. 예전 abort가 지키려던 안전성(남의 작업 브랜치 불가침)은 이 성질로 그대로 유지된다.
+- **직접 모드 착지 후 파킹** (A-3·B-3 직후): 여기가 연결 워크트리(상설 `../aws-reps-wt`, 앱 자동 생성 워크트리)면 `git switch --detach develop`으로 되돌린다 — CLAUDE.md Branch strategy의 파킹 규약이자, 다음 세션이 develop을 자유롭게 잡도록 비워 두는 일이다. 주 워크트리면 develop에 그대로 둔다.
+
+```bash
+# 주 워크트리면 --git-dir 과 --git-common-dir 이 같다 → 파킹 불필요
+# --path-format=absolute 필수: 하위 디렉토리에서 실행하면 --git-dir은 절대경로,
+# --git-common-dir은 상대경로(../.git)로 나와 비교가 헛돈다 (#63 Codex 리뷰)
+[ "$(git rev-parse --path-format=absolute --git-dir)" \
+ = "$(git rev-parse --path-format=absolute --git-common-dir)" ] \
+  || git switch --detach develop
+```
+
+- `MODE=abort`은 이제 **develop 브랜치 자체가 없을 때뿐**이다 (리포가 예상과 다름). 멈추고 사용자에게 보고한다 (`git -C ""`는 위험하니 절대 이어가지 않는다).
 
 ## 경로 선택 — 기본은 PR 착지
 
@@ -54,16 +63,16 @@ gh를 쓸 수 없는 머신(git_guard가 차단 — 회사 머신 등)에서 PR 
 
 1. `git branch --show-current`가 작업 브랜치인가? `develop`/`main`이면 착지할 대상이 없다.
 2. 워킹트리가 클린한가? (`git status --porcelain` 빈 출력) 미커밋 변경은 먼저 커밋한다.
-3. **워크트리 모드만** — `git -C "$MAIN" status --porcelain`이 클린한가? 더럽다면 다른 세션이 메인에서 작업 중일 수 있다 — 이어가지 말고 보고. (단일 워크트리 모드에서는 `$MAIN`이 현재 워크트리라 2번과 같은 검사다 — 생략한다.)
+3. **위임 모드만** — `git -C "$MAIN" status --porcelain`이 클린한가? 더럽다면 다른 세션이 그 워크트리에서 작업 중일 수 있다 — 이어가지 말고 보고. (직접 모드에서는 `$MAIN`이 현재 워크트리라 2번과 같은 검사다 — 생략한다.)
 4. 머지가 **엉뚱한 브랜치로 들어가지 않음**을 보장한다 — 모드별로 확인 지점이 다르다.
-   - 워크트리 모드: `git -C "$MAIN" branch --show-current`가 `develop`인가? 아니면 멈추고 보고한다. (`$MAIN`을 하드코딩 fallback으로 썼거나, 누가 메인 워크트리를 다른 브랜치로 switch해둔 경우를 잡는 안전장치.)
-   - 단일 워크트리 모드: 지금 이 자리에 작업 브랜치가 있는 것이 정상이므로 여기서는 검사하지 않는다. 대신 A-1/B-3의 `git switch develop` **직후** `git branch --show-current`가 `develop`인지 확인하고, 아니면 멈추고 보고한다.
+   - 위임 모드: `git -C "$MAIN" branch --show-current`가 `develop`인가? 아니면 멈추고 보고한다. (`$MAIN`을 하드코딩 fallback으로 썼거나, 누가 그 워크트리를 다른 브랜치로 switch해둔 경우를 잡는 안전장치.)
+   - 직접 모드: 지금 이 자리에 작업 브랜치가 있는 것이 정상이므로 여기서는 검사하지 않는다. 대신 A-1/B-3의 `git switch develop` **직후** `git branch --show-current`가 `develop`인지 확인하고, 아니면 멈추고 보고한다.
 
 ## A. 즉시 착지
 
 ### A-1. develop 동기화
 
-단일 워크트리 모드면 **먼저** 이 워크트리를 develop으로 옮기고 확인한다 (사전 체크 4의 단일 모드 확인 지점):
+직접 모드면 **먼저** 이 워크트리를 develop으로 옮기고 확인한다 (사전 체크 4의 직접 모드 확인 지점):
 
 ```bash
 git switch develop
@@ -89,7 +98,7 @@ git -C "$MAIN" push origin --delete "$BR" 2>/dev/null || true # origin에 올렸
 ```
 
 - 세션 워크트리 쪽에서 실행하면 그 HEAD 기준 "not fully merged"로 거부된다.
-- `$BR`이 현재 세션 워크트리에 체크아웃돼 있으면 삭제가 거부된다 → 먼저 이 워크트리를 원래의 `claude/*` 브랜치로 `git switch`해서 비켜준 뒤 삭제한다. (단일 워크트리 모드는 A-1에서 이미 develop으로 옮겼으므로 그냥 삭제된다.)
+- `$BR`이 현재 세션 워크트리에 체크아웃돼 있으면 삭제가 거부된다 → 먼저 이 워크트리를 원래의 `claude/*` 브랜치로 `git switch`해서 비켜준 뒤 삭제한다. (직접 모드는 A-1에서 이미 develop으로 옮겼으므로 그냥 삭제된다.) 직접 모드면 삭제 후 **파킹**한다 (모드 판별 절).
 - 원격 삭제 줄은 `$BR`이 origin에 없으면 (로컬 전용 브랜치였으면) 조용히 넘어간다 — 남은 `feat/*`·`fix/*` 원격 브랜치가 쌓이지 않게 하는 게 목적이다. `--delete`는 force가 아니라 git_guard에 걸리지 않는다.
 
 ## B. PR 착지
@@ -273,7 +282,7 @@ NOW_HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
 
 gh pr merge "$BR" --merge --delete-branch --match-head-commit "$APPROVED_HEAD"
 
-# 단일 워크트리 모드면 먼저 이 워크트리를 develop으로 옮긴다 (사전 체크 4의 단일 모드 확인 지점)
+# 직접 모드면 먼저 이 워크트리를 develop으로 옮긴다 (사전 체크 4의 직접 모드 확인 지점)
 git switch develop
 [ "$(git branch --show-current)" = "develop" ] || exit 1   # 아니면 멈추고 보고
 
@@ -284,7 +293,8 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 
 - `--match-head-commit`은 **서버측 검사**다 — GitHub이 head가 그 SHA일 때만 머지한다. 셸 대조와 머지 명령 사이의 틈(그 사이에 누가 push하는 경우)까지 닫고, 세션이 SHA를 잘못 들고 있으면 머지가 실패한다. 실패는 조용한 통과보다 낫다.
 - **승인 시점의 head를 기록하지 못한 채 세션이 넘어갔다면 승인은 없는 것으로 취급한다** — `APPROVED_HEAD`를 만들 수 없으면 다시 받는다. 이전 세션이 "승인받았다"고 남긴 말은 어느 커밋에 대한 승인인지 증명하지 못한다.
-- `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제. (단일 워크트리 모드는 위의 `git switch develop`으로 이미 비켜난 상태다.)
+- `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제. (직접 모드는 위의 `git switch develop`으로 이미 비켜난 상태다.) 직접 모드면 마지막에 **파킹**한다 (모드 판별 절).
+- **`gh pr merge`가 로컬 단계에서 죽어도 서버 머지는 이미 끝나 있다** (위임 모드에서 3회 재발 — #130·#136·#142 착지). `--delete-branch`는 머지 뒤 로컬에서 base 브랜치로 옮기려 하는데, develop이 **다른 워크트리에 있으면** `fatal: 'develop' is already used by worktree at …`로 실패한다. 이때 실패한 것은 로컬 정리뿐이다 — `gh pr view "$PR" --json state,mergeCommit`으로 `MERGED`를 확인한 뒤, **로컬 브랜치 삭제와 `git push origin --delete "$BR"`(원격 브랜치)를 손으로 마저 한다**. 다시 머지하려 들지 않는다.
 
 ## 보드 갱신
 
@@ -334,7 +344,7 @@ git branch --merged develop | grep -vE '^[+*]|develop$|main' | xargs -n1 git bra
 
 # 2) 앱 자동 생성 워크트리(.claude/worktrees/*) 중 착지가 끝나고 "아무도 안 쓰는" 것만 제거
 #    안전 조건 5가지: 현재 세션 워크트리 아님 + 사용 중 아님 + 최근 활동 없음(GRACE) + 클린 + HEAD가 develop에 포함
-#    기준 경로는 **메인 리포**다 — $MAIN(develop이 체크아웃된 워크트리)이 아니다 (아래 "왜 메인 리포 기준인가")
+#    기준 경로는 **메인 리포**다 — $MAIN(develop을 다루는 워크트리)이 아니다 (아래 "왜 메인 리포 기준인가")
 WTDIR=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/.claude/worktrees
 SELF=$(git rev-parse --show-toplevel)
 SEEN=0; GONE=0
@@ -398,7 +408,7 @@ echo "워크트리 정리: 훑음 $SEEN · 제거 $GONE"
 
 - **판별 불능이면 하나도 지우지 않는다** — `lsof`가 없거나 막혀 `$CWDS`가 비면 제거를 통째로 건너뛰고 그 사실을 출력한다. 여기서 옛 12시간 유예로 되돌리는 건 답이 아니다: 그 유예가 바로 위 표의 idle 구멍이라, "판별 못 함"을 "지워도 됨"으로 바꿔 읽는 셈이 된다 (PR #140 Codex 지적). 비용이 비대칭이라 이쪽이 맞다 — 잔재를 못 지우면 다음 세션이 지우면 그만이지만, 살아 있는 워크트리를 지우면 병렬 세션이 그 자리에서 죽는다.
 - 남은 1시간 유예의 역할은 하나다 — **셸이 아직 안 뜬 갓 시작한 세션**. 그때는 cwd를 잡을 프로세스가 없지만 트랜스크립트(`*.jsonl`)는 이미 쓰이고 있다.
-- **왜 메인 리포 기준인가 (#136)**: 앱 자동 생성 워크트리는 항상 **메인 리포** 아래(`<메인 리포>/.claude/worktrees/`)에 생기는데, `$MAIN`은 "develop이 체크아웃된 워크트리"라 둘이 갈릴 수 있다. 실제로 #130 착지 중 `gh pr merge --delete-branch`가 상설 워크트리를 develop으로 옮겨 `$MAIN`이 거기가 됐고, 루프는 없는 경로를 훑고 **조용히 아무것도 안 했다**. `--git-common-dir`의 부모는 어느 워크트리에서 실행하든 메인 리포를 가리킨다.
+- **왜 메인 리포 기준인가 (#136)**: 앱 자동 생성 워크트리는 항상 **메인 리포** 아래(`<메인 리포>/.claude/worktrees/`)에 생기는데, `$MAIN`은 "develop을 다루는 워크트리"(위임 모드=develop을 든 워크트리, 직접 모드=현재 워크트리)라 둘이 갈릴 수 있다. 실제로 #130 착지 중 `gh pr merge --delete-branch`가 상설 워크트리를 develop으로 옮겨 `$MAIN`이 거기가 됐고, 루프는 없는 경로를 훑고 **조용히 아무것도 안 했다**. `--git-common-dir`의 부모는 어느 워크트리에서 실행하든 메인 리포를 가리킨다.
 - **조용한 no-op 금지**: 훑은 경로·건수·건너뛴 사유를 전부 출력하고 그대로 보고에 옮긴다. "훑었는데 0건"과 "경로가 빗나가 못 훑음"은 다른 사건인데, 출력이 없으면 둘 다 "정리 완료"로 보인다 — 이 단계가 도입된 이유(잔재 누적)가 그대로 되살아난다.
 - 건너뛴 워크트리가 있으면 **사유(사용 중 / 판별 불가 / 최근 활동 / 더러움 / 미착지)와 함께** 보고에 명시한다 — 사용자가 병렬 세션 여부를 판단한다.
 - `eval/*` 등 `.claude/worktrees/` 밖의 수동 워크트리는 이 정리 대상이 아니다 — 사용자가 직접 관리한다.
