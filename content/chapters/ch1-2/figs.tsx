@@ -621,7 +621,7 @@ export function VpcReachabilityBoard() {
 
   return (
     <SimFrame title="VPC 도달성 보드 — 구성을 바꿔 도달성을 예측해 보세요" icon="🌐">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: 16 }}>
         <div>
           <div style={{ fontFamily: MONO, fontSize: "0.72rem", color: C.inkSoft, marginBottom: 8, letterSpacing: 1 }}>
             CONFIG — 네트워크 구성

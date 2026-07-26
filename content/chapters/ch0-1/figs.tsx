@@ -381,7 +381,7 @@ export function CredentialChainResolver() {
         <b style={{ color: C.ink }}>처음 발견한 소스</b>를 씁니다.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {chain.map((c, i) => {
             const isWinner = winner === c.key;

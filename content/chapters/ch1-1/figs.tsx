@@ -61,6 +61,8 @@ type TreeTerminal = {
   spec: string;
   exam: string;
   rejected: string[];
+  /** 이 종착지의 규칙이 항상 성립하지는 않을 때 다는 단서 (PR #151 Codex 지적). */
+  caveat?: string;
 };
 
 /**
@@ -102,11 +104,13 @@ export function StorageClassDecisionTree() {
     stdShort: {
       name: "Standard",
       spec: "최소 기간 없음 — 언제 지워도 그때까지만 과금",
-      exam: "최소 저장 기간이 다른 축을 이기는 경우 — 30일 안에 지울 데이터는 접근 빈도·검색 속도와 무관하게 Standard(또는 Intelligent-Tiering)가 답이다.",
+      exam: "최소 저장 기간이 걸리는 구간 — 30일 안에 지울 데이터를 IA·Glacier에 넣으면 쓰지도 않은 기간까지 청구된다. 시험이 묻는 것도 이 조기 삭제 요금이다.",
       rejected: [
         "Standard-IA·One Zone-IA — 최소 30일: 일주일 뒤 지워도 30일치가 청구된다",
-        "Glacier Instant·Flexible — 최소 90일 · Deep Archive — 최소 180일: 저장 단가가 싸도 조기 삭제 요금이 이를 덮는다",
+        "Glacier Instant·Flexible — 최소 90일 · Deep Archive — 최소 180일: 보관 예정 기간의 몇 배를 문다",
       ],
+      caveat:
+        "다만 “30일 미만이면 무조건 Standard”는 아니다 — 객체가 크고 거의 꺼내지 않으면 IA의 낮은 저장 단가가 최소 기간 요금을 물고도 이길 수 있다. 시험은 이 손익분기 계산까지 묻지 않지만, 실무에서는 보관 기간·크기·검색 횟수를 함께 따진다.",
     },
     sia: {
       name: "Standard-IA",
@@ -293,6 +297,20 @@ export function StorageClassDecisionTree() {
                 </div>
               ))}
             </div>
+            {terminal.caveat && (
+              <div
+                style={{
+                  marginTop: 8,
+                  paddingTop: 8,
+                  borderTop: `1px dashed ${C.teal}`,
+                  fontSize: "0.78rem",
+                  color: C.inkSoft,
+                  lineHeight: 1.6,
+                }}
+              >
+                {terminal.caveat}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => { setA1(null); setKeep(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
