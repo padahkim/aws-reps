@@ -36,6 +36,7 @@ fi
 - `MODE=direct`이면 **develop을 조작하기 직전에 이 워크트리에서 `git switch develop`을 한 번 한다** (A-1·B-3에 명시). 그 뒤로는 아래의 모든 `git -C "$MAIN"` 명령이 같은 워크트리를 가리키므로 그대로 쓴다.
 - **남의 워크트리를 건드리지 않는다는 보장은 git 자신이 준다** — develop이 다른 워크트리에 있으면 `git switch develop`은 `fatal: 'develop' is already used by worktree at …`로 **거부한다**. 즉 직접 모드가 성립했다는 것 자체가 "지금 아무도 develop을 안 쓴다"의 증거이고, 이 모드는 다른 워크트리 경로를 아예 만지지 않는다. 예전 abort가 지키려던 안전성(남의 작업 브랜치 불가침)은 이 성질로 그대로 유지된다.
 - **직접 모드 착지 후 파킹** (A-3·B-3 직후): 여기가 연결 워크트리(상설 `../aws-reps-wt`, 앱 자동 생성 워크트리)면 `git switch --detach develop`으로 되돌린다 — CLAUDE.md Branch strategy의 파킹 규약이자, 다음 세션이 develop을 자유롭게 잡도록 비워 두는 일이다. 주 워크트리면 develop에 그대로 둔다.
+- **파킹이 다른 세션의 `$MAIN`을 흔들 수 있다** (PR #146 Codex P1). 이 워크트리가 develop을 든 동안 다른 세션이 여기를 `$MAIN`으로 잡을 수 있고, 그 세션이 머지하기 전에 우리가 파킹하면 그쪽 머지가 detached HEAD로 샌다. "delegate가 붙어 있는 동안 파킹하지 않기"는 **누가 나를 `$MAIN`으로 잡았는지 알 수 없어서** 성립하지 않으므로, 방어는 파킹하는 쪽이 아니라 **머지하는 쪽**에 둔다 — A-2의 머지 직전 재확인 + 결과 검산, A-3의 삭제 전 관문(각 절 참조). 그래서 이 사고는 데이터 손실이 아니라 **멈춤**으로 끝난다.
 
 ```bash
 # 주 워크트리면 --git-dir 과 --git-common-dir 이 같다 → 파킹 불필요
@@ -84,18 +85,30 @@ git switch develop
 ### A-2. 머지 → push
 
 ```bash
+# 머지 직전 재확인 — 사전 체크 4 이후에 그 워크트리가 옮겨졌을 수 있다 (아래 "왜 다시 보는가")
+[ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
+
 git -C "$MAIN" merge "$BR"        # 단일 커밋이면 ff 허용, 여러 커밋이면 머지 커밋 생성
+git -C "$MAIN" merge-base --is-ancestor "$BR" develop || exit 1   # develop이 실제로 받았나
 git -C "$MAIN" push origin develop
 ```
 
 충돌 시: 기계적으로 자명한 것만 해결하고, 판단이 필요한 충돌은 사용자에게 묻는다.
 
+- **왜 다시 보는가 (2026-07-27, PR #146 Codex P1)**: 사전 체크 4는 확인하고 나서 한참 뒤에 머지한다. 그 사이 **직접 모드로 착지한 다른 세션이 파킹(`git switch --detach develop`)** 하면 `$MAIN`이 가리키던 워크트리는 develop을 놓고 detached HEAD가 된다. 그 상태로 머지하면 머지 커밋은 **detached HEAD에 얹히고** `push origin develop`은 안 바뀐 ref를 밀어 "Everything up-to-date"로 조용히 끝난다. 브랜치 확인과 머지를 원자적으로 묶을 방법은 없으므로 **창을 좁히고(재확인) 결과를 검산한다(`--is-ancestor`)** — 검산이 실패하면 A-3의 브랜치 삭제로 넘어가지 않는다.
+
 ### A-3. 브랜치 삭제
 
 ```bash
+# 삭제 전 관문: origin/develop 이 정말 이 브랜치를 담고 있나 (담지 않았으면 지우지 않는다)
+git -C "$MAIN" fetch origin
+git merge-base --is-ancestor "$BR" origin/develop || exit 1
+
 git -C "$MAIN" branch -d "$BR"                               # 반드시 메인 쪽에서 실행 (로컬 삭제)
 git -C "$MAIN" push origin --delete "$BR" 2>/dev/null || true # origin에 올렸던 브랜치면 원격도 정리
 ```
+
+- **삭제 전 관문이 마지막 안전망이다** (PR #146 Codex P1): A-2의 재확인·검산이 뚫리더라도, `origin/develop`에 없는 커밋의 브랜치는 여기서 안 지워진다. `git branch -d`는 **HEAD 기준**으로 머지 여부를 보므로(detached HEAD가 머지를 담고 있으면 통과) `-d`만으로는 이 사고를 못 막는다 — 기준을 `origin/develop`으로 못박는 이 줄이 필요하다.
 
 - 세션 워크트리 쪽에서 실행하면 그 HEAD 기준 "not fully merged"로 거부된다.
 - `$BR`이 현재 세션 워크트리에 체크아웃돼 있으면 삭제가 거부된다 → 먼저 이 워크트리를 원래의 `claude/*` 브랜치로 `git switch`해서 비켜준 뒤 삭제한다. (직접 모드는 A-1에서 이미 develop으로 옮겼으므로 그냥 삭제된다.) 직접 모드면 삭제 후 **파킹**한다 (모드 판별 절).
@@ -287,6 +300,8 @@ git switch develop
 [ "$(git branch --show-current)" = "develop" ] || exit 1   # 아니면 멈추고 보고
 
 git -C "$MAIN" fetch origin
+# 로컬 동기화 직전 재확인 — A-2와 같은 이유(다른 세션의 파킹으로 $MAIN이 develop을 놓았을 수 있다)
+[ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
 git -C "$MAIN" merge --ff-only origin/develop
 git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 못 했으면 정리
 ```
