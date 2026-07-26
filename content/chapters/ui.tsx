@@ -189,6 +189,22 @@ export function Fig({ caption, children }: { caption: ReactNode; children: React
   );
 }
 
+/**
+ * 도식 모바일 전환 프레임 (#101) — 같은 도식의 가로형(wide)·세로형(narrow)을 둘 다 렌더하고
+ * app/globals.css 의 .fig-wide/.fig-narrow 미디어쿼리(640px 기준)가 한쪽만 보여준다.
+ * 인라인 스타일은 미디어쿼리를 못 쓰므로 이 전환만 앱 제공 클래스에 의존한다 (matchMedia 훅은
+ * SSR 초기 렌더가 한쪽으로 고정돼 하이드레이션 깜빡임이 생기므로 기각 — 이슈 #101 결정).
+ * 두 변형이 같은 SVG marker id를 쓰면 DOM id가 중복되니 narrow 쪽은 별도 id를 쓴다.
+ */
+export function FigSwitch({ wide, narrow }: { wide: ReactNode; narrow: ReactNode }) {
+  return (
+    <>
+      <div className="fig-wide">{wide}</div>
+      <div className="fig-narrow">{narrow}</div>
+    </>
+  );
+}
+
 /** 개념 표 — 첫 열은 용어(볼드·줄바꿈 없음). 셀에 ReactNode 허용. */
 export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   const cell: CSSProperties = {
