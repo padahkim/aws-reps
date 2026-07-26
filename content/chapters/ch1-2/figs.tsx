@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { C, FigSwitch } from "../ui";
-import { SimFrame, Switch } from "../interactive";
+import { chipBtn, SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 챕터 로컬 컴포넌트 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -657,16 +657,16 @@ export function VpcReachabilityBoard() {
                   onClick={() => setSubnet(v)}
                   disabled={!vpc}
                   aria-pressed={subnet === v}
+                  className="widget-btn"
                   style={{
+                    // VPC 미연결이면 선택 상태를 죽여 회색으로 — 이 컨트롤이 아직 의미가
+                    // 없다는 걸 보여준다. :disabled 라 호버·포커스 전환도 뜨지 않는다.
+                    ...chipBtn(vpc && subnet === v, C.blue, C.blueSoft),
                     cursor: vpc ? "pointer" : "not-allowed",
                     fontFamily: MONO,
                     fontSize: "0.74rem",
                     padding: "6px 11px",
                     borderRadius: 8,
-                    border: `1.5px solid ${vpc && subnet === v ? C.blue : C.line}`,
-                    background: vpc && subnet === v ? C.blueSoft : "transparent",
-                    color: vpc && subnet === v ? C.blue : C.inkSoft,
-                    fontWeight: vpc && subnet === v ? 700 : 400,
                   }}
                 >
                   {lbl}

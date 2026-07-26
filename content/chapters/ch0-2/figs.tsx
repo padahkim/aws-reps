@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
-import { SimFrame, Switch } from "../interactive";
+import { chipBtn, SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -713,20 +713,18 @@ export function EvalEngine() {
 
 /* ============ 인터랙티브: 정책 요청 테스터 (#72 신규) ============ */
 
-/** 요청 조립용 칩 버튼 — InvocationModeExplorer(ch1-2) 버튼 관례. */
+/** 요청 조립용 칩 버튼 — 호버·포커스는 공용 chipBtn + .widget-btn 체계(#144)에 맡긴다. */
 function ReqChip({
   active,
   onClick,
   color,
   soft,
-  text,
   children,
 }: {
   active: boolean;
   onClick: () => void;
   color: string;
   soft: string;
-  text: string;
   children: ReactNode;
 }) {
   return (
@@ -734,16 +732,13 @@ function ReqChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
+      className="widget-btn"
       style={{
-        cursor: "pointer",
+        ...chipBtn(active, color, soft),
         fontFamily: MONO,
         fontSize: "0.74rem",
         padding: "6px 11px",
         borderRadius: 8,
-        border: `1.5px solid ${active ? color : C.line}`,
-        background: active ? soft : "transparent",
-        color: active ? text : C.inkSoft,
-        fontWeight: active ? 700 : 400,
       }}
     >
       {children}
@@ -877,14 +872,7 @@ export function PolicyRequestTester() {
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {g.chips.map((ch) => (
-                <ReqChip
-                  key={ch.key}
-                  active={ch.active}
-                  onClick={ch.set}
-                  color={C.blue}
-                  soft={C.blueSoft}
-                  text={C.blue}
-                >
+                <ReqChip key={ch.key} active={ch.active} onClick={ch.set} color={C.blue} soft={C.blueSoft}>
                   {ch.label}
                 </ReqChip>
               ))}

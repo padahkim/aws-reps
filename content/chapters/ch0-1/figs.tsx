@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
-import { SimFrame, Switch } from "../interactive";
+import { chipBtn, SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG 모음 (규약 v3) — sections/*.mdx 가 import 한다. 내용은 body.tsx 시절 그대로.
@@ -363,16 +363,13 @@ export function CredentialChainResolver() {
             type="button"
             onClick={() => switchEnv(v)}
             aria-pressed={env === v}
+            className="widget-btn"
             style={{
-              cursor: "pointer",
+              ...chipBtn(env === v, C.blue, C.blueSoft),
               fontFamily: MONO,
               fontSize: "0.78rem",
               padding: "8px 14px",
               borderRadius: 8,
-              border: `1.5px solid ${env === v ? C.blue : C.line}`,
-              background: env === v ? C.blueSoft : "transparent",
-              color: env === v ? C.blue : C.inkSoft,
-              fontWeight: env === v ? 700 : 400,
             }}
           >
             {lbl}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
-import { SimFrame } from "../interactive";
+import { chipBtn, fillBtn, SimFrame } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 챕터 로컬 컴포넌트 (규약 v3) — sections/*.mdx 가 import 한다. 내용은 body.tsx 시절 그대로.
@@ -227,16 +227,13 @@ export function StorageClassDecisionTree() {
                     type="button"
                     onClick={o.set}
                     aria-pressed={o.on}
+                    className="widget-btn"
                     style={{
-                      cursor: "pointer",
+                      ...chipBtn(o.on, C.amber, C.amberSoft),
                       fontSize: "0.8rem",
                       fontFamily: MONO,
                       padding: "7px 12px",
                       borderRadius: 8,
-                      border: `1.5px solid ${o.on ? C.amber : C.line}`,
-                      background: o.on ? C.amberSoft : "transparent",
-                      color: o.on ? C.amberText : C.inkSoft,
-                      fontWeight: o.on ? 700 : 400,
                     }}
                   >
                     {o.label}
@@ -274,16 +271,13 @@ export function StorageClassDecisionTree() {
             <button
               type="button"
               onClick={() => { setA1(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
+              className="widget-btn"
               style={{
-                cursor: "pointer",
+                ...fillBtn(C.ink, C.inkSoft),
                 marginTop: 10,
-                background: C.ink,
-                color: "#fff",
-                border: "none",
                 borderRadius: 8,
                 padding: "7px 14px",
                 fontSize: "0.78rem",
-                fontWeight: 700,
               }}
             >
               처음부터 다시
