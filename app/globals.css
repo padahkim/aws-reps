@@ -66,13 +66,17 @@ a:hover {
 }
 
 /* 본문 인터랙티브 위젯 버튼 (#144) — 인라인 스타일에는 :hover·:focus-visible 을 걸 수 없어
-   상태 전환만 여기서 맡는다. 색은 content/chapters/ui.tsx 팔레트에서 커스텀 속성
-   (--btn-bg = 평상 배경, --btn-hover-bg = 호버 배경, --btn-accent = 포커스 링)으로
+   상태 전환만 여기서 맡는다. 색은 content/chapters/ui.tsx 팔레트에서 커스텀 속성으로
    주입받는다 — 팔레트 단일 진실은 그대로 C 이고, 이 클래스는 색을 모른다.
-   배경만은 인라인으로 두면 안 된다: 인라인 선언이 :hover 규칙을 이겨 호버가 죽는다. */
+     --btn-bg / --btn-fg              평상 배경·글자
+     --btn-hover-bg / --btn-hover-fg  호버·포커스 배경·글자 (fg 는 생략 시 평상값)
+     --btn-ring                       포커스 링
+   상태에 따라 바뀌는 배경·글자색은 인라인으로 두면 안 된다: 인라인 선언이 :hover 규칙을
+   이겨 호버가 조용히 죽는다. */
 .widget-btn {
   cursor: pointer;
   background: var(--btn-bg);
+  color: var(--btn-fg);
   border: 1.5px solid transparent;
   border-radius: 9px;
   font-size: 0.86rem;
@@ -84,11 +88,13 @@ a:hover {
 @media (hover: hover) {
   .widget-btn:hover {
     background: var(--btn-hover-bg);
+    color: var(--btn-hover-fg, var(--btn-fg));
   }
 }
 
 .widget-btn:focus-visible {
   background: var(--btn-hover-bg);
-  outline: 2px solid var(--btn-accent);
+  color: var(--btn-hover-fg, var(--btn-fg));
+  outline: 2px solid var(--btn-ring);
   outline-offset: 2px;
 }
