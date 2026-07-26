@@ -2,6 +2,7 @@
 
 > **문서 상태**: **정본 (living doc)** · 최종 반영 2026-07-26 · 점검 커밋 `b2ca68c`
 > **갱신법**: 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **이 파일**을 다시 그린다. 손으로 조금씩 고치면 조용히 낡는다. 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
+> **예외 — 생성 블록**: `<!-- BEGIN GENERATED: … -->` 마커 사이는 `scripts/gen-arch-facts.mts`가 코드에서 뽑는 **사실 층**이다. 사람도 프롬프트도 손으로 채우지 말고 `npm run docs:facts`로 다시 만든다 — 낡으면 CI가 막는다(#117).
 > **읽는 순서**: "한눈에"만 읽어도 감이 온다. 코드를 만질 사람은 "빠른 시작 → 디렉터리 지도 → 콘텐츠 파이프라인"까지.
 
 ---
@@ -15,8 +16,8 @@
 - **순수 정적 사이트(SSG)** — Next.js를 `output: "export"`로 빌드해 **서버 런타임이 없다**. 어디에나 정적 파일로 배포되고, 진도 같은 상태는 브라우저 localStorage에만 산다(로그인 없음).
 - **콘텐츠와 앱이 분리** — 앱(`app/`)은 "셸"이고, 학습 내용은 `content/`의 챕터 모듈이다. 둘 사이의 **데이터 통로는 `lib/content.ts` 하나**뿐이다 — 단 MDX 렌더 팔레트만은 루트 `mdx-components.tsx`가 `content/chapters/ui`를 직접 참조하는 둘째 결합이다(§5).
 - **콘텐츠는 규약(계약) 기반** — 모든 챕터는 `content/schema.ts`가 정의한 규약 v3를 따른다. 무엇이 계약인지의 단일 진실이 이 파일이다. 계약은 **필수 3 + 선택 2** 구조라, 챕터마다 학습 장치 보유가 다른 것이 **정상**이다(§5).
-- **콘텐츠가 2계층** — 아직 변환 안 된 **레거시 원본**(27개 `.jsx` + 1개 `.html`, 앱엔 안 실림)과 **구조화 챕터**(현재 4개)가 공존한다. 마이그레이션이 진행 중이다.
-- **가벼운 스택** — Next.js 16 · React 19 · MDX · TypeScript 5(strict). 상태관리·CSS 프레임워크 라이브러리 없음(인라인 스타일 + `globals.css`).
+- **콘텐츠가 2계층** — 아직 변환 안 된 **레거시 원본**(`.jsx`·`.html`, 앱엔 안 실림)과 **구조화 챕터**가 공존한다. 마이그레이션이 진행 중이고, 그 수치의 정본은 §5-4의 생성 블록이다.
+- **가벼운 스택** — Next.js(App Router) · React · MDX · TypeScript(strict). 상태관리·CSS 프레임워크 라이브러리 없음(인라인 스타일 + `globals.css`). 버전 표는 §3.
 
 ---
 
@@ -40,6 +41,7 @@ npm run dev
 | `npm run dev` | 개발 서버 (predev로 /_source 라우트 생성 후 `next dev`) |
 | `npm run validate` | 콘텐츠 값 수준 계약 검사 (`scripts/validate-content.mts`) |
 | `npm run validate:test` | 검사기 자체의 회귀 테스트 (CI 전용) |
+| `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.mts`; `--check`는 CI 게이트) |
 | `npm run typecheck` | `tsc --noEmit` 타입 검사 |
 | `npm run build` | 정적 빌드 (`prebuild`가 validate + 라우트 생성 선행 → `next build`) |
 
@@ -47,7 +49,20 @@ npm run dev
 
 ## 3. 큰 그림
 
-**스택**: Next.js 16(App Router) · React 19 · MDX(`@next/mdx`) · TypeScript 5(strict).
+**스택** — Next.js는 App Router, TypeScript는 strict다. 버전 표는 `package.json`·`.nvmrc`에서 생성된다(§7의 `docs:facts` 게이트):
+
+<!-- BEGIN GENERATED: stack-versions -->
+| 패키지 | 버전 |
+|---|---|
+| `@mdx-js/loader` | `^3.1.1` |
+| `@mdx-js/react` | `^3.1.1` |
+| `@next/mdx` | `^16.2.10` |
+| `next` | `^16.2.10` |
+| `react` | `^19.2.7` |
+| `react-dom` | `^19.2.7` |
+| `typescript` (dev) | `^5.9.3` |
+| Node (`.nvmrc`) | `24` |
+<!-- END GENERATED -->
 
 **왜 SSG인가**: `next.config.ts`가 `output: "export"`다 — 빌드하면 순수 HTML/CSS/JS 정적 파일이 나오고 **서버가 필요 없다**. 그래서 호스트에 종속되지 않고, 진도 같은 사용자 상태는 브라우저에만 둔다. 서버 기능(Route Handler·DB·인증)이 필요해지는 날 **이 옵션 한 줄을 제거하는 게 전환 스위치다**(`next.config.ts` 주석이 그렇게 명시).
 
@@ -121,7 +136,7 @@ flowchart TD
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
 | `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(진도 저장소). 이 둘이 전부다. |
-| `scripts/` | 빌드·검증·하네스 — `validate-content.mts`·`gen-source-routes.mjs`·`import-drills.mts`·`git_guard.py`. |
+| `scripts/` | 빌드·검증·하네스 — `validate-content.mts`·`gen-source-routes.mjs`·`gen-arch-facts.mts`·`import-drills.mts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
@@ -135,7 +150,7 @@ flowchart TD
 
 콘텐츠는 **2계층**이다:
 
-1. **레거시 날것 원본** — `content/*.jsx` **27개**(+`aws-dva-stage0.html` 1개). 예전에 자유 형식으로 쓴 가이드들로, **앱엔 실리지 않는다.** 오직 `/_source` 검수 도구가 이들을 **문자열로 읽어 브라우저 Babel로 변환**해 보여준다(import·번들하지 않음). 서비스별 중복 원본이 있어 파일 27개가 챕터와 1:1은 아니다.
+1. **레거시 날것 원본** — `content/*.jsx`(+`aws-dva-stage0.html`). 예전에 자유 형식으로 쓴 가이드들로, **앱엔 실리지 않는다.** 오직 `/_source` 검수 도구가 이들을 **문자열로 읽어 브라우저 Babel로 변환**해 보여준다(import·번들하지 않음). 서비스별 중복 원본이 있어(iam 2개, lambda 2개 등) 원본 파일 수가 챕터와 1:1은 아니다 — 개수는 §5-4.
 2. **구조화 챕터** — `content/chapters/{id}/`. 규약 v3를 따르는 정식 콘텐츠. 앱이 실제로 렌더하는 건 이쪽뿐이다.
 
 ### 5-1. 챕터 모듈 계약 — 필수 3 + 선택 2
@@ -182,7 +197,7 @@ flowchart TD
 ```mermaid
 flowchart LR
   subgraph legacy["레거시 (앱 밖)"]
-    jsx["content/*.jsx<br/>(27개 + html 1)"] --> src["/_source<br/>Babel 문자열 렌더"]
+    jsx["content/*.jsx · .html<br/>(레거시 원본)"] --> src["/_source<br/>Babel 문자열 렌더"]
   end
 
   subgraph structured["구조화 챕터 (규약 v3)"]
@@ -198,25 +213,31 @@ flowchart LR
   drillsrc["aws-cloud-drills<br/>(별도 리포 JSON)"] -->|"import-drills.mts"| drills["drills.ts (생성물)"]
   drills -->|"전량 또는 slug 선별"| meta
 
-  jsx -.->|"수동 변환 (진행 중 4/24)"| meta
+  jsx -.->|"수동 변환 (진행 중 — 수치는 §5-4)"| meta
   reg["registry.ts<br/>(수동 등록)"] --> libc["lib/content.ts<br/>(데이터 통로)"]
   schema["schema.ts (규약 v3)"] --> reg
   libc --> app["app/ 렌더"]
   mdx --> bodytsx
 ```
 
-### 5-4. 마이그레이션 현황 (`a83a6e4` 시점)
+### 5-4. 마이그레이션 현황
 
-`content/chapters/`에 **4개** 구조화 완료 — `ch0-1`(4섹션)·`ch0-2`(10)·`ch1-1`(18)·`ch1-2`(20), 전부 registry 등록됨. `docs/CURRICULUM.md`가 계획한 총 **24개**(0단계 2 + 1단계 4 + 2단계 5 + 3단계 3 + 4단계 6 + 5단계 4) 대비 **4/24**다. 레거시 원본 28개는 별개 계층이라 이 분모에 섞지 않는다.
+이 절의 두 블록은 **스냅샷이 아니라 생성물**이다 — `scripts/gen-arch-facts.mts`가 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`content/` 파일 목록에서 뽑아 쓴다(§7). 손으로 고치지 말고 `npm run docs:facts`로 다시 만든다.
 
-선택 슬롯 보유는 아래가 이 커밋 시점 스냅샷이고, **살아있는 정본은 `content/registry.ts`**다(순차 추가 중이라 표보다 그쪽이 정확하다).
+<!-- BEGIN GENERATED: migration-status -->
+`content/chapters/`에 **4개** 구조화 완료 — `ch0-1`·`ch0-2`·`ch1-1`·`ch1-2`, 전부 `registry.ts`에 등록됨. `docs/CURRICULUM.md`가 계획한 총 **24개**(0단계 2 + 1단계 4 + 2단계 5 + 3단계 3 + 4단계 6 + 5단계 4) 대비 **4/24**다. 레거시 원본 **28개**(`content/*.jsx` 27 + `.html` 1)는 별개 계층이라 이 분모에 섞지 않는다.
+<!-- END GENERATED -->
 
-| 챕터 | `session` | `selfQuiz` |
-|---|---|---|
-| ch0-1 | ✓ | ✓ |
-| ch0-2 | ✓ | ✓ |
-| ch1-1 | — | ✓ |
-| ch1-2 | — | ✓ |
+선택 슬롯 보유가 챕터마다 다른 건 드리프트가 아니라 설계다(§5-1). 아래 표의 열은 `schema.ts`의 `ChapterData` optional 필드에서 나오므로, 선택 슬롯이 늘면 열도 따라 는다.
+
+<!-- BEGIN GENERATED: chapter-inventory -->
+| 챕터 | 섹션 | `session` | `selfQuiz` |
+|---|---|---|---|
+| `ch0-1` | 4 | ✓ | ✓ |
+| `ch0-2` | 10 | ✓ | ✓ |
+| `ch1-1` | 18 | — | ✓ |
+| `ch1-2` | 20 | — | ✓ |
+<!-- END GENERATED -->
 
 **MDX 규정**: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정, #15). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
 
@@ -237,6 +258,7 @@ flowchart LR
 
 - `scripts/validate-content.mts` (`npm run validate`) — TypeScript가 못 잡는 **값 수준 계약**을 검사한다: 챕터 id 전역 유일, 섹션 ≥1·제목 비지 않음·`num` 챕터 내 유일, `prerequisites`가 실존 챕터 참조, 문항의 `concept` ≥1·`choices` ≥2·`answer` 범위·중복 없음·`choiceExplanations` 길이 일치, 인출 세션 id 유일(concepts·mixed 한 이름공간)·카드 `section`이 실존·도식 `edges = nodes-1`, 셀프 퀴즈 규칙(#98). `prebuild`와 CI 양쪽이 돌린다.
 - `scripts/gen-source-routes.mjs` — `/_source` 검수 라우트 코드생성. 손으로 쓴 소스는 `app/_source/`(언더스코어 = Next private 폴더라 라우팅 안 됨, 커밋됨)이고, 실제 라우트 `app/%5Fsource/`는 100% 생성물이라 gitignore다. `predev`는 그냥, `prebuild`는 `--build`로 호출 — **Vercel 프리뷰에서만 라우트를 유지**하고 프로덕션·로컬 빌드에선 통째로 제외한다(실유저 배포본에 9MB 날것 원본이 안 실리게).
+- `scripts/gen-arch-facts.mts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117). 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
 - `scripts/import-drills.mts` — 별도 리포의 문항 JSON → `drills.ts` 변환 어댑터(§5-2).
 - `scripts/git_guard.py` — `.claude/settings.json`에 등록된 **PreToolUse 훅**. gh CLI를 **기본 차단**(fail-closed)하고 홈 마커 + 개인 계정(padahkim) 두 조건을 모두 만족할 때만 허용하며, 파괴적 명령(`rm -rf`, `git push --force`, `git reset --hard` 등)을 막는다.
 
@@ -249,7 +271,7 @@ flowchart TD
   end
 
   subgraph ci["GitHub Actions (develop 만)"]
-    push["push / PR → develop"] --> verify["npm ci · typecheck · validate · validate:test<br/>(next build 안 함)"]
+    push["push / PR → develop"] --> verify["npm ci · typecheck · validate · validate:test<br/>· docs:facts --check (문서 신선도)<br/>(next build 안 함)"]
   end
 
   subgraph vercel["Vercel"]
@@ -258,7 +280,7 @@ flowchart TD
   end
 ```
 
-주의: `prebuild`에는 typecheck·validate:test가 **없다**(그건 CI 전용). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
+주의: `prebuild`에는 typecheck·validate:test·`docs:facts --check`가 **없다**(그건 CI 전용 — 문서가 낡았다고 로컬 빌드를 막을 이유는 없다). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
 
 ---
 
