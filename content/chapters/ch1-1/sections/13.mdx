@@ -2,7 +2,7 @@ import { ExamLi, ExamPoint } from "../../ui";
 
 CORS는 **브라우저의 보안 메커니즘**으로, 웹페이지의 오리진과 다른 오리진의 자원 요청을 통제합니다. **오리진 = scheme(프로토콜) + host(도메인) + port** — 하나라도 다르면 교차 오리진입니다.
 
-브라우저는 먼저 **preflight(OPTIONS) 요청**에 `Origin` 헤더를 담아 보내고, S3가 `Access-Control-Allow-Origin`/`-Methods`로 허용해야 실제 요청을 보냅니다. 허용 대상은 특정 오리진 하나 또는 `*`이며, CORS 구성은 JSON으로 버킷에 등록합니다.
+교차 오리진 요청에는 `Origin` 헤더가 실립니다. PUT·DELETE나 커스텀 헤더가 붙은 **비단순 요청**이면 브라우저가 본 요청에 앞서 **preflight(OPTIONS) 요청**을 보내고, S3가 `Access-Control-Allow-Origin`/`-Methods`로 허용해야 실제 요청을 보냅니다. 조건을 만족하는 **단순 요청**(GET·HEAD·간단한 POST)은 preflight 없이 바로 전송되며, 이때는 응답의 `Access-Control-Allow-Origin`이 맞지 않으면 브라우저가 응답을 스크립트에 넘기지 않습니다. 허용 대상은 특정 오리진 하나 또는 `*`이며, CORS 구성은 JSON으로 버킷에 등록합니다.
 
 <ExamPoint>
   <ExamLi><b>“요청을 받는 쪽 버킷에 CORS를 설정한다”</b>가 정답 포인트 — 웹사이트 버킷 A가 버킷 B의 이미지를 fetch하면 CORS는 B에.</ExamLi>
