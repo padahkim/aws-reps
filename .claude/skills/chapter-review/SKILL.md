@@ -25,7 +25,7 @@ description: 챕터 하나의 언어 품질(번역투·용어 일관성)을 1회
 
 ### drills.ts는 생성물 — 읽되 손편집 금지 (2026-07-23 소급 실행에서 확정)
 
-`drills.ts`는 **업스트림 `aws-cloud-drills`에서 `scripts/import-drills.mts`로 생성**된다
+`drills.ts`는 **업스트림 `aws-cloud-drills`에서 `scripts/import-drills.ts`로 생성**된다
 (파일 헤더에 "생성물 — 손편집 금지" 명시). 그래서 drills의 번역투·용어는 **읽어서 검사는
 하되(용어 일관성 비교에 필요), 이 리포에서 직접 고치지 않는다** — 재임포트가 덮어쓴다.
 

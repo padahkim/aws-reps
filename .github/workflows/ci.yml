@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Node 버전 정본은 .nvmrc (로컬 nvm/fnm과 CI가 같은 파일을 읽는다).
-      # scripts/*.mts를 node로 직접 실행하므로 type stripping(Node 24+)이 필요하다.
+      # scripts/*.ts를 node로 직접 실행하므로 type stripping(Node 24+)이 필요하다.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -37,4 +37,4 @@ jobs:
 
       # 문서 신선도 게이트 (#117) — docs/ARCHITECTURE.md 의 사실 블록이
       # 코드(registry·schema·CURRICULUM·package.json)와 어긋나면 PR을 깬다.
-      - run: node scripts/gen-arch-facts.mts --check
+      - run: node scripts/gen-arch-facts.ts --check

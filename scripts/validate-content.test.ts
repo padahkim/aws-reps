@@ -5,7 +5,7 @@
  * 실행: `npm run validate:test`. 하나라도 어긋나면 종료 코드 1.
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
-import { validateChapters, type Problem } from "./validate-content.mts";
+import { validateChapters, type Problem } from "./validate-content.ts";
 import type {
   ChapterData,
   Question,
