@@ -293,19 +293,28 @@ NOW_HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
 [ "$NOW_HEAD" = "$APPROVED_HEAD" ] || exit 1   # 승인 후 head가 움직였다 → 멈추고 재승인 요청
 [ "$NOW_HEAD" = "$HEAD" ] || exit 1            # B-2에서 판정받은 head와도 일치해야 한다
 
+# 모드 재판별 — B-1의 스냅샷은 승인을 기다리는 동안 낡는다 (아래 "왜 다시 판별하는가").
+# 모드 판별 절의 블록을 다시 돌려 MAIN·MODE를 재계산한 뒤, **비가역 머지 앞에서** 자리를 잡는다.
+if [ "$MODE" = direct ]; then
+  git switch develop                                       # 사전 체크 4의 직접 모드 확인 지점
+  [ "$(git branch --show-current)" = "develop" ] || exit 1
+  MAIN=$(git rev-parse --show-toplevel)
+else
+  [ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
+fi
+
 gh pr merge "$BR" --merge --delete-branch --match-head-commit "$APPROVED_HEAD"
 
-# 직접 모드면 먼저 이 워크트리를 develop으로 옮긴다 (사전 체크 4의 직접 모드 확인 지점)
-git switch develop
-[ "$(git branch --show-current)" = "develop" ] || exit 1   # 아니면 멈추고 보고
-
 git -C "$MAIN" fetch origin
-# 로컬 동기화 직전 재확인 — A-2와 같은 이유(다른 세션의 파킹으로 $MAIN이 develop을 놓았을 수 있다)
+# 동기화 직전 재확인 + 사후 검산 — A-2와 같은 이유(다른 세션의 파킹으로 $MAIN이 develop을 놓았을 수 있다)
 [ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
 git -C "$MAIN" merge --ff-only origin/develop
+git -C "$MAIN" merge-base --is-ancestor origin/develop develop || exit 1   # 로컬 develop이 실제로 따라왔나
 git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 못 했으면 정리
 ```
 
+- **왜 다시 판별하는가 (2026-07-27, PR #146 Codex 라운드 2)**: 모드는 B-1에서 정해지는데 승인은 몇 분~몇 시간 뒤에 온다. 그사이 다른 워크트리가 develop을 잡으면 스냅샷이 낡는다. 순서를 바꾸지 않으면 **비가역인 `gh pr merge`가 먼저 실행되고 나서** `git switch develop`이 실패해서, 로컬 동기화·브랜치 정리·파킹·보드/이슈 갱신이 통째로 건너뛰어진다 — PR은 이미 머지된 채로. 그래서 **자리를 먼저 잡고 머지한다**. 부수 효과로 직접 모드에서는 `gh pr merge --delete-branch`의 로컬 단계도 안 깨진다(이미 develop에 있으므로).
+- **로컬 동기화도 검산한다**: 재확인 뒤에도 같은 창이 남아, `merge --ff-only`가 detached HEAD에서 성공하면 `refs/heads/develop`은 낡은 채로 남는다. 다만 이 시점엔 서버 머지가 끝나 있어 **피해는 로컬 ref가 낡는 것뿐**이다 — 검산이 실패하면 보고하고, 다시 머지하려 들지 않는다.
 - `--match-head-commit`은 **서버측 검사**다 — GitHub이 head가 그 SHA일 때만 머지한다. 셸 대조와 머지 명령 사이의 틈(그 사이에 누가 push하는 경우)까지 닫고, 세션이 SHA를 잘못 들고 있으면 머지가 실패한다. 실패는 조용한 통과보다 낫다.
 - **승인 시점의 head를 기록하지 못한 채 세션이 넘어갔다면 승인은 없는 것으로 취급한다** — `APPROVED_HEAD`를 만들 수 없으면 다시 받는다. 이전 세션이 "승인받았다"고 남긴 말은 어느 커밋에 대한 승인인지 증명하지 못한다.
 - `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제. (직접 모드는 위의 `git switch develop`으로 이미 비켜난 상태다.) 직접 모드면 마지막에 **파킹**한다 (모드 판별 절).
