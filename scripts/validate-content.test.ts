@@ -106,6 +106,19 @@ expectCaught("answer 빈 배열", [ch(meta("1-1"), [question({ answer: [] })])],
 expectCaught("answer 중복 인덱스", [ch(meta("1-1"), [question({ answer: [1, 1] })])], "ANSWER_DUPLICATE");
 expectCaught("prereq 자기참조", [ch(meta("1-1", ["1-1"]))], "PREREQ_SELF");
 
+// 문항 id (#77 — 세션 id 규칙과 대칭)
+expectCaught("문항 id 공백", [ch(meta("1-1"), [question({ id: "  " })])], "QUESTION_ID_EMPTY");
+expectCaught(
+  "문항 id 중복",
+  [ch(meta("1-1"), [question({ id: "q1" }), question({ id: "q1", scenario: "s2" })])],
+  "QUESTION_ID_DUP"
+);
+
+// 문항 값 비어있음 (#77)
+expectCaught("scenario 공백", [ch(meta("1-1"), [question({ scenario: "   " })])], "SCENARIO_EMPTY");
+expectCaught("explanation 공백", [ch(meta("1-1"), [question({ explanation: "" })])], "EXPLANATION_EMPTY");
+expectCaught("choices 항목 빈 문자열", [ch(meta("1-1"), [question({ choices: ["a", "", "c", "d"] })])], "CHOICE_EMPTY");
+
 // 섹션 규약 (v2)
 expectCaught("sections 빈 배열", [ch(meta("1-1"), [], [])], "SECTIONS_EMPTY");
 expectCaught("섹션 title 공백", [ch(meta("1-1"), [], [section({ title: "  " })])], "SECTION_TITLE_EMPTY");
@@ -114,6 +127,20 @@ expectCaught(
   "섹션 num 중복",
   [ch(meta("1-1"), [], [section(), section({ title: "t2" })])],
   "SECTION_NUM_DUP"
+);
+
+// 섹션 num 형식·연속성 (#77)
+expectCaught("섹션 num 한 자리", [ch(meta("1-1"), [], [section({ num: "1" })])], "SECTION_NUM_FORMAT");
+expectCaught("섹션 num 비숫자", [ch(meta("1-1"), [], [section({ num: "01a" })])], "SECTION_NUM_FORMAT");
+expectCaught(
+  "섹션 num 시작값 어긋남 (02 부터)",
+  [ch(meta("1-1"), [], [section({ num: "02" })])],
+  "SECTION_NUM_SEQUENCE"
+);
+expectCaught(
+  "섹션 num 불연속 (01 → 03)",
+  [ch(meta("1-1"), [], [section({ num: "01" }), section({ num: "03", title: "t2" })])],
+  "SECTION_NUM_SEQUENCE"
 );
 
 // 인출 세션 규약 (#58)
@@ -162,6 +189,31 @@ expectCaught(
   "SESSION_DIAGRAM_TOO_SHORT"
 );
 
+// 세션 값 비어있음 (#77)
+expectCaught(
+  "diagram prompt 공백",
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "  ", nodes: ["a", "b"], edges: ["x"] } }))],
+  "SESSION_DIAGRAM_PROMPT_EMPTY"
+);
+expectCaught(
+  "mixed scenario 공백",
+  [
+    ch(meta("1-1"), [], [section()], sess({
+      mixed: [{ id: "m1", scenario: "  ", service: "svc", why: "w", contrast: "c" }],
+    })),
+  ],
+  "SESSION_MIXED_EMPTY"
+);
+expectCaught(
+  "mixed contrast 공백",
+  [
+    ch(meta("1-1"), [], [section()], sess({
+      mixed: [{ id: "m1", scenario: "s", service: "svc", why: "w", contrast: "" }],
+    })),
+  ],
+  "SESSION_MIXED_EMPTY"
+);
+
 console.log("\n── 통과해야 하는 적법 입력 ──");
 
 // 빈 레지스트리
@@ -184,6 +236,16 @@ expectClean("정상 session(섹션 일부에만 카드·도식 없음)", [
     [section({ num: "00" }), section({ num: "01", title: "t2" })],
     sess({ concepts: [concept({ id: "c1", section: "01" }), concept({ id: "c2", section: "01" })] })
   ),
+]);
+
+// 섹션 num 00 시작 + 연속 (#77 — ch0-1 이 동기 서문을 "00" 으로 쓴다)
+expectClean("정상 섹션 num(00 시작·4개 연속)", [
+  ch(meta("1-1"), [], [
+    section({ num: "00" }),
+    section({ num: "01", title: "t2" }),
+    section({ num: "02", title: "t3" }),
+    section({ num: "03", title: "t4" }),
+  ]),
 ]);
 
 // why 정교화 질문만 (모범답 미기입 — 콘텐츠 이행 전 상태)
