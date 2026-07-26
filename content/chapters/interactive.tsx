@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { C } from "./ui";
 
 /**
@@ -44,6 +44,31 @@ export function SimFrame({ title, icon = "🎛", children }: { title: string; ic
     </div>
   );
 }
+
+/*
+ * 위젯 버튼 색 주입(#144) — 호버·포커스 전환은 app/globals.css 의 `.widget-btn` 이 맡고
+ * 여기서는 색만 넘긴다. 인라인 스타일에 :hover 를 걸 수 없어 나눈 구조이며, 팔레트 단일
+ * 진실은 ui.tsx 의 C 로 유지된다. 폭·여백처럼 버튼마다 다른 값은 호출부에서 합친다.
+ * 배경은 반드시 --btn-bg 로 넘긴다 — 인라인 background 는 :hover 규칙을 이겨 호버를 죽인다.
+ */
+/** 채움 버튼 — 호버 시 한 단계 어두워진다. accent 가 이미 어두우면 hover 로 밝은 쪽을 준다. */
+const fillBtn = (accent: string, hover?: string) =>
+  ({
+    "--btn-accent": accent,
+    "--btn-bg": accent,
+    "--btn-hover-bg": hover ?? `color-mix(in srgb, ${accent} 86%, #000)`,
+    color: "#fff",
+  }) as CSSProperties;
+
+/** 아웃라인 버튼 — 흰 배경이라 '아직 안 누른 선택지'로 읽힌다. 호버 시 soft 톤이 배경을 채운다. */
+const outlineBtn = (accent: string, soft: string) =>
+  ({
+    "--btn-accent": accent,
+    "--btn-bg": C.card,
+    "--btn-hover-bg": soft,
+    color: accent,
+    borderColor: accent,
+  }) as CSSProperties;
 
 /** 셀프 퀴즈 문항 — 질문을 보고 스스로 답을 생성한 뒤 정답과 대조한다. */
 export interface SelfQuizItem {
@@ -107,16 +132,8 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
           <button
             type="button"
             onClick={reset}
-            style={{
-              cursor: "pointer",
-              background: C.ink,
-              color: "#fff",
-              border: "none",
-              borderRadius: 9,
-              padding: "10px 20px",
-              fontSize: "0.86rem",
-              fontWeight: 700,
-            }}
+            className="widget-btn"
+            style={{ ...fillBtn(C.ink, C.inkSoft), padding: "10px 20px" }}
           >
             다시 풀기
           </button>
@@ -174,16 +191,8 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          style={{
-            cursor: "pointer",
-            background: C.amber,
-            color: "#fff",
-            border: "none",
-            borderRadius: 9,
-            padding: "10px 18px",
-            fontSize: "0.86rem",
-            fontWeight: 700,
-          }}
+          className="widget-btn"
+          style={{ ...fillBtn(C.amber), padding: "10px 18px" }}
         >
           답 확인하기
         </button>
@@ -203,37 +212,21 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
             {cur.a}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
+            {/* 자기채점 두 버튼은 같은 무게의 아웃라인이다 — 한쪽만 채우면 아직 누르지 않은
+                선택지가 이미 선택된 것처럼 읽힌다(#144). 색은 정답/오답 의미로만 남긴다. */}
             <button
               type="button"
               onClick={() => grade(true)}
-              style={{
-                cursor: "pointer",
-                flex: 1,
-                background: C.teal,
-                color: "#fff",
-                border: "none",
-                borderRadius: 9,
-                padding: "10px",
-                fontSize: "0.86rem",
-                fontWeight: 700,
-              }}
+              className="widget-btn"
+              style={{ ...outlineBtn(C.teal, C.tealSoft), flex: 1, padding: "10px" }}
             >
               맞혔다 ✓
             </button>
             <button
               type="button"
               onClick={() => grade(false)}
-              style={{
-                cursor: "pointer",
-                flex: 1,
-                background: C.card,
-                color: C.red,
-                border: `1.5px solid ${C.red}`,
-                borderRadius: 9,
-                padding: "10px",
-                fontSize: "0.86rem",
-                fontWeight: 700,
-              }}
+              className="widget-btn"
+              style={{ ...outlineBtn(C.red, C.redSoft), flex: 1, padding: "10px" }}
             >
               틀렸다 ✗
             </button>

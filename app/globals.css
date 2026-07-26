@@ -64,3 +64,31 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* 본문 인터랙티브 위젯 버튼 (#144) — 인라인 스타일에는 :hover·:focus-visible 을 걸 수 없어
+   상태 전환만 여기서 맡는다. 색은 content/chapters/ui.tsx 팔레트에서 커스텀 속성
+   (--btn-bg = 평상 배경, --btn-hover-bg = 호버 배경, --btn-accent = 포커스 링)으로
+   주입받는다 — 팔레트 단일 진실은 그대로 C 이고, 이 클래스는 색을 모른다.
+   배경만은 인라인으로 두면 안 된다: 인라인 선언이 :hover 규칙을 이겨 호버가 죽는다. */
+.widget-btn {
+  cursor: pointer;
+  background: var(--btn-bg);
+  border: 1.5px solid transparent;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* 터치 기기에서 탭 후 호버가 눌어붙는 것을 막는다. */
+@media (hover: hover) {
+  .widget-btn:hover {
+    background: var(--btn-hover-bg);
+  }
+}
+
+.widget-btn:focus-visible {
+  background: var(--btn-hover-bg);
+  outline: 2px solid var(--btn-accent);
+  outline-offset: 2px;
+}
