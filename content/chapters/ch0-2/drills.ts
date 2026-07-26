@@ -1,5 +1,5 @@
 /**
- * 생성물 — 손편집 금지. `node scripts/import-drills.mts iam` 재실행으로 갱신.
+ * 생성물 — 손편집 금지. `node scripts/import-drills.ts iam` 재실행으로 갱신.
  * 원본: aws-cloud-drills data/questions/iam.json (15문항)
  */
 import type { Question } from "../../schema";

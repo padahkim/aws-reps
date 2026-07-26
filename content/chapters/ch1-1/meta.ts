@@ -8,7 +8,7 @@ import type { ChapterMeta, SectionMeta } from "../../schema";
  * 사실 수정: docs/reports/axis2/aws-dva-s3-guide.md · aws-s3-dva-guide.md 수정 지시 전부 반영
  * (50TB, KMS 쿼터 재표현, 평가 순서 재표현, 버킷 네이밍 마침표, MFA CLI/API, 로그 같은 계정,
  * aws:SecureTransport 패턴, S3 Metadata·SSE-C 2026-04 각주).
- * 퀴즈: aws-cloud-drills s3.json 15문항 임포트 — scripts/import-drills.mts가 생성한
+ * 퀴즈: aws-cloud-drills s3.json 15문항 임포트 — scripts/import-drills.ts가 생성한
  * ./drills.ts를 re-export (이슈 #6. 변환기 보충 생성분 8문항은 drills 15문항으로 교체 — 주제
  * 중복 방지. 기존 문항은 git 이력에 잔존).
  */

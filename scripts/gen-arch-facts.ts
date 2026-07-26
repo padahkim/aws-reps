@@ -12,8 +12,8 @@
  *   <!-- END GENERATED -->
  *
  * 실행:
- *   node scripts/gen-arch-facts.mts            # 다시 생성해 파일에 쓴다 (npm run docs:facts)
- *   node scripts/gen-arch-facts.mts --check    # 어긋나면 diff 출력 + exit 1 (CI 신선도 게이트)
+ *   node scripts/gen-arch-facts.ts            # 다시 생성해 파일에 쓴다 (npm run docs:facts)
+ *   node scripts/gen-arch-facts.ts --check    # 어긋나면 diff 출력 + exit 1 (CI 신선도 게이트)
  *
  * 정본 소스: content/registry.ts · content/schema.ts · docs/CURRICULUM.md ·
  *            package.json · .nvmrc · content/*.jsx|html
@@ -243,7 +243,7 @@ function assertBlockCoverage(blocks: Block[], gen: Record<string, string[]>): vo
   const inDoc = new Set(blocks.map((b) => b.name));
   const known = Object.keys(gen);
   for (const name of inDoc) {
-    if (!known.includes(name)) throw new Error(`${DOC_REL}: 생성기가 모르는 블록 "${name}" — gen-arch-facts.mts 에 추가하거나 마커를 지워라`);
+    if (!known.includes(name)) throw new Error(`${DOC_REL}: 생성기가 모르는 블록 "${name}" — gen-arch-facts.ts 에 추가하거나 마커를 지워라`);
   }
   for (const name of known) {
     if (!inDoc.has(name)) throw new Error(`${DOC_REL}: 생성 블록 "${name}" 마커가 문서에 없다 — 마커를 넣거나 생성기에서 빼라`);

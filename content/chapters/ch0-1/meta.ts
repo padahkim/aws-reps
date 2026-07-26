@@ -13,7 +13,7 @@ export const chapterMeta: ChapterMeta = {
   prerequisites: [],
 };
 
-// 퀴즈: aws-cloud-drills aws-basics.json 11문항 임포트 — scripts/import-drills.mts가
+// 퀴즈: aws-cloud-drills aws-basics.json 11문항 임포트 — scripts/import-drills.ts가
 // 생성한 ./drills.ts를 re-export (이슈 #11. 원본에 퀴즈 성분 없어 신규 작성).
 export { quiz } from "./drills.ts";
 

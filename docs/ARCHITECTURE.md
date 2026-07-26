@@ -2,7 +2,7 @@
 
 > **문서 상태**: **정본 (living doc)** · 최종 반영 2026-07-26 · 점검 커밋 `b2ca68c`
 > **갱신법**: 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **이 파일**을 다시 그린다. 손으로 조금씩 고치면 조용히 낡는다. 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
-> **예외 — 생성 블록**: `<!-- BEGIN GENERATED: … -->` 마커 사이는 `scripts/gen-arch-facts.mts`가 코드에서 뽑는 **사실 층**이다. 사람도 프롬프트도 손으로 채우지 말고 `npm run docs:facts`로 다시 만든다 — 낡으면 CI가 막는다(#117).
+> **예외 — 생성 블록**: `<!-- BEGIN GENERATED: … -->` 마커 사이는 `scripts/gen-arch-facts.ts`가 코드에서 뽑는 **사실 층**이다. 사람도 프롬프트도 손으로 채우지 말고 `npm run docs:facts`로 다시 만든다 — 낡으면 CI가 막는다(#117).
 > **읽는 순서**: "한눈에"만 읽어도 감이 온다. 코드를 만질 사람은 "빠른 시작 → 디렉터리 지도 → 콘텐츠 파이프라인"까지.
 
 ---
@@ -32,16 +32,16 @@ npm run dev
 - `npm run dev`는 `predev` 훅이 먼저 돈다 → `scripts/gen-source-routes.mjs`가 `/_source`(원본 검수 도구) 라우트를 생성한 뒤 Next dev가 시작된다. **수동 코드생성 단계는 없다.**
 - 패키지 매니저는 **npm 고정**이다(`package-lock.json` 커밋됨, yarn/pnpm 혼용 금지).
 
-**선행 조건 — Node 버전**: 버전 정본은 `.nvmrc`(=24)이고 로컬(nvm/fnm)과 CI가 이를 공유한다(#67). `engines`는 의도적으로 두지 않는다 — Vercel이 빌드 Node 선택 입력으로 읽어 현재 정상인 배포를 깨뜨릴 수 있어, 리포가 못 박는 범위를 로컬+CI로 한정했다. 실질 최소치는 Next 16(20.9+)이 아니라 **검증·빌드 스크립트가 좌우한다** — `scripts/*.mts`를 Node가 직접 실행해 네이티브 TS 타입 스트리핑이 필요하고, 이는 Node 20·초기 22엔 없다(안정화 22.18+). 20.9로는 dev는 뜨지만 `npm run validate`·`npm run build`가 깨진다. 그러니 `.nvmrc`대로 **Node 24**(하한 22.18+)를 쓴다.
+**선행 조건 — Node 버전**: 버전 정본은 `.nvmrc`(=24)이고 로컬(nvm/fnm)과 CI가 이를 공유한다(#67). `engines`는 의도적으로 두지 않는다 — Vercel이 빌드 Node 선택 입력으로 읽어 현재 정상인 배포를 깨뜨릴 수 있어, 리포가 못 박는 범위를 로컬+CI로 한정했다. 실질 최소치는 Next 16(20.9+)이 아니라 **검증·빌드 스크립트가 좌우한다** — `scripts/*.ts`를 Node가 직접 실행해 네이티브 TS 타입 스트리핑이 필요하고, 이는 Node 20·초기 22엔 없다(안정화 22.18+). 20.9로는 dev는 뜨지만 `npm run validate`·`npm run build`가 깨진다. 그러니 `.nvmrc`대로 **Node 24**(하한 22.18+)를 쓴다.
 
 자주 쓰는 스크립트:
 
 | 명령 | 하는 일 |
 |---|---|
 | `npm run dev` | 개발 서버 (predev로 /_source 라우트 생성 후 `next dev`) |
-| `npm run validate` | 콘텐츠 값 수준 계약 검사 (`scripts/validate-content.mts`) |
+| `npm run validate` | 콘텐츠 값 수준 계약 검사 (`scripts/validate-content.ts`) |
 | `npm run validate:test` | 검사기 자체의 회귀 테스트 (CI 전용) |
-| `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.mts`; `--check`는 CI 게이트) |
+| `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.ts`; `--check`는 CI 게이트) |
 | `npm run typecheck` | `tsc --noEmit` 타입 검사 |
 | `npm run build` | 정적 빌드 (`prebuild`가 validate + 라우트 생성 선행 → `next build`) |
 
@@ -136,7 +136,7 @@ flowchart TD
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
 | `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(진도 저장소). 이 둘이 전부다. |
-| `scripts/` | 빌드·검증·하네스 — `validate-content.mts`·`gen-source-routes.mjs`·`gen-arch-facts.mts`·`import-drills.mts`·`git_guard.py`. |
+| `scripts/` | 빌드·검증·하네스 — `validate-content.ts`·`gen-source-routes.mjs`·`gen-arch-facts.ts`·`import-drills.ts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
@@ -179,7 +179,7 @@ flowchart TD
 
 ### 5-2. 문항(quiz)이 오는 두 경로
 
-`drills.ts`는 **손으로 쓰는 파일이 아니라 생성물**이다 — `scripts/import-drills.mts`가 별도 리포(`aws-cloud-drills`)의 JSON 문항을 규약 v3 `Question`으로 변환해 만든다. **손편집 금지**이고, 고칠 게 있으면 원본 리포에서 고쳐 재실행한다.
+`drills.ts`는 **손으로 쓰는 파일이 아니라 생성물**이다 — `scripts/import-drills.ts`가 별도 리포(`aws-cloud-drills`)의 JSON 문항을 규약 v3 `Question`으로 변환해 만든다. **손편집 금지**이고, 고칠 게 있으면 원본 리포에서 고쳐 재실행한다.
 
 `meta.ts`가 그 문항을 챕터 `quiz`로 삼는 방식은 두 가지이며 **둘 다 계약된 패턴**이다:
 
@@ -210,7 +210,7 @@ flowchart LR
     bodytsx --> reg
   end
 
-  drillsrc["aws-cloud-drills<br/>(별도 리포 JSON)"] -->|"import-drills.mts"| drills["drills.ts (생성물)"]
+  drillsrc["aws-cloud-drills<br/>(별도 리포 JSON)"] -->|"import-drills.ts"| drills["drills.ts (생성물)"]
   drills -->|"전량 또는 slug 선별"| meta
 
   jsx -.->|"수동 변환 (진행 중 — 수치는 §5-4)"| meta
@@ -222,7 +222,7 @@ flowchart LR
 
 ### 5-4. 마이그레이션 현황
 
-이 절의 두 블록은 **스냅샷이 아니라 생성물**이다 — `scripts/gen-arch-facts.mts`가 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`content/` 파일 목록에서 뽑아 쓴다(§7). 손으로 고치지 말고 `npm run docs:facts`로 다시 만든다.
+이 절의 두 블록은 **스냅샷이 아니라 생성물**이다 — `scripts/gen-arch-facts.ts`가 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`content/` 파일 목록에서 뽑아 쓴다(§7). 손으로 고치지 말고 `npm run docs:facts`로 다시 만든다.
 
 <!-- BEGIN GENERATED: migration-status -->
 `content/chapters/`에 **4개** 구조화 완료 — `ch0-1`·`ch0-2`·`ch1-1`·`ch1-2`, 전부 `registry.ts`에 등록됨. `docs/CURRICULUM.md`가 계획한 총 **24개**(0단계 2 + 1단계 4 + 2단계 5 + 3단계 3 + 4단계 6 + 5단계 4) 대비 **4/24**다. 레거시 원본 **28개**(`content/*.jsx` 27 + `.html` 1)는 별개 계층이라 이 분모에 섞지 않는다.
@@ -256,10 +256,10 @@ flowchart LR
 
 정적 사이트라 런타임 방어가 없는 만큼, **빌드·검증 게이트가 계약을 강제**한다.
 
-- `scripts/validate-content.mts` (`npm run validate`) — TypeScript가 못 잡는 **값 수준 계약**을 검사한다: 챕터 id 전역 유일, 섹션 ≥1·제목 비지 않음·`num` 챕터 내 유일, `prerequisites`가 실존 챕터 참조, 문항의 `concept` ≥1·`choices` ≥2·`answer` 범위·중복 없음·`choiceExplanations` 길이 일치, 인출 세션 id 유일(concepts·mixed 한 이름공간)·카드 `section`이 실존·도식 `edges = nodes-1`, 셀프 퀴즈 규칙(#98). `prebuild`와 CI 양쪽이 돌린다.
+- `scripts/validate-content.ts` (`npm run validate`) — TypeScript가 못 잡는 **값 수준 계약**을 검사한다: 챕터 id 전역 유일, 섹션 ≥1·제목 비지 않음·`num` 챕터 내 유일, `prerequisites`가 실존 챕터 참조, 문항의 `concept` ≥1·`choices` ≥2·`answer` 범위·중복 없음·`choiceExplanations` 길이 일치, 인출 세션 id 유일(concepts·mixed 한 이름공간)·카드 `section`이 실존·도식 `edges = nodes-1`, 셀프 퀴즈 규칙(#98). `prebuild`와 CI 양쪽이 돌린다.
 - `scripts/gen-source-routes.mjs` — `/_source` 검수 라우트 코드생성. 손으로 쓴 소스는 `app/_source/`(언더스코어 = Next private 폴더라 라우팅 안 됨, 커밋됨)이고, 실제 라우트 `app/%5Fsource/`는 100% 생성물이라 gitignore다. `predev`는 그냥, `prebuild`는 `--build`로 호출 — **Vercel 프리뷰에서만 라우트를 유지**하고 프로덕션·로컬 빌드에선 통째로 제외한다(실유저 배포본에 9MB 날것 원본이 안 실리게).
-- `scripts/gen-arch-facts.mts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117). 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
-- `scripts/import-drills.mts` — 별도 리포의 문항 JSON → `drills.ts` 변환 어댑터(§5-2).
+- `scripts/gen-arch-facts.ts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117). 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
+- `scripts/import-drills.ts` — 별도 리포의 문항 JSON → `drills.ts` 변환 어댑터(§5-2).
 - `scripts/git_guard.py` — `.claude/settings.json`에 등록된 **PreToolUse 훅**. gh CLI를 **기본 차단**(fail-closed)하고 홈 마커 + 개인 계정(padahkim) 두 조건을 모두 만족할 때만 허용하며, 파괴적 명령(`rm -rf`, `git push --force`, `git reset --hard` 등)을 막는다.
 
 ```mermaid

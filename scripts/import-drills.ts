@@ -18,7 +18,7 @@
  *   slug               → 동명 필드 (부분 선별의 안정 키 — #69 Codex 리뷰) + 문항 위 주석
  *   domain(번호)       → 버림 — chapterMeta.domain이 챕터 수준에서 이미 커버
  *
- * 실행: node scripts/import-drills.mts [subject ...]   (무인자 = 매핑된 전 과목)
+ * 실행: node scripts/import-drills.ts [subject ...]   (무인자 = 매핑된 전 과목)
  *       원본 위치 재정의: DRILLS_DIR=/path/to/aws-cloud-drills
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -84,7 +84,7 @@ function render(subject: string, src: DrillsQuestion[], questions: Question[]): 
     .map((q, i) => `  // source: ${src[i].slug}\n${JSON.stringify(q, null, 2).replace(/^/gm, "  ")},`)
     .join("\n");
   return `/**
- * 생성물 — 손편집 금지. \`node scripts/import-drills.mts ${subject}\` 재실행으로 갱신.
+ * 생성물 — 손편집 금지. \`node scripts/import-drills.ts ${subject}\` 재실행으로 갱신.
  * 원본: aws-cloud-drills data/questions/${subject}.json (${questions.length}문항)
  */
 import type { Question } from "../../schema";

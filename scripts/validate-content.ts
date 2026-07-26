@@ -3,7 +3,7 @@
  * 정본 계약: content/schema.ts. 여기서는 그 계약이 값에서 지켜지는지 검사한다.
  *
  * 실행: `npm run validate` (build 앞에 자동 연결됨).
- * 순수 함수 validateChapters()를 export 해 픽스처(*.test.mts)가 직접 먹인다.
+ * 순수 함수 validateChapters()를 export 해 픽스처(*.test.ts)가 직접 먹인다.
  */
 import type { ChapterData } from "../content/schema.ts";
 
