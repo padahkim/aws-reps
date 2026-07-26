@@ -5,7 +5,8 @@ import { ExamLi, ExamPoint, Table } from "../../ui";
 <Table
   head={["생성 경로", "만료"]}
   rows={[
-    ["SDK / CLI 기본값", "3600초 (1시간)"],
+    ["CLI(aws s3 presign) 기본값", "3600초 (1시간)"],
+    ["SDK", "언어·헬퍼마다 다름 — 만료를 코드에서 명시 지정"],
     ["콘솔", "최대 12시간"],
     [
       "CLI --expires-in",
