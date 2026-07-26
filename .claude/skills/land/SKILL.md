@@ -154,33 +154,44 @@ gh pr comment "$PR" --body "@codex review"
 
 `gh api --jq`는 jq의 `--arg`·`--argjson`을 받지 않는다 — 파이프로 넘긴다.
 
+**세 질의 모두 `--paginate`를 붙인다** — `gh api`는 기본이 첫 페이지뿐이라, 코멘트가 쌓인 PR에서 새 리뷰 신호가 다음 페이지로 밀리면 "리뷰 미도착"으로 오판한다 (PR #125 Codex 지적).
+
 ```bash
 CX='["chatgpt-codex-connector","chatgpt-codex-connector[bot]"]'   # 정확 일치 2종
+API=repos/padahkim/aws-reps
 
 # 요약 코멘트 — 이번 라운드 것만. 환경 미설정 오류 코멘트는 리뷰가 아니므로 걸러낸다
-gh api repos/padahkim/aws-reps/issues/"$PR"/comments \
-  | jq --argjson cx "$CX" --arg since "$SINCE" \
+gh api --paginate "$API"/issues/"$PR"/comments \
+  | jq -s 'add' | jq --argjson cx "$CX" --arg since "$SINCE" \
     '[.[] | select((.user.login|IN($cx[])) and .created_at > $since
                    and (.body|test("create an environment")|not)) | .body]'
 # 인라인 리뷰 코멘트 건수 — 이번 라운드 것만
-gh api repos/padahkim/aws-reps/pulls/"$PR"/comments \
-  | jq --argjson cx "$CX" --arg since "$SINCE" \
+gh api --paginate "$API"/pulls/"$PR"/comments \
+  | jq -s 'add' | jq --argjson cx "$CX" --arg since "$SINCE" \
     '[.[] | select((.user.login|IN($cx[])) and .created_at > $since)] | length'
-# PR 본문 리액션 — Codex 것만 (리액션에서는 계정명이 chatgpt-codex-connector[bot])
-gh api repos/padahkim/aws-reps/issues/"$PR"/reactions \
-  | jq --argjson cx "$CX" '[.[] | select(.user.login|IN($cx[])) | .content]'
+# PR 본문 리액션 — 이번 라운드 Codex 것만 (리액션에도 created_at이 있다)
+gh api --paginate "$API"/issues/"$PR"/reactions \
+  | jq -s 'add' | jq --argjson cx "$CX" --arg since "$SINCE" \
+    '[.[] | select((.user.login|IN($cx[])) and .created_at > $since) | .content]'
 ```
 
 **라운드 경계는 `created_at`으로 잡는다 — `commit_id`로는 안 된다.** GitHub은 아직 유효한 리뷰 코멘트의 `commit_id`를 새 head로 갱신하므로, 이미 고친 이전 라운드 지적이 현재 head 것으로 딸려온다 (PR #125 실측: Codex 인라인 5건 중 `commit_id == head`가 4건 — 1라운드 지적 하나가 섞여 들어왔다). `created_at`은 1라운드 `11:05:29` / 2라운드 `11:12:11`로 깨끗하게 갈렸다.
 
-- **계정은 정확 일치로 본다.** `startswith`는 공개 PR에서 `chatgpt-codex-connector-fake` 같은 사칭 계정도 통과시킨다 — 그 계정이 👍 하나만 달면 클린 경로가 뚫린다 (PR #125 Codex 지적). 사람·다른 봇이 남긴 인라인 코멘트는 아래 "사용자 코멘트" 경로에서 따로 처리한다.
-- **리액션은 두 종류를 구분한다.** `+1`(👍)은 "지적 없음"이라는 **판정**, `eyes`(👀)는 "트리거를 접수하고 작업 중"이라는 **진행 신호**다. 👀을 클린으로 오인하면 리뷰가 끝나기도 전에 머지한다 — 이 게이트가 막으려는 바로 그 사고다. 👀만 있으면 계속 기다린다. (리액션에는 시각 경계를 걸 수 없으므로, 직전 라운드에서 👍를 이미 받았다면 리액션은 판정에서 빼고 코멘트 신호로만 판단한다.)
+- **계정은 정확 일치 2종으로 본다.** `startswith`는 공개 PR에서 `chatgpt-codex-connector-fake` 같은 사칭 계정도 통과시킨다 — 그 계정이 👍 하나만 달면 클린 경로가 뚫린다 (PR #125 Codex 지적). 2종을 두는 이유는 **같은 봇인데 API마다 표기가 다르기 때문**이다: REST는 `chatgpt-codex-connector[bot]`, GraphQL(`gh pr view --json comments`)은 `chatgpt-codex-connector`. 사람·다른 봇이 남긴 인라인 코멘트는 아래 "사용자 코멘트" 경로에서 따로 처리한다.
+- **리액션은 두 종류를 구분한다.** `+1`(👍)은 "지적 없음"이라는 **판정**, `eyes`(👀)는 "트리거를 접수하고 작업 중"이라는 **진행 신호**다. 👀을 클린으로 오인하면 리뷰가 끝나기도 전에 머지한다 — 이 게이트가 막으려는 바로 그 사고다. 👀만 있으면 계속 기다린다. **리액션도 `created_at`으로 라운드를 가른다** — 안 그러면 이전 head에서 받은 묵은 👍가 새 라운드를 클린으로 만들어, Codex가 보지도 않은 커밋이 머지된다 (PR #125 Codex 지적. 세션 기억에 의존하지 말 것 — 착지가 다음 세션으로 넘어가면 그 기억이 없다).
 
 **3) 상한 10분.** 그래도 판정이 없으면 "**Codex 리뷰 미도착**"을 사용자에게 명시하고 **재시도할지 / 더 기다릴지**를 묻는다. 조용히 머지하지 않는다.
 
+대기 중 판단 기준 (2026-07-26 실측: 수동 트리거 → 첫 응답이 `2분 41초`·`4분 12초`·`4분 57초`, 3/3 응답):
+
+- **👀가 붙었으면 접수된 것** — 상한까지 기다린다.
+- **5분이 지나도 👀조차 없으면** 트리거가 유실됐을 가능성이 크다 — 10분을 채우지 말고 **한 번 재트리거**하고 `$SINCE`를 새로 잡는다.
+- 무응답의 정체는 대개 Codex가 느린 게 아니라 **자동 발동이 이 리포에서 안 되는 것**이다(1번 참조).
+
 **판정과 분기**:
 
-- **클린** (이번 라운드 인라인 0건 **그리고** 요약에 지적 없음 — 👍 리액션만 온 경우 포함) → 사용자 승인이 이미 있으면 **다시 묻지 않고 B-3으로 진행**한다. 보고에 "Codex 리뷰 지적 0건"을 적는다. 이 게이트의 목적은 리뷰를 확보하는 것이지 승인을 두 번 받는 것이 아니다.
+- **클린** (이번 라운드 인라인 0건 **그리고** 요약에 지적 없음 — 👍 리액션만 온 경우 포함) → **승인이 지금 head에 대한 것이면** 다시 묻지 않고 B-3으로 진행한다. 보고에 "Codex 리뷰 지적 0건"을 적는다. 이 게이트의 목적은 리뷰를 확보하는 것이지 승인을 두 번 받는 것이 아니다.
+  - **승인은 head에 묶인다** (PR #125 Codex 지적). 사용자가 리뷰 대기 중에 승인했고 그 뒤 지적 반영으로 push가 있었다면, 그 승인은 **사용자가 본 적 없는 코드**에 대한 것이다 — 클린이 나와도 **머지 전에 승인을 다시 받는다**. 재사용해도 되는 건 승인 이후 push가 없었던 경우뿐(= 첫 리뷰가 클린이라 고칠 게 없었던 경우). PR 착지 경로의 존재 이유가 "사용자가 머지 전에 내용을 한 번 본다"인데, 승인을 head에 묶지 않으면 그게 무너진다.
 - **지적 있음** → 수정을 반영해 같은 브랜치에 push하고, **인라인 코멘트는 건별로 반드시 답글을 남긴다** (2026-07-22 지시, #80 전례) — 반영이면 반영 커밋 해시와 요지, 거부(반영 부적절 판단)면 거부 사유. 어느 쪽이든 무응답으로 넘기지 않는다. 답글: `gh api repos/padahkim/aws-reps/pulls/<PR>/comments/<comment_id>/replies -f body="..."`.
 - **애매하면** (요약이 지적인지 단순 소감인지 불분명) 클린으로 치지 말고 사용자에게 보고한다.
 
