@@ -142,21 +142,32 @@ PR 본문만으로는 "화면에서 어딜 봐야 하는지"를 알 수 없어 �
 
 **리뷰를 확보하기 전에는 머지하지 않는다** (2026-07-26 정책, #124 — PR #121이 생성 3분 만에 승인·머지돼 리뷰가 main 전파 뒤에야 돌아간 사고). 적용 범위는 **모든 PR** — 문서·하네스 전용도 예외 없다. 판단 여지를 두면 "이건 문서니까"로 매번 새어나간다.
 
-**1) 도착 확인.** Codex는 PR 생성 시 자동 발동한다. 신호는 두 갈래이고 **둘 다** 본다 — 지적이 없을 때는 요약 코멘트 대신 **PR 본문에 👍 리액션만** 남기기도 해서, 리액션을 안 보면 조용한 클린을 "미도착"으로 오인해 상한까지 헛기다린다.
+**1) PR 생성 직후 바로 트리거한다.** 이 리포에서 **자동 발동은 신뢰할 수 없다** — 아무것도 안 오거나(PR #121), 리뷰 대신 `To use Codex here, create an environment for this repo` 오류 코멘트만 온다(PR #125). 자동 발동을 기다리는 시간이 그대로 낭비이므로 기다리지 말고 먼저 남긴다. 중복 리뷰는 문제되지 않는다.
 
 ```bash
 PR=<PR 번호>
-# 요약 코멘트 (계정명 chatgpt-codex-connector)
-gh pr view "$PR" --json comments --jq '.comments[] | select(.author.login|startswith("chatgpt-codex-connector")) | .body'
-# 인라인 리뷰 코멘트 건수
-gh api repos/padahkim/aws-reps/pulls/"$PR"/comments --jq 'length'
-# PR 본문 리액션 (리액션에서는 계정명이 chatgpt-codex-connector[bot] — 접두 일치로 본다)
-gh api repos/padahkim/aws-reps/issues/"$PR"/reactions --jq '[.[]|{user:.user.login,content}]'
+gh pr comment "$PR" --body "@codex review"
 ```
 
-**2) 안 붙으면 트리거.** 몇 분 내 아무 신호도 없으면 `gh pr comment "$PR" --body "@codex review"` — 자동 발동이 매번 오지는 않는다 (전례 PR #95·#121).
+**2) 도착 확인.** 신호는 세 갈래이고 **전부** 본다 — 지적이 없을 때는 요약 코멘트 대신 **PR 본문에 👍 리액션만** 남기기도 해서, 리액션을 안 보면 조용한 클린을 "미도착"으로 오인해 상한까지 헛기다린다.
 
-**3) 상한 10분.** 그래도 없으면 "**Codex 리뷰 미도착**"을 사용자에게 명시하고 머지 여부를 묻는다. 조용히 머지하지 않는다.
+```bash
+# 요약 코멘트 (계정명 chatgpt-codex-connector) — 위 오류 코멘트는 리뷰가 아니므로 걸러낸다
+gh pr view "$PR" --json comments \
+  --jq '.comments[] | select((.author.login|startswith("chatgpt-codex-connector")) and (.body|test("create an environment")|not)) | .body'
+# 인라인 리뷰 코멘트 건수 — Codex 것만 센다
+gh api repos/padahkim/aws-reps/pulls/"$PR"/comments \
+  --jq '[.[] | select(.user.login|startswith("chatgpt-codex-connector"))] | length'
+# PR 본문 리액션 — Codex 것만 (리액션에서는 계정명이 chatgpt-codex-connector[bot])
+gh api repos/padahkim/aws-reps/issues/"$PR"/reactions \
+  --jq '[.[] | select(.user.login|startswith("chatgpt-codex-connector")) | .content]'
+```
+
+**세 질의 모두 계정으로 거른다** — 안 거르면 사람이나 다른 봇이 남긴 인라인 코멘트·리액션이 Codex 신호로 둔갑한다. 특히 **무관한 👍 하나가 클린 판정을 통과시켜 Codex가 응답하기도 전에 머지**시킬 수 있다 (PR #125 Codex 지적). Codex 아닌 인라인 코멘트는 아래 "사용자 코멘트" 경로에서 따로 처리한다.
+
+**리액션은 두 종류를 구분한다** — `+1`(👍)은 "지적 없음"이라는 **판정**이고, `eyes`(👀)는 "트리거를 접수하고 작업 중"이라는 **진행 신호**다. 👀을 클린으로 오인하면 리뷰가 끝나기도 전에 머지하게 된다 — 이 게이트가 막으려는 바로 그 사고다. 👀만 있으면 계속 기다린다.
+
+**3) 상한 10분.** 그래도 판정이 없으면 "**Codex 리뷰 미도착**"을 사용자에게 명시하고 머지 여부를 묻는다. 조용히 머지하지 않는다.
 
 **판정과 분기**:
 
@@ -164,7 +175,9 @@ gh api repos/padahkim/aws-reps/issues/"$PR"/reactions --jq '[.[]|{user:.user.log
 - **지적 있음** → 수정을 반영해 같은 브랜치에 push하고, **인라인 코멘트는 건별로 반드시 답글을 남긴다** (2026-07-22 지시, #80 전례) — 반영이면 반영 커밋 해시와 요지, 거부(반영 부적절 판단)면 거부 사유. 어느 쪽이든 무응답으로 넘기지 않는다. 답글: `gh api repos/padahkim/aws-reps/pulls/<PR>/comments/<comment_id>/replies -f body="..."`. 반영을 마치면 **사용자에게 보고하고 머지 여부를 다시 받는다**.
 - **애매하면** (요약이 지적인지 단순 소감인지 불분명) 클린으로 치지 말고 사용자에게 보고한다.
 
-사용자가 PR에 직접 남긴 코멘트도 같은 자리에서 처리한다 — `gh pr view "$BR" --comments`로 읽어 반영하고 같은 브랜치에 push한다.
+**push할 때마다 이 절을 처음부터 다시 돈다** (1→2→3→판정). 리뷰는 특정 커밋에 대한 것이라, 지적을 반영해 push한 뒤 그대로 B-3으로 가면 **정작 머지되는 최종 코드는 리뷰를 한 번도 안 거친 상태**가 된다 — 게이트를 세운 이유가 그건데 수정 커밋만 빠져나간다 (PR #125 Codex 지적). 마지막 push에 대해 클린 판정이 나와야 B-2가 끝난 것이다.
+
+사용자가 PR에 직접 남긴 코멘트도 같은 자리에서 처리한다 — `gh pr view "$BR" --comments`로 읽어 반영하고 같은 브랜치에 push한다 (이 push 역시 위 재확인 대상이다).
 
 ### B-3. 승인 후 머지 → 동기화
 
