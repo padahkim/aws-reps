@@ -34,3 +34,7 @@ jobs:
       - run: npm run validate
 
       - run: npm run validate:test
+
+      # 문서 신선도 게이트 (#117) — docs/ARCHITECTURE.md 의 사실 블록이
+      # 코드(registry·schema·CURRICULUM·package.json)와 어긋나면 PR을 깬다.
+      - run: node scripts/gen-arch-facts.mts --check
