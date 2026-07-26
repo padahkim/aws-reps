@@ -26,6 +26,9 @@ export { quiz } from "./drills.ts";
 // 섹션 셀프 퀴즈 (이슈 #106) — 데이터는 ./selfquiz.ts, ch0-1과 같은 통로 규약.
 export { selfQuiz } from "./selfquiz.ts";
 
+// 인출 세션 (이슈 #100) — 데이터는 ./session.ts, meta 가 단일 진실 통로 (ch0-1 전례).
+export { session } from "./session.ts";
+
 /**
  * 섹션 헤더 데이터 — 본문 <Sec> 헤더·목차·검증기가 공유하는 단일 진실 (규약 v2).
  * 순서 = 본문 섹션 순서 = 섹션 페이지 URL 번호(1-based) 순서.
