@@ -75,12 +75,14 @@ type TreeTerminal = {
  */
 export function StorageClassDecisionTree() {
   const [a1, setA1] = useState<"known" | "unknown" | null>(null);
+  const [keep, setKeep] = useState<"short" | "long" | null>(null);
   const [a2, setA2] = useState<"ms" | "wait" | null>(null);
   const [a3, setA3] = useState<"freq" | "monthly" | "quarterly" | null>(null);
   const [a3b, setA3b] = useState<"recreate" | "unique" | null>(null);
   const [a4, setA4] = useState<"hours" | "days" | null>(null);
 
-  const pick1 = (v: "known" | "unknown") => { setA1(v); setA2(null); setA3(null); setA3b(null); setA4(null); };
+  const pick1 = (v: "known" | "unknown") => { setA1(v); setKeep(null); setA2(null); setA3(null); setA3b(null); setA4(null); };
+  const pickKeep = (v: "short" | "long") => { setKeep(v); setA2(null); setA3(null); setA3b(null); setA4(null); };
   const pick2 = (v: "ms" | "wait") => { setA2(v); setA3(null); setA3b(null); setA4(null); };
   const pick3 = (v: "freq" | "monthly" | "quarterly") => { setA3(v); setA3b(null); };
 
@@ -96,6 +98,15 @@ export function StorageClassDecisionTree() {
       spec: "최소 기간 없음 · 즉시 접근 · 검색 비용 없음 · 가용성 99.99%",
       exam: "자주 접근하는 데이터의 기본값 — 빅데이터, 콘텐츠 배포",
       rejected: ["Standard-IA·One Zone-IA — 검색 비용 + 최소 30일 규칙: 자주 꺼내는 데이터엔 오히려 불리"],
+    },
+    stdShort: {
+      name: "Standard",
+      spec: "최소 기간 없음 — 언제 지워도 그때까지만 과금",
+      exam: "최소 저장 기간이 다른 축을 이기는 경우 — 30일 안에 지울 데이터는 접근 빈도·검색 속도와 무관하게 Standard(또는 Intelligent-Tiering)가 답이다.",
+      rejected: [
+        "Standard-IA·One Zone-IA — 최소 30일: 일주일 뒤 지워도 30일치가 청구된다",
+        "Glacier Instant·Flexible — 최소 90일 · Deep Archive — 최소 180일: 저장 단가가 싸도 조기 삭제 요금이 이를 덮는다",
+      ],
     },
     sia: {
       name: "Standard-IA",
@@ -135,8 +146,12 @@ export function StorageClassDecisionTree() {
     },
   };
 
+  // 보관 기간이 30일 미만이면 최소 저장 기간(IA 30일 · Glacier 90/180일)이 다른 모든 축을
+  // 이긴다 — 일주일 뒤 지울 객체를 GFR 에 넣으면 90일치를 문다. 그래서 검색 지연·빈도를
+  // 묻기 전에 여기서 단락시킨다 (PR #151 Codex 지적).
   const terminal: TreeTerminal | null =
     a1 === "unknown" ? TERMINALS.it
+    : keep === "short" ? TERMINALS.stdShort
     : a3 === "freq" ? TERMINALS.std
     : a3 === "quarterly" ? TERMINALS.gir
     : a3b === "recreate" ? TERMINALS.ozia
@@ -163,8 +178,18 @@ export function StorageClassDecisionTree() {
   ];
   if (a1 === "known") {
     questions.push({
+      key: "qKeep",
+      label: "Q2. 얼마나 오래 보관하나요?",
+      options: [
+        { v: "short", label: "30일 안에 지운다", on: keep === "short", set: () => pickKeep("short") },
+        { v: "long", label: "30일 이상 둔다", on: keep === "long", set: () => pickKeep("long") },
+      ],
+    });
+  }
+  if (keep === "long") {
+    questions.push({
       key: "q2",
-      label: "Q2. 꺼낼 때 얼마나 빨리 필요한가요?",
+      label: "Q3. 꺼낼 때 얼마나 빨리 필요한가요?",
       options: [
         { v: "ms", label: "밀리초 — 복원 대기 불가", on: a2 === "ms", set: () => pick2("ms") },
         { v: "wait", label: "복원 대기 가능 (분~시간 이상)", on: a2 === "wait", set: () => pick2("wait") },
@@ -174,18 +199,18 @@ export function StorageClassDecisionTree() {
   if (a2 === "ms") {
     questions.push({
       key: "q3",
-      label: "Q3. 얼마나 자주 접근하나요?",
+      label: "Q4. 얼마나 자주 접근하나요?",
       options: [
         { v: "freq", label: "자주 — 월 여러 번", on: a3 === "freq", set: () => pick3("freq") },
         { v: "monthly", label: "가끔 — 월 1회 수준 (백업·DR)", on: a3 === "monthly", set: () => pick3("monthly") },
-        { v: "quarterly", label: "드묾 — 분기 1회 수준, 아카이브 가격", on: a3 === "quarterly", set: () => pick3("quarterly") },
+        { v: "quarterly", label: "드묾 — 분기 1회, 90일 이상 보관", on: a3 === "quarterly", set: () => pick3("quarterly") },
       ],
     });
   }
   if (a3 === "monthly") {
     questions.push({
       key: "q3b",
-      label: "Q3-1. 손실돼도 재생성 가능한 데이터인가요?",
+      label: "Q4-1. 손실돼도 재생성 가능한 데이터인가요?",
       options: [
         { v: "recreate", label: "예 — 재생성 가능한 사본 (단일 AZ 감수)", on: a3b === "recreate", set: () => setA3b("recreate") },
         { v: "unique", label: "아니요 — 원본·유일본", on: a3b === "unique", set: () => setA3b("unique") },
@@ -197,8 +222,8 @@ export function StorageClassDecisionTree() {
       key: "q4",
       label: "Q4. 복원을 얼마나 기다릴 수 있나요?",
       options: [
-        { v: "hours", label: "분~수 시간 안엔 필요", on: a4 === "hours", set: () => setA4("hours") },
-        { v: "days", label: "12시간+ 대기 가능 — 연 1~2회·규정 보관", on: a4 === "days", set: () => setA4("days") },
+        { v: "hours", label: "분~수 시간 안엔 필요 (90일 이상 보관)", on: a4 === "hours", set: () => setA4("hours") },
+        { v: "days", label: "12시간+ 대기 가능 (180일 이상·규정 보관)", on: a4 === "days", set: () => setA4("days") },
       ],
     });
   }
@@ -270,7 +295,7 @@ export function StorageClassDecisionTree() {
             </div>
             <button
               type="button"
-              onClick={() => { setA1(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
+              onClick={() => { setA1(null); setKeep(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
               className="widget-btn"
               style={{
                 ...fillBtn(C.ink, C.inkSoft),

@@ -144,8 +144,12 @@ export function Switch({
           border: "none",
           padding: 0,
           flex: "none",
-          background: disabled ? "#D5DAE0" : on ? colorOn : "#A9B4BF",
-          opacity: disabled ? 0.6 : 1,
+          // 켜진 채 비활성화되는 경우(VPC 보드에서 NAT 를 켠 뒤 VPC 연결을 끄면 그렇다)에도
+          // 켜짐을 그대로 보여준다 — 노브만 off 로 밀면 화면은 꺼졌다고 하고 aria-checked 는
+          // 켜졌다고 해서 서로 어긋나고, 다시 활성화됐을 때 값이 살아나는 것도 설명되지
+          // 않는다 (PR #151 Codex 지적). 비활성은 색이 아니라 opacity 로만 표현한다.
+          background: on ? colorOn : "#A9B4BF",
+          opacity: disabled ? 0.45 : 1,
           transition: "background .2s, filter .15s",
           "--switch-ring": disabled ? "transparent" : colorOn,
         } as CSSProperties
@@ -155,7 +159,7 @@ export function Switch({
         style={{
           position: "absolute",
           top: 2,
-          left: on && !disabled ? 22 : 2,
+          left: on ? 22 : 2,
           width: 20,
           height: 20,
           borderRadius: "50%",

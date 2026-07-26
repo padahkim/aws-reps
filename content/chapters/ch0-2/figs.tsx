@@ -355,7 +355,7 @@ export function PolicyAnatomy() {
     { t: `    "Action": ["s3:GetObject"],`, k: "Action", code: "#FFB55C", chip: C.amberText, note: "허용/거부할 API 동작 (필수)" },
     { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, k: "Resource", code: "#F4A08A", chip: C.red, note: "대상 리소스의 ARN (필수)" },
     { t: `    "Condition": {`, k: "Condition", code: "#6FD3C4", chip: C.teal, note: "적용 조건 (IP·MFA·태그 등) — 선택" },
-    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }` },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" }` },
     { t: `    }` },
     { t: `  }]` },
     { t: `}` },
@@ -756,6 +756,13 @@ function ReqChip({
  * - 버킷 ARN(:::my-bucket)과 객체 ARN(:::my-bucket/*)은 다른 ARN — §04 본문·InfoCard.
  * - Allow 절이 하나도 매칭되지 않으면 기본값인 암묵적 거부 — EvalEngine 평가 순서와 동일.
  * - Condition 이 있는 절은 조건 불충족 시 발효되지 않음 (aws:SourceIp·aws:MultiFactorAuthPresent) — §04 Condition 절.
+ *
+ * IP 는 공인 주소로 모델링한다 (PR #151 Codex 지적, P1). aws:SourceIp 는 요청이 AWS 에
+ * 도달할 때 관찰되는 주소라, 사무실 사설 IP(10.x)는 NAT 를 거쳐 공인 주소로 바뀐 뒤에야
+ * 보인다 — 사설 CIDR 을 조건으로 걸면 이 위젯이 "사내망이면 ALLOW"라는 성립 불가능한
+ * 인과를 가르치게 된다. 그래서 조건도 선택지도 문서용 예약 대역(RFC 5737)의 공인 주소를
+ * 쓴다. (VPC 엔드포인트 경유 요청은 aws:SourceIp 대신 aws:VpcSourceIp 를 쓰지만, 그
+ * 경로는 이 섹션 범위 밖이라 다루지 않는다.)
  */
 export function PolicyRequestTester() {
   const [action, setAction] = useState<"get" | "list">("get");
@@ -798,7 +805,7 @@ export function PolicyRequestTester() {
         ? "s3:GetObject Allow는 있지만 그 절의 Resource는 객체 ARN(:::my-bucket/*) — 버킷 자체(:::my-bucket)와는 다른 ARN이라 매칭 실패. 유효한 Action도 Resource가 안 맞으면 암묵적 거부."
         : "s3:ListBucket Allow의 Resource는 버킷 ARN(:::my-bucket) — 객체 ARN(:::my-bucket/*)과는 다른 ARN이라 매칭 실패."
       : failClause === "ip"
-        ? "Action·Resource는 매칭되지만 요청 IP가 IpAddress 조건(10.0.0.0/16) 밖 — 절이 발효되지 않아 암묵적 거부."
+        ? "Action·Resource는 매칭되지만 요청 IP가 IpAddress 조건(203.0.113.0/24) 밖 — 절이 발효되지 않아 암묵적 거부."
         : "Action·Resource·IP까지 매칭되지만 aws:MultiFactorAuthPresent:true 조건 불충족 — MFA 없는 요청은 암묵적 거부.";
 
   // 정책 JSON 라인 — stIdx 로 statement 를, clause 로 결정 절 하이라이트를 건다
@@ -811,7 +818,7 @@ export function PolicyRequestTester() {
     { t: `    "Action": ["s3:ListBucket"],`, stIdx: 0, clause: "action" },
     { t: `    "Resource": "arn:aws:s3:::my-bucket",`, stIdx: 0, clause: "resource" },
     { t: `    "Condition": {`, stIdx: 0 },
-    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }`, stIdx: 0, clause: "ip" },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" }`, stIdx: 0, clause: "ip" },
     { t: `    }` , stIdx: 0 },
     { t: `  }, {` },
     { t: `    "Sid": "ReadObjectsWithMfa",`, stIdx: 1 },
@@ -819,7 +826,7 @@ export function PolicyRequestTester() {
     { t: `    "Action": ["s3:GetObject"],`, stIdx: 1, clause: "action" },
     { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, stIdx: 1, clause: "resource" },
     { t: `    "Condition": {`, stIdx: 1 },
-    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" },`, stIdx: 1, clause: "ip" },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" },`, stIdx: 1, clause: "ip" },
     { t: `      "Bool": { "aws:MultiFactorAuthPresent": "true" }`, stIdx: 1, clause: "mfa" },
     { t: `    }`, stIdx: 1 },
     { t: `  }]` },
@@ -847,8 +854,8 @@ export function PolicyRequestTester() {
     {
       label: "요청 IP",
       chips: [
-        { key: "in", label: "10.0.14.3 (사내망)", active: inside, set: () => setInside(true) },
-        { key: "out", label: "203.0.113.9 (외부)", active: !inside, set: () => setInside(false) },
+        { key: "in", label: "203.0.113.9 (사무실 NAT)", active: inside, set: () => setInside(true) },
+        { key: "out", label: "198.51.100.7 (카페 Wi-Fi)", active: !inside, set: () => setInside(false) },
       ],
     },
     {
@@ -991,6 +998,12 @@ export function PolicyRequestTester() {
               <> — 지금은 <b style={{ color: C.red }}>{clauseLabel[failClause]}</b>에서 끊겼습니다</>
             )}
             . 여러 정책이 얽힌 우선순위(Deny 우선 등)는 §06 평가 시뮬레이터에서 다룹니다.
+          </p>
+          <p style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.55, margin: "6px 0 0", opacity: 0.9 }}>
+            전제: 요청자는 <b>MFA로 인증한 IAM 사용자</b>이고, 사무실 요청은 회사 NAT를 거쳐 공인
+            IP로 나갑니다. <span style={{ fontFamily: MONO }}>aws:MultiFactorAuthPresent</span>는
+            자격증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
+            <span style={{ fontFamily: MONO }}>aws:SourceIp</span>는 AWS가 관찰하는 공인 주소입니다.
           </p>
         </div>
       </div>
