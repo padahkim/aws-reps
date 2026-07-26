@@ -104,9 +104,12 @@ spike는 코드 변경 없이 닫히는 것이 정상이다 — 완료 기준에
 3. 보드 추가 — 등록 직후, 이슈를 Projects 보드 "aws-reps 로드맵"에 넣는다 (CLAUDE.md
    Task management: 보드는 큐의 시각화, 갱신은 세션의 몫). `/land`만 기다리면 이슈만
    등록하고 끝나는 세션에서 이슈가 보드 밖에 남는다 — 등록한 세션이 바로 추가한다.
-   - gh 허용 머신: `gh project item-add 1 --owner "@me" --url <이슈 URL>` 후 **Phase
-     필드를 설정**한다 (Milestones 대신 Phase 필드 — 필드 설정 스크립트는 land 스킬
-     "보드 갱신" 참조).
+   - gh 허용 머신: land 스킬 "보드 갱신"의 블록을 **`FIELD=Phase; TARGET=<Phase 값>`**
+     으로 실행한다 (Milestones 대신 Phase 필드 — CLAUDE.md Task management). 그 블록이
+     **보드에 없으면 `item-add`까지** 하므로 추가·설정이 한 번에 끝나고, 끝에 재조회로
+     확인까지 한다. Phase 값은 `Phase1. MVP-콘텐츠`…`Phase5. 릴리즈 후`·`상시·기타`.
+   - **Status는 손대지 않는다** — `Item added to project` 워크플로가 `Todo`로 넣어 준다
+     (2026-07-27 실측, #154). 착수 시점의 `In Progress`는 /issue 스킬이 설정한다.
    - gh 차단 머신: 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션이 동기화한다.
 
 ## 좋은 예 / 나쁜 예

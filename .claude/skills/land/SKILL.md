@@ -327,17 +327,53 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 - **즉시 착지 완료 / PR 머지 완료(B-3)** → 해당 이슈를 `Done`으로.
 - **PR 착지 대기(B-1까지)** → `In Progress` 유지.
 
+아래 블록은 **필드 하나를 목표값으로 맞추는 범용 절차**다 — `Status`(이 절)와 `Phase`(신규 등록 시, write-issue §3)가 같은 코드를 쓴다.
+
 ```bash
-N=<이슈 번호>; TARGET=Done   # 또는 "In Progress"
-PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
-IT=$(gh project item-list 1 --owner "@me" --limit 50 --format json | python3 -c "import json,sys;print(next((i['id'] for i in json.load(sys.stdin)['items'] if i['content'].get('number')==$N),''))")
-[ -n "$IT" ] || IT=$(gh project item-add 1 --owner "@me" --url "https://github.com/padahkim/aws-reps/issues/$N" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
-FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='Status');import os;print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
-gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }"
+N=<이슈 번호>; FIELD=Status; TARGET=Done   # Status → "Done"·"In Progress"
+                                          # Phase  → "Phase1. MVP-콘텐츠"…"Phase5. 릴리즈 후"·"상시·기타"
+
+# 보드 전체를 한 번 받아 재사용한다. --limit 은 항목 수보다 커야 하고, 잘렸는지는 추측하지 않고
+# totalCount 와 대조해 즉시 실패시킨다 (조용히 못 찾는 것이 이 절차의 사고 지점이었다 — #154)
+BOARD=$(gh project item-list 1 --owner "@me" --limit 500 --format json) || exit 1
+# 한 줄 "id|status" 로 받아 파라미터 확장으로 가른다 — heredoc+read 로 받으면 `|| exit 1` 이
+# 셸 문법이 아니라 heredoc 본문 글자로 먹혀서 종료 코드가 죽고 status 에 붙는다 (#154 실측)
+INFO=$(printf '%s' "$BOARD" | python3 -c "
+import json,sys
+d = json.load(sys.stdin); items = d['items']
+if len(items) < d['totalCount']:
+    sys.exit(f\"보드 조회가 잘렸다: {len(items)}/{d['totalCount']} — --limit 을 올려라\")
+it = next((i for i in items if i['content'].get('number') == $N), None)
+print(f\"{it['id']}|{it.get('$FIELD'.lower()) or '-'}\" if it else '-|-')
+") || exit 1
+IT=${INFO%%|*}; CUR=${INFO#*|}
+
+if [ "$IT" = "-" ]; then                      # 보드에 없다 (조회 실패와는 다르다 — 위에서 걸러졌다)
+  echo "보드에 없음 → 추가한다"
+  IT=$(gh project item-add 1 --owner "@me" --url "https://github.com/padahkim/aws-reps/issues/$N" --format json \
+       | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || exit 1
+  CUR=-
+fi
+
+if [ "$CUR" = "$TARGET" ]; then
+  echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
+else
+  PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
+  FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='$FIELD');print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
+  gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }" || exit 1
+fi
+
+# 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다
+gh project item-list 1 --owner "@me" --limit 500 --format json | python3 -c "
+import json,sys
+s = next((i.get('$FIELD'.lower()) for i in json.load(sys.stdin)['items'] if i['content'].get('number') == $N), None)
+print(f'보드 확인: #$N $FIELD={s}')
+sys.exit(0 if s == '$TARGET' else '보드 갱신 실패 — 위 값이 목표와 다르다')"
 ```
 
-- 순서 주의: **추가가 먼저, 상태 설정이 나중** — 보드에 없는 이슈를 상태부터 설정하려 하면 조회가 빈 값으로 끝나 상태가 기본값으로 남는다. 위 스크립트는 조회 실패 시 item-add로 추가한 뒤 그 item ID로 상태를 설정한다.
-- item-add로 새로 추가한 이슈는 **Phase 필드도 설정**한다 (CLAUDE.md Task management의 보드 규칙 — Milestones 대신 Phase 필드).
+- **보드에는 내장 워크플로가 이미 돌고 있다** (2026-07-27 실측, `ProjectV2.workflows` GraphQL 조회 — 전부 enabled): `Item closed`·`Item added to project`·`Pull request merged`·`Pull request linked to issue`·`Auto-add sub-issues to project`·`Auto-close issue`. 그래서 `closes #N`으로 닫히는 **표준 경로에서는 Done이 자동으로 붙는다** — 위 스크립트가 Done을 "설정"이 아니라 **"확인하고 다를 때만 설정"** 으로 바뀐 이유다. 반면 **`In Progress`는 자동화가 없으므로** 착수 시 세션이 반드시 설정해야 한다.
+- 순서 주의: **추가가 먼저, 상태 설정이 나중** — 보드에 없는 이슈를 상태부터 설정하려 하면 빈 id로 `item-edit`을 불러 GraphQL 오류로 죽는다(#154 실측). 위 스크립트는 "조회가 잘림"(즉시 실패)과 "보드에 없음"(추가)을 **구분**한다.
+- item-add로 새로 추가한 이슈는 **Phase 필드도 설정**한다 (CLAUDE.md Task management의 보드 규칙 — Milestones 대신 Phase 필드). Status는 `Item added to project` 워크플로가 `Todo`로 넣어 준다.
 - gh 차단 머신에서는 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션 시작 시 동기화한다.
 
 ## 이슈 close-out — 체크박스 갱신 (생략 불가)
