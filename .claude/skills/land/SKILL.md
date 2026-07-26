@@ -332,21 +332,36 @@ A-3·B-3의 브랜치 삭제는 방금 착지한 브랜치만 다룬다. 여기�
 #    (develop/main 제외, 워크트리에 체크아웃된 브랜치는 "+" 표시라 자동 제외, -d라 미머지는 어차피 거부됨)
 git branch --merged develop | grep -vE '^[+*]|develop$|main' | xargs -n1 git branch -d 2>/dev/null || true
 
-# 2) 앱 자동 생성 워크트리(.claude/worktrees/*) 중 착지가 끝난 것 제거
-#    안전 조건: 현재 세션 워크트리가 아니고 + 클린하고 + HEAD가 이미 develop에 포함된 것만
+# 2) 앱 자동 생성 워크트리(.claude/worktrees/*) 중 착지가 끝나고 "식은" 것만 제거
+#    안전 조건 4가지: 현재 세션 워크트리 아님 + 최근 활동 없음(GRACE) + 클린 + HEAD가 develop에 포함
 SELF=$(git rev-parse --show-toplevel)
+GRACE=720                                                     # 분(=12시간). 활동 유예 — 아래 "왜 유예인가" 참조
 for W in "$MAIN"/.claude/worktrees/*/; do
   [ -d "$W" ] || continue
   W=${W%/}
   [ "$W" = "$SELF" ] && continue                              # 자기 자신은 건드리지 않는다
-  [ -n "$(git -C "$W" status --porcelain)" ] && continue      # 더러우면 다른 세션 진행 중일 수 있다 — 건너뛰고 보고
+
+  # (a) 활성 세션 판별 — 반드시 status보다 먼저 한다
+  #     (git status는 인덱스를 다시 쓸 수 있어, 나중에 재면 우리가 만든 mtime을 재게 된다)
+  GD=$(git -C "$W" rev-parse --path-format=absolute --git-dir 2>/dev/null) || continue
+  SLUG=$(printf '%s' "$W" | tr '/.' '--')                     # ~/.claude/projects 의 경로 슬러그 규칙
+  HOT=$(find "$GD" -maxdepth 1 -mmin "-$GRACE" 2>/dev/null | head -1)                    # git 활동
+  [ -z "$HOT" ] && HOT=$(find "$HOME/.claude/projects/$SLUG" -maxdepth 1 -name '*.jsonl' \
+                              -mmin "-$GRACE" 2>/dev/null | head -1)                     # 세션 대화 활동
+  [ -n "$HOT" ] && continue                                   # 최근 활동 = 살아 있는 세션 — 건너뛰고 보고
+
+  # (b) 착지 완료 판별
+  [ -n "$(git -C "$W" status --porcelain)" ] && continue      # 더러우면 작업 중 — 건너뛰고 보고
   git merge-base --is-ancestor "$(git -C "$W" rev-parse HEAD)" develop \
     && git worktree remove "$W"
 done
 git worktree prune
 ```
 
-- 더러워서 건너뛴 워크트리가 있으면 보고에 명시한다 — 사용자가 병렬 세션 여부를 판단한다.
+- **왜 유예인가 — 2026-07-26 사고 (#130)**: 제거 조건이 "클린 + develop에 포함"뿐이던 시절, 세션 A가 PR #128을 머지한 **직후**(워크트리는 클린, HEAD는 develop에 포함) 병렬 세션 B의 이 단계가 세션 A의 워크트리를 제거했다. 자기 보호 조건(`$W = $SELF`)은 정리를 *실행하는* 세션만 지킨다. 결과: 세션 A는 훅 스크립트(`scripts/git_guard.py`) 소실로 **모든 Bash 호출이 차단**(훅 부재 = fail-closed)되고, `.git` 포인터 소실로 git 명령이 상위 메인 리포로 오해석됐다. 즉 **"착지가 끝났다"는 "세션이 끝났다"가 아니다** — 시간 유예가 그 둘을 가른다.
+- 두 신호(git 메타데이터 mtime, 세션 트랜스크립트 mtime) 중 **하나라도 뜨거우면 건너뛴다**. 비용이 비대칭이기 때문이다 — 잔재를 못 지우면 다음 세션이 지우면 그만이지만, 살아 있는 워크트리를 지우면 병렬 세션이 그 자리에서 죽는다.
+- 12시간은 "어제 이전의 잔재만 지운다"는 뜻이다. 하루 한 번 이상 착지하는 리듬이면 잔재는 다음 날 세션이 확실히 치운다.
+- 건너뛴 워크트리가 있으면 **사유(최근 활동 / 더러움)와 함께** 보고에 명시한다 — 사용자가 병렬 세션 여부를 판단한다.
 - `eval/*` 등 `.claude/worktrees/` 밖의 수동 워크트리는 이 정리 대상이 아니다 — 사용자가 직접 관리한다.
 - 현재 세션이 앱 자동 생성 워크트리 안이라면 자기 워크트리는 남는다 — 세션 종료 후 다음 착지 세션의 이 단계가 치운다.
 
@@ -356,7 +371,7 @@ git worktree prune
 
 ## 보고
 
-develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과, **Codex 리뷰 결과**(지적 0건 / 반영 n건 / 미도착 — **판정받은 head SHA와 머지한 head SHA를 함께** 적는다. 둘이 같다는 게 게이트가 실제로 작동했다는 유일한 증거다), 보드 갱신 결과(또는 "보드 미갱신"), 이슈 체크박스 갱신 결과(미달성 항목 포함, 또는 "체크박스 미갱신"), 잔재 정리 결과(삭제한 브랜치·워크트리 수, 더러워서 건너뛴 워크트리)를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
+develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push 결과, **Codex 리뷰 결과**(지적 0건 / 반영 n건 / 미도착 — **판정받은 head SHA와 머지한 head SHA를 함께** 적는다. 둘이 같다는 게 게이트가 실제로 작동했다는 유일한 증거다), 보드 갱신 결과(또는 "보드 미갱신"), 이슈 체크박스 갱신 결과(미달성 항목 포함, 또는 "체크박스 미갱신"), 잔재 정리 결과(삭제한 브랜치·워크트리 수, 건너뛴 워크트리와 사유 — 최근 활동 / 더러움)를 사용자에게 보고한다. PR 착지 대기 상태면 PR URL과 사유를 보고한다.
 
 ## 주의
 
