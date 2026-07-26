@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { C, FigSwitch } from "../ui";
-import { SimFrame } from "../interactive";
+import { SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 챕터 로컬 컴포넌트 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -544,6 +544,214 @@ export function CanaryWeightSlider() {
         <b style={{ color: C.teal }}>{weight}%</b>로 나눕니다 — 신규 버전을 소량으로 검증한 뒤
         가중치를 올려 전환을 완료하는 <b>카나리 배포</b> 패턴입니다.
       </p>
+    </SimFrame>
+  );
+}
+
+/* ============ 인터랙티브: VPC 도달성 보드 (#72 신규) ============ */
+
+/**
+ * VPC 도달성 보드 — 네트워크 구성 4개(VPC 연결 / 서브넷 유형 / NAT / DynamoDB Gateway
+ * 엔드포인트)를 바꾸면 대상별 도달성이 실시간 갱신되는 config-consequence 보드.
+ * "퍼블릭 서브넷 ≠ 인터넷" 함정(§11 WarnBox)을 예측-위반으로 직격하는 게 목적.
+ *
+ * 진리표 (사실 근거는 §11 본문·원본 aws-lambda-dva-guide.jsx S_VPC — #72 코멘트 기록 대상):
+ * - 인터넷      = VPC 미연결(기본: AWS 소유 VPC) ∨ (프라이빗 서브넷 ∧ NAT).
+ *                퍼블릭 서브넷은 NAT 여부와 무관하게 ✖ — Lambda ENI는 공인 IP가 없고,
+ *                퍼블릭 서브넷의 라우트는 IGW를 향하므로 NAT가 무의미하다.
+ * - DynamoDB   = VPC 미연결 ∨ Gateway 엔드포인트 ∨ 인터넷 경로 확보(= 프라이빗 ∧ NAT).
+ * - RDS·ElastiCache = VPC 연결 시에만 ✔ (ENI 경유 — 보안 그룹 허용·VPCAccessExecutionRole 전제).
+ * - CloudWatch Logs = 항상 ✔ (NAT·엔드포인트 없이 동작).
+ */
+export function VpcReachabilityBoard() {
+  const [vpc, setVpc] = useState(false);
+  const [subnet, setSubnet] = useState<"private" | "public">("private");
+  const [nat, setNat] = useState(false);
+  const [ddbEp, setDdbEp] = useState(false);
+
+  const internet = !vpc || (subnet === "private" && nat);
+  const publicTrap = vpc && subnet === "public";
+
+  const rows: { target: string; ok: boolean; why: string }[] = [
+    {
+      target: "인터넷 (외부 API)",
+      ok: internet,
+      why: !vpc
+        ? "기본 실행 환경(AWS 소유 VPC)은 인터넷에 접근 가능"
+        : publicTrap
+          ? nat
+            ? "✖ 그대로 — 공인 IP가 없고, 퍼블릭 서브넷의 라우트는 IGW를 향해 NAT가 무의미"
+            : "퍼블릭 서브넷이어도 공인 IP가 없어 IGW를 못 탄다 (EC2와 다른 점)"
+          : nat
+            ? "프라이빗 서브넷 → NAT → IGW 경로 확보"
+            : "나가는 경로 없음 — 프라이빗 서브넷 + NAT 필요",
+    },
+    {
+      target: "RDS · ElastiCache (내 VPC 리소스)",
+      ok: vpc,
+      why: vpc
+        ? "ENI로 VPC 내부 접근 (보안 그룹 허용 + AWSLambdaVPCAccessExecutionRole 전제)"
+        : "내 VPC 밖에서 실행 중 — 내부 리소스 접근 불가",
+    },
+    {
+      target: "DynamoDB (퍼블릭 API)",
+      ok: !vpc || ddbEp || internet,
+      why: !vpc
+        ? "기본 환경에서 퍼블릭 API로 접근 가능"
+        : ddbEp
+          ? "Gateway 엔드포인트로 NAT 없이 프라이빗 접근"
+          : internet
+            ? "NAT 경유 퍼블릭 엔드포인트로 접근"
+            : "인터넷 경로도 VPC 엔드포인트도 없음",
+    },
+    {
+      target: "CloudWatch Logs",
+      ok: true,
+      why: "NAT·엔드포인트 없이도 항상 동작",
+    },
+  ];
+
+  const toggles: { label: string; sub?: string; on: boolean; fn: () => void }[] = [
+    { label: "NAT Gateway", sub: "프라이빗 서브넷의 아웃바운드 경로", on: nat, fn: () => setNat(!nat) },
+    { label: "DynamoDB Gateway 엔드포인트", sub: "NAT 없는 프라이빗 접근", on: ddbEp, fn: () => setDdbEp(!ddbEp) },
+  ];
+
+  return (
+    <SimFrame title="VPC 도달성 보드 — 구성을 바꿔 도달성을 예측해 보세요" icon="🌐">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: "0.72rem", color: C.inkSoft, marginBottom: 8, letterSpacing: 1 }}>
+            CONFIG — 네트워크 구성
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 4px" }}>
+            <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>
+              VPC에 연결
+              <span style={{ display: "block", fontSize: "0.72rem", color: C.inkSoft, fontWeight: 400 }}>
+                OFF = 기본 (AWS 소유 VPC에서 실행)
+              </span>
+            </span>
+            <Switch on={vpc} onClick={() => setVpc(!vpc)} colorOn={C.teal} label="VPC에 연결" />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 10,
+              padding: "9px 4px",
+              opacity: vpc ? 1 : 0.45,
+            }}
+          >
+            <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>서브넷 유형</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {(
+                [
+                  ["private", "프라이빗"],
+                  ["public", "퍼블릭"],
+                ] as const
+              ).map(([v, lbl]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setSubnet(v)}
+                  disabled={!vpc}
+                  aria-pressed={subnet === v}
+                  style={{
+                    cursor: vpc ? "pointer" : "not-allowed",
+                    fontFamily: MONO,
+                    fontSize: "0.74rem",
+                    padding: "6px 11px",
+                    borderRadius: 8,
+                    border: `1.5px solid ${vpc && subnet === v ? C.blue : C.line}`,
+                    background: vpc && subnet === v ? C.blueSoft : "transparent",
+                    color: vpc && subnet === v ? C.blue : C.inkSoft,
+                    fontWeight: vpc && subnet === v ? 700 : 400,
+                  }}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {toggles.map((t) => (
+            <div
+              key={t.label}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+                padding: "9px 4px",
+                opacity: vpc ? 1 : 0.45,
+              }}
+            >
+              <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>
+                {t.label}
+                {t.sub && (
+                  <span style={{ display: "block", fontSize: "0.72rem", color: C.inkSoft, fontWeight: 400 }}>{t.sub}</span>
+                )}
+              </span>
+              <Switch on={t.on} onClick={t.fn} colorOn={C.teal} label={t.label} disabled={!vpc} />
+            </div>
+          ))}
+
+          {!vpc && (
+            <p style={{ fontSize: "0.78rem", color: C.inkSoft, lineHeight: 1.6, margin: "8px 0 0" }}>
+              VPC에 연결하지 않은 기본 상태 — 서브넷·NAT·엔드포인트는 VPC를 연결해야 의미가 생깁니다.
+            </p>
+          )}
+          {publicTrap && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "10px 12px",
+                borderRadius: 9,
+                background: C.redSoft,
+                border: `1.5px solid ${C.red}`,
+                fontSize: "0.8rem",
+                lineHeight: 1.6,
+                color: C.ink,
+              }}
+            >
+              <b style={{ color: C.red }}>⚠ 가장 유명한 함정</b> — 퍼블릭 서브넷으로 옮겼는데 인터넷이{" "}
+              <b>✖ 그대로</b>입니다. VPC 내 Lambda는 공인 IP를 받지 못하므로, 인터넷은{" "}
+              <b>프라이빗 서브넷 + NAT</b>로만 열립니다.
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: "0.72rem", color: C.inkSoft, marginBottom: 8, letterSpacing: 1 }}>
+            REACHABILITY — 어디에 닿는가
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {rows.map((r) => (
+              <div
+                key={r.target}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "9px 11px",
+                  borderRadius: 9,
+                  border: `1.5px solid ${r.ok ? C.teal : C.red}`,
+                  background: r.ok ? C.tealSoft : C.redSoft,
+                }}
+              >
+                <span style={{ fontFamily: MONO, fontWeight: 900, color: r.ok ? C.teal : C.red, flex: "none" }}>
+                  {r.ok ? "✔" : "✖"}
+                </span>
+                <div>
+                  <div style={{ fontSize: "0.86rem", fontWeight: 700, color: C.ink }}>{r.target}</div>
+                  <div style={{ fontSize: "0.76rem", color: C.inkSoft, lineHeight: 1.55, marginTop: 2 }}>{r.why}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </SimFrame>
   );
 }

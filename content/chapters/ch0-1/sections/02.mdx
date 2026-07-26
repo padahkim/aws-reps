@@ -1,5 +1,5 @@
 import { ChLink, Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
-import { ApiConvergeSvg } from "../figs";
+import { ApiConvergeSvg, CredentialChainResolver } from "../figs";
 
 AWS를 조작하는 도구는 세 가지입니다: 브라우저에서 버튼을 누르는 <b>웹 콘솔</b>, 터미널에서 명령을 치는 <b>CLI</b>, 코드 안에서 호출하는 <b>SDK</b>. 겉모습이 너무 달라서 초심자는 셋을 별개의 시스템으로 착각하기 쉽습니다. 하지만 —
 
@@ -51,6 +51,8 @@ API가 인터넷에 열려 있는 이상, AWS는 날아온 요청이 <b>누구�
 <Note>여기서 <b>롤(Role)</b>이란 고정 자격증명 없이 필요할 때 “빌려 쓰는” IAM 신원입니다 — 자세한 개념은 <ChLink id="ch0-2">ch0-2 IAM</ChLink>에서 다룹니다. EC2에 롤만 붙여두면 코드는 자격증명을 전혀 몰라도 동작합니다. “같은 코드가 로컬에서는 설정 파일, EC2에서는 롤로 인증된다” — 이 체인 개념이 시험에 나옵니다.</Note>
 
 순서에도 논리가 있습니다: 명시적인 것(코드 파라미터)이 가장 먼저, 환경에 붙어 있는 것(롤)이 가장 나중 — 즉 <b>구체적인 지정이 기본값을 이깁니다</b>. 그리고 ④번 롤이 “권장 방식”인 이유는 위 표와 연결됩니다: 롤은 만료되는 임시 자격증명을 자동으로 받아 쓰므로, 유출될 영구 키 자체가 존재하지 않기 때문입니다.
+
+<CredentialChainResolver />
 
 <ExamPoint>
   <ExamLi>“애플리케이션에 자격증명을 가장 안전하게 제공하는 방법은?” → <b><ChLink id="ch0-2">IAM 롤</ChLink></b> (하드코딩·환경변수·설정파일 배포는 오답)</ExamLi>

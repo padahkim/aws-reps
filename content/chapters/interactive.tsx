@@ -45,6 +45,59 @@ export function SimFrame({ title, icon = "🎛", children }: { title: string; ic
   );
 }
 
+/** 토글 스위치 — ch0-2 EvalEngine 로컬 구현을 공용으로 승격(#72, 신규 인터랙티브 4종이 재사용). */
+export function Switch({
+  on,
+  onClick,
+  colorOn,
+  label,
+  disabled = false,
+}: {
+  on: boolean;
+  onClick: () => void;
+  colorOn: string;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        width: 44,
+        height: 24,
+        borderRadius: 20,
+        position: "relative",
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: "none",
+        padding: 0,
+        flex: "none",
+        background: disabled ? "#D5DAE0" : on ? colorOn : "#A9B4BF",
+        opacity: disabled ? 0.6 : 1,
+        transition: "background .2s",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: on && !disabled ? 22 : 2,
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "#fff",
+          transition: "left .2s",
+          boxShadow: "0 1px 3px rgba(0,0,0,.25)",
+        }}
+      />
+    </button>
+  );
+}
+
 /** 셀프 퀴즈 문항 — 질문을 보고 스스로 답을 생성한 뒤 정답과 대조한다. */
 export interface SelfQuizItem {
   q: string;

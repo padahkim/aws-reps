@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
+import { SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -597,44 +598,6 @@ export function StsSequenceSvg() {
 
 /* ============ 인터랙티브: 정책 평가 시뮬레이터 (iam_guide EvalEngine 이식) ============ */
 
-function Switch({ on, onClick, colorOn, label }: { on: boolean; onClick: () => void; colorOn: string; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onClick}
-      style={{
-        width: 44,
-        height: 24,
-        borderRadius: 20,
-        position: "relative",
-        cursor: "pointer",
-        border: "none",
-        padding: 0,
-        flex: "none",
-        background: on ? colorOn : "#A9B4BF",
-        transition: "background .2s",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 2,
-          left: on ? 22 : 2,
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: "#fff",
-          transition: "left .2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,.25)",
-        }}
-      />
-    </button>
-  );
-}
-
 /**
  * 정책 평가 시뮬레이터 — 토글 4개로 요청 조건을 바꾸면 AWS 평가 순서(단순화:
  * 명시적 Deny > SCP > Permission Boundary > 명시적 Allow > 암묵적 Deny)에 따라
@@ -745,5 +708,304 @@ export function EvalEngine() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ============ 인터랙티브: 정책 요청 테스터 (#72 신규) ============ */
+
+/** 요청 조립용 칩 버튼 — InvocationModeExplorer(ch1-2) 버튼 관례. */
+function ReqChip({
+  active,
+  onClick,
+  color,
+  soft,
+  text,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: string;
+  soft: string;
+  text: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        cursor: "pointer",
+        fontFamily: MONO,
+        fontSize: "0.74rem",
+        padding: "6px 11px",
+        borderRadius: 8,
+        border: `1.5px solid ${active ? color : C.line}`,
+        background: active ? soft : "transparent",
+        color: active ? text : C.inkSoft,
+        fontWeight: active ? 700 : 400,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * 정책 요청 테스터 — 샘플 S3 정책(2 statement)에 요청을 조립하면 단일 정책 내
+ * 필드 매칭(Action → Resource → Condition)으로 ALLOW/암묵적 DENY를 판정하고,
+ * 결정 절을 하이라이트한다. EvalEngine(§06)이 다루는 교차 정책 우선순위와 다른 축 —
+ * 여기는 "한 정책 안에서 어느 절이 왜 매칭/실패하는가"다.
+ *
+ * 판정 로직의 사실 근거 (#72 코멘트 기록 대상):
+ * - 버킷 ARN(:::my-bucket)과 객체 ARN(:::my-bucket/*)은 다른 ARN — §04 본문·InfoCard.
+ * - Allow 절이 하나도 매칭되지 않으면 기본값인 암묵적 거부 — EvalEngine 평가 순서와 동일.
+ * - Condition 이 있는 절은 조건 불충족 시 발효되지 않음 (aws:SourceIp·aws:MultiFactorAuthPresent) — §04 Condition 절.
+ */
+export function PolicyRequestTester() {
+  const [action, setAction] = useState<"get" | "list">("get");
+  const [target, setTarget] = useState<"bucket" | "object">("object");
+  const [inside, setInside] = useState(true);
+  const [mfa, setMfa] = useState(false);
+
+  // statement 별 필드 매칭 — MFA 조건은 두 번째 절에만 있다 (첫 절은 조건 자체가 없어 항상 통과)
+  const st = [
+    {
+      sid: "ListMyBucket",
+      actionOk: action === "list",
+      resourceOk: target === "bucket",
+      ipOk: inside,
+      mfaOk: true,
+      hasMfa: false,
+    },
+    {
+      sid: "ReadObjectsWithMfa",
+      actionOk: action === "get",
+      resourceOk: target === "object",
+      ipOk: inside,
+      mfaOk: mfa,
+      hasMfa: true,
+    },
+  ].map((s) => ({ ...s, matched: s.actionOk && s.resourceOk && s.ipOk && s.mfaOk }));
+
+  const allow = st.some((s) => s.matched);
+  // 결정 절: 허용이면 매칭된 절, 거부면 Action이 맞는 절(요청 Action은 정확히 한 절에 있다)
+  const di = allow ? st.findIndex((s) => s.matched) : st.findIndex((s) => s.actionOk);
+  const d = st[di];
+  const failClause = d.matched ? null : !d.resourceOk ? "resource" : !d.ipOk ? "ip" : "mfa";
+
+  const reason = allow
+    ? di === 0
+      ? `"${d.sid}" 절 매칭 — Action·Resource·IP 조건 모두 충족. 이 절엔 MFA 조건이 없어 MFA 여부와 무관합니다.`
+      : `"${d.sid}" 절 매칭 — 객체 ARN·사내 IP·MFA까지 모두 충족.`
+    : failClause === "resource"
+      ? action === "get"
+        ? "s3:GetObject Allow는 있지만 그 절의 Resource는 객체 ARN(:::my-bucket/*) — 버킷 자체(:::my-bucket)와는 다른 ARN이라 매칭 실패. 유효한 Action도 Resource가 안 맞으면 암묵적 거부."
+        : "s3:ListBucket Allow의 Resource는 버킷 ARN(:::my-bucket) — 객체 ARN(:::my-bucket/*)과는 다른 ARN이라 매칭 실패."
+      : failClause === "ip"
+        ? "Action·Resource는 매칭되지만 요청 IP가 IpAddress 조건(10.0.0.0/16) 밖 — 절이 발효되지 않아 암묵적 거부."
+        : "Action·Resource·IP까지 매칭되지만 aws:MultiFactorAuthPresent:true 조건 불충족 — MFA 없는 요청은 암묵적 거부.";
+
+  // 정책 JSON 라인 — stIdx 로 statement 를, clause 로 결정 절 하이라이트를 건다
+  const lines: { t: string; stIdx?: number; clause?: string }[] = [
+    { t: `{` },
+    { t: `  "Version": "2012-10-17",` },
+    { t: `  "Statement": [{` },
+    { t: `    "Sid": "ListMyBucket",`, stIdx: 0 },
+    { t: `    "Effect": "Allow",`, stIdx: 0 },
+    { t: `    "Action": ["s3:ListBucket"],`, stIdx: 0, clause: "action" },
+    { t: `    "Resource": "arn:aws:s3:::my-bucket",`, stIdx: 0, clause: "resource" },
+    { t: `    "Condition": {`, stIdx: 0 },
+    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }`, stIdx: 0, clause: "ip" },
+    { t: `    }` , stIdx: 0 },
+    { t: `  }, {` },
+    { t: `    "Sid": "ReadObjectsWithMfa",`, stIdx: 1 },
+    { t: `    "Effect": "Allow",`, stIdx: 1 },
+    { t: `    "Action": ["s3:GetObject"],`, stIdx: 1, clause: "action" },
+    { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, stIdx: 1, clause: "resource" },
+    { t: `    "Condition": {`, stIdx: 1 },
+    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" },`, stIdx: 1, clause: "ip" },
+    { t: `      "Bool": { "aws:MultiFactorAuthPresent": "true" }`, stIdx: 1, clause: "mfa" },
+    { t: `    }`, stIdx: 1 },
+    { t: `  }]` },
+    { t: `}` },
+  ];
+
+  const groups: {
+    label: string;
+    chips: { key: string; label: string; active: boolean; set: () => void }[];
+  }[] = [
+    {
+      label: "Action",
+      chips: [
+        { key: "get", label: "s3:GetObject (객체 다운로드)", active: action === "get", set: () => setAction("get") },
+        { key: "list", label: "s3:ListBucket (목록 조회)", active: action === "list", set: () => setAction("list") },
+      ],
+    },
+    {
+      label: "대상 리소스 (요청이 가리키는 ARN)",
+      chips: [
+        { key: "object", label: ":::my-bucket/report.pdf (객체)", active: target === "object", set: () => setTarget("object") },
+        { key: "bucket", label: ":::my-bucket (버킷 자체)", active: target === "bucket", set: () => setTarget("bucket") },
+      ],
+    },
+    {
+      label: "요청 IP",
+      chips: [
+        { key: "in", label: "10.0.14.3 (사내망)", active: inside, set: () => setInside(true) },
+        { key: "out", label: "203.0.113.9 (외부)", active: !inside, set: () => setInside(false) },
+      ],
+    },
+    {
+      label: "MFA",
+      chips: [
+        { key: "on", label: "MFA 인증함", active: mfa, set: () => setMfa(true) },
+        { key: "off", label: "MFA 없이 요청", active: !mfa, set: () => setMfa(false) },
+      ],
+    },
+  ];
+
+  const clauseLabel: Record<string, string> = { resource: "Resource", ip: "IpAddress 조건", mfa: "MFA 조건" };
+
+  return (
+    <SimFrame title="정책 요청 테스터 — 요청을 조립해 판정을 확인하세요" icon="🔍">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 22px", marginBottom: 14 }}>
+        {groups.map((g) => (
+          <div key={g.label}>
+            <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.inkSoft, letterSpacing: 0.5, marginBottom: 5 }}>
+              {g.label}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {g.chips.map((ch) => (
+                <ReqChip
+                  key={ch.key}
+                  active={ch.active}
+                  onClick={ch.set}
+                  color={C.blue}
+                  soft={C.blueSoft}
+                  text={C.blue}
+                >
+                  {ch.label}
+                </ReqChip>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          // PolicyAnatomy 전례 — 320px급 폰에서 트랙 최소값을 컨테이너 폭으로 캡
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))",
+          gap: 12,
+        }}
+      >
+        <pre
+          style={{
+            fontFamily: MONO,
+            fontSize: "0.72rem",
+            lineHeight: 1.8,
+            background: C.ink,
+            color: "#C7D2E0",
+            borderRadius: 11,
+            padding: "0.9rem 1rem",
+            overflowX: "auto",
+            margin: 0,
+          }}
+        >
+          {lines.map((ln, i) => {
+            const isDecisiveSt = ln.stIdx === di;
+            const isFail = isDecisiveSt && failClause !== null && ln.clause === failClause;
+            const isMatchedSt = isDecisiveSt && d.matched;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: isFail
+                    ? "rgba(185,67,44,.45)"
+                    : isMatchedSt
+                      ? "rgba(14,124,123,.3)"
+                      : "transparent",
+                  opacity: ln.stIdx !== undefined && !isDecisiveSt ? 0.5 : 1,
+                  borderRadius: 4,
+                }}
+              >
+                {ln.t}
+                {isFail && <span style={{ color: "#F4A08A", fontWeight: 700 }}>  ← 여기서 실패</span>}
+              </div>
+            );
+          })}
+        </pre>
+
+        <div>
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: 10,
+              background: allow ? C.tealSoft : C.redSoft,
+              border: `1.5px solid ${allow ? C.teal : C.red}`,
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontSize: "1.2rem", fontWeight: 900, color: allow ? C.teal : C.red }}>
+              {allow ? "✔ ALLOW" : "✖ DENY (암묵적)"}
+            </div>
+            <div style={{ fontSize: "0.8rem", marginTop: 6, lineHeight: 1.6 }}>{reason}</div>
+          </div>
+
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+            {st.map((s, i) => (
+              <div
+                key={s.sid}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${i === di ? (s.matched ? C.teal : C.red) : C.line}`,
+                  background: "#fff",
+                  opacity: i === di ? 1 : 0.6,
+                }}
+              >
+                <div style={{ fontFamily: MONO, fontSize: "0.72rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>
+                  &quot;{s.sid}&quot;
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {(
+                    [
+                      ["Action", s.actionOk],
+                      ["Resource", s.resourceOk],
+                      ["IP", s.ipOk],
+                      ["MFA", s.hasMfa ? s.mfaOk : null],
+                    ] as [string, boolean | null][]
+                  ).map(([lbl, ok]) => (
+                    <span
+                      key={lbl}
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: "0.66rem",
+                        fontWeight: 700,
+                        padding: "2px 7px",
+                        borderRadius: 5,
+                        background: ok === null ? "#F1F3F5" : ok ? C.tealSoft : C.redSoft,
+                        color: ok === null ? C.inkSoft : ok ? C.teal : C.red,
+                      }}
+                    >
+                      {lbl} {ok === null ? "조건 없음" : ok ? "✔" : "✖"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: C.inkSoft, lineHeight: 1.6, margin: "10px 0 0" }}>
+            이 정책엔 명시적 Deny가 없으므로 거부는 전부 <b>“매칭되는 Allow 없음 = 암묵적 거부”</b>
+            {failClause && d && !d.matched && (
+              <> — 지금은 <b style={{ color: C.red }}>{clauseLabel[failClause]}</b>에서 끊겼습니다</>
+            )}
+            . 여러 정책이 얽힌 우선순위(Deny 우선 등)는 §06 평가 시뮬레이터에서 다룹니다.
+          </p>
+        </div>
+      </div>
+    </SimFrame>
   );
 }
