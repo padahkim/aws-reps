@@ -1,6 +1,6 @@
 # ARCHITECTURE — aws-reps 구조 안내
 
-> **문서 상태**: **정본 (living doc)** · 최종 반영 2026-07-26 · 점검 커밋 `a83a6e4`
+> **문서 상태**: **정본 (living doc)** · 최종 반영 2026-07-26 · 점검 커밋 `b2ca68c`
 > **갱신법**: 구조가 바뀌면 `docs/prompts/아키텍처안내.md` 프롬프트를 재실행해 **이 파일**을 다시 그린다. 손으로 조금씩 고치면 조용히 낡는다. 진단·점수는 자매 `docs/prompts/아키텍처점검.md`(→ `docs/ARCHITECTURE_REVIEW.md`)의 몫이다.
 > **읽는 순서**: "한눈에"만 읽어도 감이 온다. 코드를 만질 사람은 "빠른 시작 → 디렉터리 지도 → 콘텐츠 파이프라인"까지.
 
@@ -92,7 +92,7 @@ flowchart TD
 
   subgraph client["클라이언트 ('use client')"]
     prog["home-progress · mark-read<br/>section-toc"]
-    learn["section-concepts · SelfQuiz<br/>chapter-quiz (useState만)"]
+    learn["SelfQuiz → section-concepts<br/>chapter-quiz (useState만)"]
   end
 
   home -.-> prog
@@ -106,7 +106,7 @@ flowchart TD
 
 - URL 번호는 **1-based**이고, `quiz`가 있으면 **마지막 번호가 챕터 퀴즈**다(별도 라우트가 아니다). `sectionCount()`가 그만큼 +1 해 준다.
 - 본문 섹션이면 `loadBody()`로 **그 챕터의 섹션 렌더러**를 가져와 `section` 인덱스(0-based) 하나만 렌더한다.
-- 그 섹션에 붙는 학습 장치(개념 인출 카드 → 셀프 퀴즈)를 `afterSection` 슬롯으로 넘겨 **본문과 아웃트로 사이**에 끼워 넣는다. 붙을 게 없으면 슬롯 자체를 안 넘긴다.
+- 그 섹션에 붙는 학습 장치를 `afterSection` 슬롯으로 넘겨 **본문과 아웃트로 사이**에 끼워 넣는다. 순서는 **셀프 퀴즈(판정형) → 개념 인출 카드(서술형)** 다(#113). 붙을 게 없으면 슬롯 자체를 안 넘긴다.
 
 ---
 
@@ -215,8 +215,8 @@ flowchart LR
 |---|---|---|
 | ch0-1 | ✓ | ✓ |
 | ch0-2 | ✓ | ✓ |
-| ch1-1 | — | — |
-| ch1-2 | — | — |
+| ch1-1 | — | ✓ |
+| ch1-2 | — | ✓ |
 
 **MDX 규정**: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정, #15). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
 
@@ -277,7 +277,7 @@ flowchart TD
 - **RSC / 서버 컴포넌트** — 클라이언트 JS 없이 서버(빌드 시)에서 렌더되는 컴포넌트. `"use client"`는 그 자리에서 **클라이언트 경계를 선언**한다 — 경계 아래로 import되는 모듈은 지시어가 없어도 클라이언트 번들에 포함돼 브라우저에서 돈다(예: `app/progress-bar.tsx`는 지시어 없이도 클라이언트 컴포넌트가 import해 클라에서 실행). 즉 지시어는 "이 모듈만 클라"가 아니라 "여기서부터 클라"라는 뜻이다.
 - **MDX** — Markdown 안에서 JSX 컴포넌트를 쓰는 형식. 섹션 본문 형식.
 - **규약 v3** — `content/schema.ts`가 정의한 챕터 모듈 계약(무엇을 export해야 하는가). v3에서 본문이 TSX 함수 → MDX 파일로 이동.
-- **인출 세션 / 셀프 퀴즈** — 섹션 하단 학습 장치 2층. 카드(`session`)는 서술·정교화, 셀프 퀴즈(`selfQuiz`)는 판정형 핵심 사실. 둘 다 선택 슬롯이다(§5-1).
+- **인출 세션 / 셀프 퀴즈** — 섹션 하단 학습 장치 2층. 셀프 퀴즈(`selfQuiz`)가 판정형 핵심 사실로 먼저 오고, 카드(`session`)가 서술·정교화로 뒤를 받는다(#113). 둘 다 선택 슬롯이다(§5-1).
 - **drills** — 별도 리포에서 가져온 문항 데이터. `drills.ts`는 생성물이라 손편집하지 않는다.
 - **hydration** — 정적 HTML에 클라이언트 JS가 붙어 상호작용이 살아나는 과정. 진도는 그 이후 채워진다.
 - **`/_source`** — dev·프리뷰 전용, 레거시 원본을 브라우저 Babel로 미리 보는 검수 도구.
