@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { C } from "../ui";
+import { C, FigSwitch } from "../ui";
 import { SimFrame } from "../interactive";
 
 /**
@@ -79,39 +79,74 @@ export function WarnBox({ children }: { children: ReactNode }) {
  */
 export function PermissionSvg() {
   const mid = "arr-perm";
+  const midV = "arr-perm-v";
   return (
-    <FlowSvg vb="0 0 720 210" mid={mid}>
-      <FlowBox x={30} y={82} w={170} h={64} label="S3 · SNS · 다른 계정" sub="호출하는 쪽" color={C.amber} />
-      <FlowBox x={280} y={78} w={160} h={72} label="λ Lambda" color={C.ink} />
-      <FlowBox x={520} y={82} w={170} h={64} label="DynamoDB · S3 · SQS" sub="접근당하는 쪽" color={C.teal} />
-      <FlowArrow d="M200,110 L280,110" color={C.amber} mid={mid} animate />
-      <FlowArrow d="M440,114 L520,114" color={C.teal} mid={mid} animate />
-      <text x={240} y={96} textAnchor="middle" fill={C.amberText} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
-        리소스 기반 정책
-      </text>
-      <text x={240} y={140} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
-        “누가 나를 호출?” · 들어옴
-      </text>
-      <text x={480} y={100} textAnchor="middle" fill={C.teal} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
-        실행 역할 (IAM Role)
-      </text>
-      <text x={480} y={140} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
-        “내가 무엇에 접근?” · 나감
-      </text>
-      <text x={360} y={186} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-        폴링(ESM)은 예외 — Lambda가 소스를 읽으므로 실행 역할에 읽기 권한
-      </text>
-    </FlowSvg>
+    <FigSwitch
+      wide={
+        <FlowSvg vb="0 0 720 210" mid={mid}>
+          <FlowBox x={30} y={82} w={170} h={64} label="S3 · SNS · 다른 계정" sub="호출하는 쪽" color={C.amber} />
+          <FlowBox x={280} y={78} w={160} h={72} label="λ Lambda" color={C.ink} />
+          <FlowBox x={520} y={82} w={170} h={64} label="DynamoDB · S3 · SQS" sub="접근당하는 쪽" color={C.teal} />
+          <FlowArrow d="M200,110 L280,110" color={C.amber} mid={mid} animate />
+          <FlowArrow d="M440,114 L520,114" color={C.teal} mid={mid} animate />
+          <text x={240} y={96} textAnchor="middle" fill={C.amberText} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
+            리소스 기반 정책
+          </text>
+          <text x={240} y={140} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
+            “누가 나를 호출?” · 들어옴
+          </text>
+          <text x={480} y={100} textAnchor="middle" fill={C.teal} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
+            실행 역할 (IAM Role)
+          </text>
+          <text x={480} y={140} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
+            “내가 무엇에 접근?” · 나감
+          </text>
+          <text x={360} y={186} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
+            폴링(ESM)은 예외 — Lambda가 소스를 읽으므로 실행 역할에 읽기 권한
+          </text>
+        </FlowSvg>
+      }
+      narrow={
+        <FlowSvg vb="0 0 360 430" mid={midV} minW={0}>
+          <FlowBox x={95} y={20} w={170} h={64} label="S3 · SNS · 다른 계정" sub="호출하는 쪽" color={C.amber} />
+          <FlowBox x={100} y={148} w={160} h={72} label="λ Lambda" color={C.ink} />
+          <FlowBox x={95} y={300} w={170} h={64} label="DynamoDB · S3 · SQS" sub="접근당하는 쪽" color={C.teal} />
+          <FlowArrow d="M180,84 L180,148" color={C.amber} mid={midV} animate />
+          <FlowArrow d="M180,220 L180,300" color={C.teal} mid={midV} animate />
+          <text x={70} y={110} textAnchor="middle" fill={C.amberText} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
+            리소스 기반 정책
+          </text>
+          <text x={78} y={128} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
+            “누가 나를 호출?” · 들어옴
+          </text>
+          <text x={272} y={252} textAnchor="middle" fill={C.teal} fontSize={11.5} fontFamily={MONO} fontWeight={700}>
+            실행 역할 (IAM Role)
+          </text>
+          <text x={272} y={270} textAnchor="middle" fill={C.inkSoft} fontSize={10.5}>
+            “내가 무엇에 접근?” · 나감
+          </text>
+          <text x={180} y={396} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+            폴링(ESM)은 예외 — Lambda가 소스를
+          </text>
+          <text x={180} y={414} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+            읽으므로 실행 역할에 읽기 권한
+          </text>
+        </FlowSvg>
+      }
+    />
   );
 }
 
 /* ============ 인터랙티브 3종 — aws-lambda-dva-guide-2.jsx 이식 (#71) ============ */
 
-/** 원본 Svg 헬퍼 이식 — 좁은 화면에선 가로 스크롤 (minWidth 560). */
-function FlowSvg({ vb, mid, children }: { vb: string; mid: string; children: ReactNode }) {
+/**
+ * 원본 Svg 헬퍼 이식 — 기본은 가로형(minWidth 560, 좁으면 가로 스크롤). 세로형(#101)은
+ * minW={0}으로 컨테이너 폭에 맞춰 축소되게 한다 (세로 배치는 360 폭이라 축소해도 읽힌다).
+ */
+function FlowSvg({ vb, mid, minW = 560, children }: { vb: string; mid: string; minW?: number; children: ReactNode }) {
   return (
     <div style={{ overflowX: "auto" }}>
-      <svg viewBox={vb} style={{ width: "100%", minWidth: 560, height: "auto", display: "block" }}>
+      <svg viewBox={vb} style={{ width: "100%", minWidth: minW || undefined, height: "auto", display: "block" }}>
         <defs>
           <marker id={mid} viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
@@ -226,6 +261,7 @@ export function InvocationModeExplorer() {
     { id: "poll" as const, label: "③ 이벤트 소스 매핑 (Polling)", color: C.teal, soft: C.tealSoft, text: C.teal },
   ];
   const mid = "arr-inv";
+  const midV = "arr-inv-v";
   const caption: Record<typeof mode, string> = {
     sync: "호출자가 결과를 기다립니다 — 에러도 그대로 돌려받으며, 재시도는 클라이언트 책임입니다.",
     async: "이벤트가 내부 큐에 적재되고 호출자는 즉시 202를 받습니다 — 함수 오류는 자동 재시도(총 3회 시도)되므로 함수는 멱등해야 하고, 스로틀·서비스 오류는 큐로 되돌려 최대 6시간 재시도됩니다.",
@@ -259,52 +295,116 @@ export function InvocationModeExplorer() {
       </div>
 
       {mode === "sync" && (
-        <FlowSvg vb="0 0 720 200" mid={mid}>
-          <FlowBox x={30} y={70} w={150} h={60} label="클라이언트" sub="API Gateway · ALB · CLI" color={C.blue} />
-          <FlowBox x={290} y={70} w={150} h={60} label="λ Lambda" color={C.ink} />
-          <FlowBox x={550} y={70} w={140} h={60} label="응답 대기" sub="결과·에러 즉시 반환" color={C.blue} dashed />
-          {/* 요청은 느리게(응답까지 블로킹), 응답은 빠르게 — 비대칭 유량이 "기다림"을 드러낸다(#81) */}
-          <FlowArrow d="M180,90 L290,90" color={C.blue} mid={mid} label="요청 — 응답까지 블로킹" lx={235} ly={80} animate dur={2.8} />
-          <FlowArrow d="M290,110 L180,110" color={C.teal} mid={mid} label="응답 / 에러" lx={235} ly={128} animate dur={1.1} />
-          <FlowArrow d="M440,100 L550,100" color={C.inkSoft} mid={mid} dash />
-          <text x={360} y={175} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-            재시도 없음 — 에러 처리는 클라이언트 책임
-          </text>
-        </FlowSvg>
+        <FigSwitch
+          wide={
+            <FlowSvg vb="0 0 720 200" mid={mid}>
+              <FlowBox x={30} y={70} w={150} h={60} label="클라이언트" sub="API Gateway · ALB · CLI" color={C.blue} />
+              <FlowBox x={290} y={70} w={150} h={60} label="λ Lambda" color={C.ink} />
+              <FlowBox x={550} y={70} w={140} h={60} label="응답 대기" sub="결과·에러 즉시 반환" color={C.blue} dashed />
+              {/* 요청은 느리게(응답까지 블로킹), 응답은 빠르게 — 비대칭 유량이 "기다림"을 드러낸다(#81) */}
+              <FlowArrow d="M180,90 L290,90" color={C.blue} mid={mid} label="요청 — 응답까지 블로킹" lx={235} ly={80} animate dur={2.8} />
+              <FlowArrow d="M290,110 L180,110" color={C.teal} mid={mid} label="응답 / 에러" lx={235} ly={128} animate dur={1.1} />
+              <FlowArrow d="M440,100 L550,100" color={C.inkSoft} mid={mid} dash />
+              <text x={360} y={175} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
+                재시도 없음 — 에러 처리는 클라이언트 책임
+              </text>
+            </FlowSvg>
+          }
+          narrow={
+            <FlowSvg vb="0 0 360 360" mid={midV} minW={0}>
+              <FlowBox x={95} y={20} w={170} h={60} label="클라이언트" sub="API Gateway · ALB · CLI" color={C.blue} />
+              <FlowBox x={95} y={160} w={170} h={60} label="λ Lambda" color={C.ink} />
+              <FlowBox x={95} y={260} w={170} h={56} label="응답 대기" sub="결과·에러 즉시 반환" color={C.blue} dashed />
+              <FlowArrow d="M150,80 L150,160" color={C.blue} mid={midV} label="요청 — 응답까지 블로킹" lx={76} ly={112} animate dur={2.8} />
+              <FlowArrow d="M210,160 L210,80" color={C.teal} mid={midV} label="응답 / 에러" lx={282} ly={112} animate dur={1.1} />
+              <FlowArrow d="M180,220 L180,260" color={C.inkSoft} mid={midV} dash />
+              <text x={180} y={346} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                재시도 없음 — 에러 처리는 클라이언트 책임
+              </text>
+            </FlowSvg>
+          }
+        />
       )}
 
       {mode === "async" && (
-        <FlowSvg vb="0 0 720 260" mid={mid}>
-          <FlowBox x={20} y={30} w={140} h={56} label="S3 · SNS" sub="EventBridge 등" color={C.amber} />
-          <FlowBox x={230} y={30} w={160} h={56} label="내부 이벤트 큐" sub="Lambda가 관리" color={C.amber} dashed />
-          <FlowBox x={460} y={30} w={150} h={56} label="λ Lambda" color={C.ink} />
-          <FlowBox x={230} y={160} w={170} h={56} label="실패 대상" sub="DLQ 또는 Destination" color={C.red} />
-          <FlowBox x={470} y={160} w={170} h={56} label="성공 대상" sub="Destination (SQS·SNS·λ·EB)" color={C.teal} />
-          {/* 이벤트가 연달아 큐에 쌓이고(dots=3), 202는 거의 즉시 되돌아온다(dur 0.6) — "적재 + 즉시 반환"(#81) */}
-          <FlowArrow d="M160,50 L230,50" color={C.amber} mid={mid} label="이벤트 적재" lx={195} ly={40} animate dur={1.9} dots={3} />
-          <FlowArrow d="M230,72 L160,72" color={C.inkSoft} mid={mid} label="202 즉시 반환" lx={195} ly={100} dash animate dur={0.6} />
-          <FlowArrow d="M390,58 L460,58" color={C.amber} mid={mid} animate dur={1.6} dots={2} />
-          <FlowArrow d="M500,86 C480,130 420,150 400,160" color={C.red} mid={mid} label="함수 오류 3회 후" lx={430} ly={128} dash />
-          <FlowArrow d="M545,86 L552,160" color={C.teal} mid={mid} label="성공 시" lx={585} ly={128} dash />
-          <text x={360} y={245} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-            함수 오류: 총 3회 시도 후 DLQ/Destination · 스로틀·서비스 오류: 최대 6시간 백오프 재시도
-          </text>
-        </FlowSvg>
+        <FigSwitch
+          wide={
+            <FlowSvg vb="0 0 720 260" mid={mid}>
+              <FlowBox x={20} y={30} w={140} h={56} label="S3 · SNS" sub="EventBridge 등" color={C.amber} />
+              <FlowBox x={230} y={30} w={160} h={56} label="내부 이벤트 큐" sub="Lambda가 관리" color={C.amber} dashed />
+              <FlowBox x={460} y={30} w={150} h={56} label="λ Lambda" color={C.ink} />
+              <FlowBox x={230} y={160} w={170} h={56} label="실패 대상" sub="DLQ 또는 Destination" color={C.red} />
+              <FlowBox x={470} y={160} w={170} h={56} label="성공 대상" sub="Destination (SQS·SNS·λ·EB)" color={C.teal} />
+              {/* 이벤트가 연달아 큐에 쌓이고(dots=3), 202는 거의 즉시 되돌아온다(dur 0.6) — "적재 + 즉시 반환"(#81) */}
+              <FlowArrow d="M160,50 L230,50" color={C.amber} mid={mid} label="이벤트 적재" lx={195} ly={40} animate dur={1.9} dots={3} />
+              <FlowArrow d="M230,72 L160,72" color={C.inkSoft} mid={mid} label="202 즉시 반환" lx={195} ly={100} dash animate dur={0.6} />
+              <FlowArrow d="M390,58 L460,58" color={C.amber} mid={mid} animate dur={1.6} dots={2} />
+              <FlowArrow d="M500,86 C480,130 420,150 400,160" color={C.red} mid={mid} label="함수 오류 3회 후" lx={430} ly={128} dash />
+              <FlowArrow d="M545,86 L552,160" color={C.teal} mid={mid} label="성공 시" lx={585} ly={128} dash />
+              <text x={360} y={245} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
+                함수 오류: 총 3회 시도 후 DLQ/Destination · 스로틀·서비스 오류: 최대 6시간 백오프 재시도
+              </text>
+            </FlowSvg>
+          }
+          narrow={
+            <FlowSvg vb="0 0 360 486" mid={midV} minW={0}>
+              <FlowBox x={95} y={16} w={170} h={56} label="S3 · SNS" sub="EventBridge 등" color={C.amber} />
+              <FlowBox x={95} y={136} w={170} h={56} label="내부 이벤트 큐" sub="Lambda가 관리" color={C.amber} dashed />
+              <FlowBox x={95} y={256} w={170} h={56} label="λ Lambda" color={C.ink} />
+              <FlowBox x={10} y={376} w={165} h={56} label="실패 대상" sub="DLQ 또는 Destination" color={C.red} />
+              <FlowBox x={185} y={376} w={165} h={56} label="성공 대상" sub="Destination (SQS·SNS·λ·EB)" color={C.teal} />
+              <FlowArrow d="M150,72 L150,136" color={C.amber} mid={midV} label="이벤트 적재" lx={106} ly={108} animate dur={1.9} dots={3} />
+              <FlowArrow d="M210,136 L210,72" color={C.inkSoft} mid={midV} label="202 즉시 반환" lx={268} ly={108} dash animate dur={0.6} />
+              <FlowArrow d="M180,192 L180,256" color={C.amber} mid={midV} animate dur={1.6} dots={2} />
+              <FlowArrow d="M140,312 C120,340 100,350 95,376" color={C.red} mid={midV} label="함수 오류 3회 후" lx={64} ly={352} dash />
+              <FlowArrow d="M220,312 C240,340 260,350 265,376" color={C.teal} mid={midV} label="성공 시" lx={292} ly={352} dash />
+              <text x={180} y={456} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                함수 오류: 총 3회 시도 후 DLQ/Destination
+              </text>
+              <text x={180} y={474} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                스로틀·서비스 오류: 최대 6시간 백오프 재시도
+              </text>
+            </FlowSvg>
+          }
+        />
       )}
 
       {mode === "poll" && (
-        <FlowSvg vb="0 0 720 230" mid={mid}>
-          <FlowBox x={20} y={60} w={160} h={64} label="SQS · Kinesis" sub="DynamoDB Streams" color={C.teal} />
-          <FlowBox x={280} y={60} w={180} h={64} label="Event Source Mapping" sub="Lambda가 대신 폴링" color={C.teal} dashed />
-          <FlowBox x={540} y={60} w={150} h={64} label="λ Lambda" sub="배치 단위 동기 호출" color={C.ink} />
-          {/* ESM 이 폴링하고(단발), 레코드 여러 건이 묶음으로 흐르며(dots=4), 배치 1건이 동기 호출된다 — "배치 묶음"(#81) */}
-          <FlowArrow d="M280,80 L180,80" color={C.teal} mid={mid} label="poll" lx={230} ly={70} animate dur={1.4} />
-          <FlowArrow d="M180,105 L280,105" color={C.teal} mid={mid} label="배치(레코드 묶음)" lx={230} ly={125} animate dur={2.2} dots={4} />
-          <FlowArrow d="M460,92 L540,92" color={C.amber} mid={mid} animate dur={1.6} />
-          <text x={360} y={185} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
-            SQS: 성공한 메시지 삭제 · Kinesis/DDB Streams: 샤드 순서 보장, 성공 또는 만료까지 재시도(횟수·수명 제한 설정 가능)
-          </text>
-        </FlowSvg>
+        <FigSwitch
+          wide={
+            <FlowSvg vb="0 0 720 230" mid={mid}>
+              <FlowBox x={20} y={60} w={160} h={64} label="SQS · Kinesis" sub="DynamoDB Streams" color={C.teal} />
+              <FlowBox x={280} y={60} w={180} h={64} label="Event Source Mapping" sub="Lambda가 대신 폴링" color={C.teal} dashed />
+              <FlowBox x={540} y={60} w={150} h={64} label="λ Lambda" sub="배치 단위 동기 호출" color={C.ink} />
+              {/* ESM 이 폴링하고(단발), 레코드 여러 건이 묶음으로 흐르며(dots=4), 배치 1건이 동기 호출된다 — "배치 묶음"(#81) */}
+              <FlowArrow d="M280,80 L180,80" color={C.teal} mid={mid} label="poll" lx={230} ly={70} animate dur={1.4} />
+              <FlowArrow d="M180,105 L280,105" color={C.teal} mid={mid} label="배치(레코드 묶음)" lx={230} ly={125} animate dur={2.2} dots={4} />
+              <FlowArrow d="M460,92 L540,92" color={C.amber} mid={mid} animate dur={1.6} />
+              <text x={360} y={185} textAnchor="middle" fill={C.inkSoft} fontSize={12}>
+                SQS: 성공한 메시지 삭제 · Kinesis/DDB Streams: 샤드 순서 보장, 성공 또는 만료까지 재시도(횟수·수명 제한 설정 가능)
+              </text>
+            </FlowSvg>
+          }
+          narrow={
+            <FlowSvg vb="0 0 360 436" mid={midV} minW={0}>
+              <FlowBox x={95} y={16} w={170} h={64} label="SQS · Kinesis" sub="DynamoDB Streams" color={C.teal} />
+              <FlowBox x={85} y={160} w={190} h={64} label="Event Source Mapping" sub="Lambda가 대신 폴링" color={C.teal} dashed />
+              <FlowBox x={95} y={288} w={170} h={64} label="λ Lambda" sub="배치 단위 동기 호출" color={C.ink} />
+              <FlowArrow d="M150,160 L150,80" color={C.teal} mid={midV} label="poll" lx={128} ly={124} animate dur={1.4} />
+              <FlowArrow d="M210,80 L210,160" color={C.teal} mid={midV} label="배치(레코드 묶음)" lx={278} ly={124} animate dur={2.2} dots={4} />
+              <FlowArrow d="M180,224 L180,288" color={C.amber} mid={midV} animate dur={1.6} />
+              <text x={180} y={384} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                SQS: 성공한 메시지 삭제
+              </text>
+              <text x={180} y={402} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                Kinesis/DDB Streams: 샤드 순서 보장,
+              </text>
+              <text x={180} y={420} textAnchor="middle" fill={C.inkSoft} fontSize={11}>
+                성공 또는 만료까지 재시도(횟수·수명 제한 설정 가능)
+              </text>
+            </FlowSvg>
+          }
+        />
       )}
 
       <p style={{ fontSize: "0.85rem", color: C.inkSoft, lineHeight: 1.65, margin: "10px 0 0" }}>
@@ -392,6 +492,7 @@ export function ReservedConcurrencySlider() {
 export function CanaryWeightSlider() {
   const [weight, setWeight] = useState(10);
   const mid = "arr-canary";
+  const midV = "arr-canary-v";
 
   return (
     <SimFrame title="가중치 별칭 카나리 배포 — 직접 조절해 보세요">
@@ -405,20 +506,39 @@ export function CanaryWeightSlider() {
         aria-label="버전 2로 보낼 트래픽 비율"
         style={{ width: "100%", accentColor: C.teal }}
       />
-      <FlowSvg vb="0 0 720 210" mid={mid}>
-        <FlowBox x={30} y={75} w={150} h={60} label={'별칭 "prod"'} sub="트래픽 분배" color={C.amber} />
-        <FlowBox x={470} y={20} w={200} h={60} label="버전 1 (기존)" sub={`${100 - weight}% 트래픽`} color={C.blue} />
-        <FlowBox x={470} y={130} w={200} h={60} label="버전 2 (신규)" sub={`${weight}% 트래픽`} color={C.teal} />
-        {/* dur ∝ 1/트래픽 비율 — 점 주기가 유량을 표현해야 5/95 가 50/50 처럼 안 보인다 (#80 Codex 리뷰) */}
-        <FlowArrow d="M180,95 C330,90 340,55 470,50" color={C.blue} mid={mid} animate={weight < 100} dur={110 / (100 - weight)} />
-        <FlowArrow d="M180,115 C330,120 340,155 470,160" color={C.teal} mid={mid} animate={weight > 0} dur={110 / weight} />
-        <text x={310} y={60} textAnchor="middle" fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>
-          {100 - weight}%
-        </text>
-        <text x={310} y={155} textAnchor="middle" fill={C.teal} fontSize={13} fontFamily={MONO} fontWeight={700}>
-          {weight}%
-        </text>
-      </FlowSvg>
+      <FigSwitch
+        wide={
+          <FlowSvg vb="0 0 720 210" mid={mid}>
+            <FlowBox x={30} y={75} w={150} h={60} label={'별칭 "prod"'} sub="트래픽 분배" color={C.amber} />
+            <FlowBox x={470} y={20} w={200} h={60} label="버전 1 (기존)" sub={`${100 - weight}% 트래픽`} color={C.blue} />
+            <FlowBox x={470} y={130} w={200} h={60} label="버전 2 (신규)" sub={`${weight}% 트래픽`} color={C.teal} />
+            {/* dur ∝ 1/트래픽 비율 — 점 주기가 유량을 표현해야 5/95 가 50/50 처럼 안 보인다 (#80 Codex 리뷰) */}
+            <FlowArrow d="M180,95 C330,90 340,55 470,50" color={C.blue} mid={mid} animate={weight < 100} dur={110 / (100 - weight)} />
+            <FlowArrow d="M180,115 C330,120 340,155 470,160" color={C.teal} mid={mid} animate={weight > 0} dur={110 / weight} />
+            <text x={310} y={60} textAnchor="middle" fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>
+              {100 - weight}%
+            </text>
+            <text x={310} y={155} textAnchor="middle" fill={C.teal} fontSize={13} fontFamily={MONO} fontWeight={700}>
+              {weight}%
+            </text>
+          </FlowSvg>
+        }
+        narrow={
+          <FlowSvg vb="0 0 360 260" mid={midV} minW={0}>
+            <FlowBox x={95} y={16} w={170} h={60} label={'별칭 "prod"'} sub="트래픽 분배" color={C.amber} />
+            <FlowBox x={10} y={184} w={165} h={60} label="버전 1 (기존)" sub={`${100 - weight}% 트래픽`} color={C.blue} />
+            <FlowBox x={185} y={184} w={165} h={60} label="버전 2 (신규)" sub={`${weight}% 트래픽`} color={C.teal} />
+            <FlowArrow d="M150,76 C120,110 95,150 92,184" color={C.blue} mid={midV} animate={weight < 100} dur={110 / (100 - weight)} />
+            <FlowArrow d="M210,76 C240,110 265,150 268,184" color={C.teal} mid={midV} animate={weight > 0} dur={110 / weight} />
+            <text x={70} y={130} textAnchor="middle" fill={C.blue} fontSize={13} fontFamily={MONO} fontWeight={700}>
+              {100 - weight}%
+            </text>
+            <text x={290} y={130} textAnchor="middle" fill={C.teal} fontSize={13} fontFamily={MONO} fontWeight={700}>
+              {weight}%
+            </text>
+          </FlowSvg>
+        }
+      />
       <p style={{ fontSize: "0.88rem", color: C.inkSoft, lineHeight: 1.65, margin: "10px 0 0" }}>
         prod 별칭 하나가 트래픽을 V1 <b style={{ color: C.blue }}>{100 - weight}%</b> / V2{" "}
         <b style={{ color: C.teal }}>{weight}%</b>로 나눕니다 — 신규 버전을 소량으로 검증한 뒤
@@ -436,29 +556,58 @@ export function CanaryWeightSlider() {
  */
 export function LambdaFlowOverviewSvg() {
   const mid = "arr-overview";
+  const midV = "arr-overview-v";
   return (
-    <FlowSvg vb="0 0 720 280" mid={mid}>
-      {/* 이벤트 소스 (왼쪽) */}
-      <FlowBox x={20} y={20} w={150} h={46} label="API Gateway" sub="HTTP · 동기" color={C.blue} />
-      <FlowBox x={20} y={80} w={150} h={46} label="S3" sub="객체 업로드 · 비동기" color={C.amber} />
-      <FlowBox x={20} y={140} w={150} h={46} label="SQS · Kinesis" sub="큐 · 스트림 · 폴링" color={C.teal} />
-      <FlowBox x={20} y={200} w={150} h={46} label="EventBridge" sub="스케줄 · 비동기" color={C.amber} />
-      {/* Lambda (가운데) */}
-      <FlowBox x={300} y={92} w={150} h={92} label="λ Lambda" sub="함수 코드 실행" color={C.ink} />
-      {/* 대상 (오른쪽 — 실행 역할로 접근) */}
-      <FlowBox x={560} y={40} w={140} h={46} label="DynamoDB" sub="데이터 저장" color={C.teal} />
-      <FlowBox x={560} y={116} w={140} h={46} label="SNS · SQS" sub="후속 처리" color={C.teal} />
-      <FlowBox x={560} y={192} w={140} h={46} label="CloudWatch" sub="로그 · 지표" color={C.teal} />
-      {/* 소스 → Lambda (색 = 호출 방식) */}
-      <FlowArrow d="M170,43 C240,43 250,115 300,120" color={C.blue} mid={mid} animate />
-      <FlowArrow d="M170,103 C230,103 240,128 300,132" color={C.amber} mid={mid} animate />
-      <FlowArrow d="M170,163 C230,163 240,150 300,148" color={C.teal} mid={mid} animate dots={3} />
-      <FlowArrow d="M170,223 C240,223 250,175 300,162" color={C.amber} mid={mid} />
-      {/* Lambda → 대상 (실행 역할) */}
-      <FlowArrow d="M450,120 C520,112 520,66 560,63" color={C.teal} mid={mid} />
-      <FlowArrow d="M450,138 L560,139" color={C.teal} mid={mid} animate />
-      <FlowArrow d="M450,158 C520,166 520,212 560,215" color={C.teal} mid={mid} />
-    </FlowSvg>
+    <FigSwitch
+      wide={
+        <FlowSvg vb="0 0 720 280" mid={mid}>
+          {/* 이벤트 소스 (왼쪽) */}
+          <FlowBox x={20} y={20} w={150} h={46} label="API Gateway" sub="HTTP · 동기" color={C.blue} />
+          <FlowBox x={20} y={80} w={150} h={46} label="S3" sub="객체 업로드 · 비동기" color={C.amber} />
+          <FlowBox x={20} y={140} w={150} h={46} label="SQS · Kinesis" sub="큐 · 스트림 · 폴링" color={C.teal} />
+          <FlowBox x={20} y={200} w={150} h={46} label="EventBridge" sub="스케줄 · 비동기" color={C.amber} />
+          {/* Lambda (가운데) */}
+          <FlowBox x={300} y={92} w={150} h={92} label="λ Lambda" sub="함수 코드 실행" color={C.ink} />
+          {/* 대상 (오른쪽 — 실행 역할로 접근) */}
+          <FlowBox x={560} y={40} w={140} h={46} label="DynamoDB" sub="데이터 저장" color={C.teal} />
+          <FlowBox x={560} y={116} w={140} h={46} label="SNS · SQS" sub="후속 처리" color={C.teal} />
+          <FlowBox x={560} y={192} w={140} h={46} label="CloudWatch" sub="로그 · 지표" color={C.teal} />
+          {/* 소스 → Lambda (색 = 호출 방식) */}
+          <FlowArrow d="M170,43 C240,43 250,115 300,120" color={C.blue} mid={mid} animate />
+          <FlowArrow d="M170,103 C230,103 240,128 300,132" color={C.amber} mid={mid} animate />
+          <FlowArrow d="M170,163 C230,163 240,150 300,148" color={C.teal} mid={mid} animate dots={3} />
+          <FlowArrow d="M170,223 C240,223 250,175 300,162" color={C.amber} mid={mid} />
+          {/* Lambda → 대상 (실행 역할) */}
+          <FlowArrow d="M450,120 C520,112 520,66 560,63" color={C.teal} mid={mid} />
+          <FlowArrow d="M450,138 L560,139" color={C.teal} mid={mid} animate />
+          <FlowArrow d="M450,158 C520,166 520,212 560,215" color={C.teal} mid={mid} />
+        </FlowSvg>
+      }
+      narrow={
+        <FlowSvg vb="0 0 360 470" mid={midV} minW={0}>
+          {/* 이벤트 소스 (위, 2×2 — 색 = 호출 방식) */}
+          <FlowBox x={15} y={20} w={160} h={46} label="API Gateway" sub="HTTP · 동기" color={C.blue} />
+          <FlowBox x={185} y={20} w={160} h={46} label="S3" sub="객체 업로드 · 비동기" color={C.amber} />
+          <FlowBox x={15} y={76} w={160} h={46} label="SQS · Kinesis" sub="큐 · 스트림 · 폴링" color={C.teal} />
+          <FlowBox x={185} y={76} w={160} h={46} label="EventBridge" sub="스케줄 · 비동기" color={C.amber} />
+          {/* Lambda (가운데) */}
+          <FlowBox x={105} y={190} w={150} h={80} label="λ Lambda" sub="함수 코드 실행" color={C.ink} />
+          {/* 대상 (아래 — 실행 역할로 접근) */}
+          <FlowBox x={15} y={330} w={160} h={46} label="DynamoDB" sub="데이터 저장" color={C.teal} />
+          <FlowBox x={185} y={330} w={160} h={46} label="SNS · SQS" sub="후속 처리" color={C.teal} />
+          <FlowBox x={105} y={404} w={150} h={46} label="CloudWatch" sub="로그 · 지표" color={C.teal} />
+          {/* 소스 → Lambda */}
+          <FlowArrow d="M95,66 C95,130 130,165 150,190" color={C.blue} mid={midV} animate />
+          <FlowArrow d="M265,66 C265,130 230,165 210,190" color={C.amber} mid={midV} animate />
+          <FlowArrow d="M95,122 C95,160 125,178 145,190" color={C.teal} mid={midV} animate dots={3} />
+          <FlowArrow d="M265,122 C265,160 235,178 215,190" color={C.amber} mid={midV} />
+          {/* Lambda → 대상 */}
+          <FlowArrow d="M150,270 C120,290 95,300 95,330" color={C.teal} mid={midV} />
+          <FlowArrow d="M210,270 C240,290 265,300 265,330" color={C.teal} mid={midV} animate />
+          <FlowArrow d="M180,270 L180,404" color={C.teal} mid={midV} />
+        </FlowSvg>
+      }
+    />
   );
 }
 
@@ -511,19 +660,47 @@ export function KeyNumbersGrid() {
  */
 export function ExecEnvLifecycleSvg() {
   const mid = "arr-life";
+  const midV = "arr-life-v";
   return (
-    <FlowSvg vb="0 0 720 200" mid={mid}>
-      <FlowBox x={20} y={38} w={200} h={72} label="INIT (초기화)" sub="런타임 시작 + 핸들러 밖 코드" color={C.amber} />
-      <FlowBox x={260} y={38} w={200} h={72} label="INVOKE (호출)" sub="handler() 실행" color={C.teal} />
-      <FlowBox x={500} y={38} w={200} h={72} label="SHUTDOWN" sub="환경 종료" color={C.inkSoft} />
-      <FlowArrow d="M220,74 L260,74" color={C.inkSoft} mid={mid} />
-      <FlowArrow d="M460,74 L500,74" color={C.inkSoft} mid={mid} />
-      {/* 웜 호출: INVOKE 만 반복 (아래로 도는 점선 루프) */}
-      <FlowArrow d="M330,110 C330,150 390,150 390,112" color={C.teal} mid={mid} dash label="웜: INVOKE만 반복" lx={360} ly={172} />
-      <text x={120} y={135} textAnchor="middle" fill={C.red} fontSize={11} fontFamily={MONO}>
-        콜드 스타트 구간
-      </text>
-    </FlowSvg>
+    <FigSwitch
+      wide={
+        <FlowSvg vb="0 0 720 200" mid={mid}>
+          <FlowBox x={20} y={38} w={200} h={72} label="INIT (초기화)" sub="런타임 시작 + 핸들러 밖 코드" color={C.amber} />
+          <FlowBox x={260} y={38} w={200} h={72} label="INVOKE (호출)" sub="handler() 실행" color={C.teal} />
+          <FlowBox x={500} y={38} w={200} h={72} label="SHUTDOWN" sub="환경 종료" color={C.inkSoft} />
+          <FlowArrow d="M220,74 L260,74" color={C.inkSoft} mid={mid} />
+          <FlowArrow d="M460,74 L500,74" color={C.inkSoft} mid={mid} />
+          {/* 웜 호출: INVOKE 만 반복 (아래로 도는 점선 루프) */}
+          <FlowArrow d="M330,110 C330,150 390,150 390,112" color={C.teal} mid={mid} dash label="웜: INVOKE만 반복" lx={360} ly={172} />
+          <text x={120} y={135} textAnchor="middle" fill={C.red} fontSize={11} fontFamily={MONO}>
+            콜드 스타트 구간
+          </text>
+        </FlowSvg>
+      }
+      narrow={
+        <FlowSvg vb="0 0 360 330" mid={midV} minW={0}>
+          <FlowBox x={20} y={20} w={220} h={64} label="INIT (초기화)" sub="런타임 시작 + 핸들러 밖 코드" color={C.amber} />
+          <FlowBox x={20} y={130} w={220} h={64} label="INVOKE (호출)" sub="handler() 실행" color={C.teal} />
+          <FlowBox x={20} y={240} w={220} h={64} label="SHUTDOWN" sub="환경 종료" color={C.inkSoft} />
+          <FlowArrow d="M130,84 L130,130" color={C.inkSoft} mid={midV} />
+          <FlowArrow d="M130,194 L130,240" color={C.inkSoft} mid={midV} />
+          {/* 웜 호출: INVOKE 만 반복 (오른쪽으로 도는 점선 루프) */}
+          <FlowArrow d="M240,146 C300,150 300,178 242,176" color={C.teal} mid={midV} dash />
+          <text x={300} y={206} textAnchor="middle" fill={C.teal} fontSize={11} fontFamily={MONO}>
+            웜: INVOKE만
+          </text>
+          <text x={300} y={222} textAnchor="middle" fill={C.teal} fontSize={11} fontFamily={MONO}>
+            반복
+          </text>
+          <text x={252} y={58} textAnchor="start" fill={C.red} fontSize={11} fontFamily={MONO}>
+            콜드 스타트
+          </text>
+          <text x={252} y={74} textAnchor="start" fill={C.red} fontSize={11} fontFamily={MONO}>
+            구간
+          </text>
+        </FlowSvg>
+      }
+    />
   );
 }
 
