@@ -2,6 +2,7 @@
   "name": "aws-reps",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "predev": "node scripts/gen-source-routes.mjs",
     "dev": "next dev",
