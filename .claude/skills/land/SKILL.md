@@ -327,8 +327,11 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 - **즉시 착지 완료 / PR 머지 완료(B-3)** → 해당 이슈를 `Done`으로.
 - **PR 착지 대기(B-1까지)** → `In Progress` 유지.
 
+아래 블록은 **필드 하나를 목표값으로 맞추는 범용 절차**다 — `Status`(이 절)와 `Phase`(신규 등록 시, write-issue §3)가 같은 코드를 쓴다.
+
 ```bash
-N=<이슈 번호>; TARGET=Done   # 또는 "In Progress"
+N=<이슈 번호>; FIELD=Status; TARGET=Done   # Status → "Done"·"In Progress"
+                                          # Phase  → "Phase1. MVP-콘텐츠"…"Phase5. 릴리즈 후"·"상시·기타"
 
 # 보드 전체를 한 번 받아 재사용한다. --limit 은 항목 수보다 커야 하고, 잘렸는지는 추측하지 않고
 # totalCount 와 대조해 즉시 실패시킨다 (조용히 못 찾는 것이 이 절차의 사고 지점이었다 — #154)
@@ -341,7 +344,7 @@ d = json.load(sys.stdin); items = d['items']
 if len(items) < d['totalCount']:
     sys.exit(f\"보드 조회가 잘렸다: {len(items)}/{d['totalCount']} — --limit 을 올려라\")
 it = next((i for i in items if i['content'].get('number') == $N), None)
-print(f\"{it['id']}|{it.get('status') or '-'}\" if it else '-|-')
+print(f\"{it['id']}|{it.get('$FIELD'.lower()) or '-'}\" if it else '-|-')
 ") || exit 1
 IT=${INFO%%|*}; CUR=${INFO#*|}
 
@@ -353,18 +356,18 @@ if [ "$IT" = "-" ]; then                      # 보드에 없다 (조회 실패�
 fi
 
 if [ "$CUR" = "$TARGET" ]; then
-  echo "이미 $TARGET — 내장 워크플로가 옮겨둔 것이다 (아래 참조). 설정 생략"
+  echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
 else
   PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
-  FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='Status');print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
+  FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='$FIELD');print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
   gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }" || exit 1
 fi
 
 # 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다
 gh project item-list 1 --owner "@me" --limit 500 --format json | python3 -c "
 import json,sys
-s = next((i.get('status') for i in json.load(sys.stdin)['items'] if i['content'].get('number') == $N), None)
-print(f'보드 확인: #$N status={s}')
+s = next((i.get('$FIELD'.lower()) for i in json.load(sys.stdin)['items'] if i['content'].get('number') == $N), None)
+print(f'보드 확인: #$N $FIELD={s}')
 sys.exit(0 if s == '$TARGET' else '보드 갱신 실패 — 위 값이 목표와 다르다')"
 ```
 
