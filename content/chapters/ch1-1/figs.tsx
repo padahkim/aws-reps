@@ -190,7 +190,7 @@ export function StorageClassDecisionTree() {
       label: "얼마나 오래 보관하나요?",
       options: [
         { v: "short", label: "30일 안에 지운다", on: keep === "short", set: () => pickKeep("short") },
-        { v: "mid", label: "30~90일", on: keep === "mid", set: () => pickKeep("mid") },
+        { v: "mid", label: "30~89일", on: keep === "mid", set: () => pickKeep("mid") },
         { v: "long", label: "90일 이상", on: keep === "long", set: () => pickKeep("long") },
       ],
     });
@@ -200,7 +200,7 @@ export function StorageClassDecisionTree() {
     // 그래서 검색 지연을 묻지 않고 바로 빈도로 간다 — 물어봐야 고를 수 있는 답이 같다.
     questions.push({
       key: "q3mid",
-      label: "얼마나 자주 접근하나요? (30~90일이라 Glacier 계열은 최소 90일 미달로 제외됩니다)",
+      label: "얼마나 자주 접근하나요? (90일 미만이라 Glacier 계열은 최소 기간 미달로 제외됩니다)",
       options: [
         { v: "freq", label: "자주 — 월 여러 번", on: a3 === "freq", set: () => pick3("freq") },
         { v: "monthly", label: "가끔 — 월 1회 수준 (백업·DR)", on: a3 === "monthly", set: () => pick3("monthly") },

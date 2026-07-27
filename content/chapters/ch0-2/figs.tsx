@@ -769,35 +769,48 @@ function ReqChip({
  */
 
 /** 요청 시나리오 — 각각 한 가지 축만 어긋나게 두어 함정을 하나씩 고립시킨다. */
+/** 정책이 객체 읽기 절에 쓴 Resource — 시나리오가 정한다 (정상은 객체 ARN, 함정은 버킷 ARN). */
+const OBJ_RESOURCE_OK = "arn:aws:s3:::my-bucket/*";
+const OBJ_RESOURCE_BAD = "arn:aws:s3:::my-bucket";
+
 const REQ_SCENARIOS = [
   {
     key: "get-ok",
     label: "객체 다운로드",
     req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: true },
+    objResource: OBJ_RESOURCE_OK,
     lesson: "기준점 — Action·Resource·조건이 모두 맞는 요청",
   },
   {
     key: "list-ok",
     label: "목록 조회",
     req: { action: "s3:ListBucket", arn: "arn:aws:s3:::my-bucket", ip: "203.0.113.9 (사무실 NAT)", mfa: false },
+    objResource: OBJ_RESOURCE_OK,
     lesson: "버킷 ARN 이 맞는 경우 — 목록 조회는 버킷을 대상으로 한다 (이 절엔 MFA 조건이 없다)",
   },
   {
+    // 함정은 요청이 아니라 정책에 있다: GetObject 요청은 반드시 객체 키를 실어 보내므로
+    // IAM 이 평가하는 대상도 객체 ARN 이다 — "버킷 ARN 으로 객체를 요청"하는 호출은 존재하지
+    // 않는다 (PR #151 Codex 지적). 실무에서 실제로 나는 실수는 정책의 Resource 를 버킷 ARN 으로
+    // 써 놓고 객체를 읽으려는 쪽이라, 그쪽을 모델링한다.
     key: "arn-trap",
-    label: "버킷 ARN 으로 객체 요청",
-    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket", ip: "203.0.113.9 (사무실 NAT)", mfa: true },
-    lesson: "ARN 불일치 — 유효한 Action 도 Resource 가 안 맞으면 거부된다",
+    label: "정책이 버킷 ARN 만 허용",
+    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: true },
+    objResource: OBJ_RESOURCE_BAD,
+    lesson: "정책의 Resource 실수 — 객체를 읽으려면 :::my-bucket/* 여야 한다. 버킷 ARN 은 ListBucket 같은 버킷 수준 작업용이다",
   },
   {
     key: "ip-out",
     label: "카페 Wi-Fi 에서 요청",
     req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "198.51.100.7 (카페 Wi-Fi)", mfa: true },
+    objResource: OBJ_RESOURCE_OK,
     lesson: "Condition 불충족 — Action·Resource 가 맞아도 절이 발효되지 않는다",
   },
   {
     key: "no-mfa",
     label: "MFA 없이 요청",
     req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: false },
+    objResource: OBJ_RESOURCE_OK,
     lesson: "Bool 조건 불충족 — 나머지가 다 맞아도 MFA 하나로 갈린다",
   },
 ] as const;
@@ -806,8 +819,13 @@ export function PolicyRequestTester() {
   const [pick, setPick] = useState<(typeof REQ_SCENARIOS)[number]["key"]>("get-ok");
   const sc = REQ_SCENARIOS.find((s) => s.key === pick) ?? REQ_SCENARIOS[0];
   const { action, arn, ip, mfa } = sc.req;
+  const objResource = sc.objResource;
 
   const inIpRange = ip.startsWith("203.0.113.");
+  // 정책의 Resource 가 요청 대상을 덮는가. `/*` 로 끝나면 그 접두사 아래 객체를 덮고,
+  // 아니면 그 ARN 자체(= 버킷)만 가리킨다 — 버킷 ARN 은 객체를 포함하지 않는다.
+  const covers = (policyArn: string, target: string) =>
+    policyArn.endsWith("/*") ? target.startsWith(policyArn.slice(0, -1)) : target === policyArn;
 
   // statement 별 필드 매칭. 요청 Action 은 정확히 한 절에만 있으므로, Action 이 다른 절은
   // "실패"가 아니라 "이 요청과 무관"이다 — 아래 표시에서 ✔/✖ 대신 그렇게 적는다.
@@ -823,7 +841,7 @@ export function PolicyRequestTester() {
     {
       sid: "ReadObjectsWithMfa",
       actionOk: action === "s3:GetObject",
-      resourceOk: arn.startsWith("arn:aws:s3:::my-bucket/"),
+      resourceOk: covers(objResource, arn),
       ipOk: inIpRange,
       mfaOk: mfa,
       hasMfa: true,
@@ -842,7 +860,7 @@ export function PolicyRequestTester() {
       ? "요청 Action 이 이 절에 있고 대상도 버킷 ARN 이라 매칭 — 이 절엔 MFA 조건이 없어 MFA 여부와 무관합니다."
       : "객체 ARN · 사무실 IP · MFA 까지 절의 모든 조건을 충족해 매칭됩니다."
     : failClause === "resource"
-      ? "s3:GetObject 를 허용하는 절은 있지만 그 절의 Resource 는 객체 ARN(:::my-bucket/*)입니다. 버킷 자체(:::my-bucket)는 다른 ARN이라 매칭되지 않습니다 — 유효한 Action 도 Resource 가 안 맞으면 암묵적 거부."
+      ? "s3:GetObject 는 허용돼 있지만 그 절의 Resource 가 버킷 ARN(:::my-bucket)입니다. 버킷 ARN 은 버킷 자체만 가리켜 그 안의 객체를 덮지 않으므로, 객체를 읽으려면 :::my-bucket/* 여야 합니다 — Action 이 맞아도 Resource 가 대상을 안 덮으면 암묵적 거부."
       : failClause === "ip"
         ? "Action·Resource 는 매칭되지만 요청 IP 가 IpAddress 조건(203.0.113.0/24) 밖입니다 — 조건이 안 맞으면 그 절은 발효되지 않아 암묵적 거부."
         : "Action·Resource·IP 까지 매칭되지만 aws:MultiFactorAuthPresent:true 를 충족하지 못했습니다 — 조건 하나가 어긋나 절 전체가 발효되지 않습니다.";
@@ -862,7 +880,7 @@ export function PolicyRequestTester() {
     { t: `    "Sid": "ReadObjectsWithMfa",`, stIdx: 1 },
     { t: `    "Effect": "Allow",`, stIdx: 1 },
     { t: `    "Action": ["s3:GetObject"],`, stIdx: 1, clause: "action" },
-    { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, stIdx: 1, clause: "resource" },
+    { t: `    "Resource": "${objResource}",`, stIdx: 1, clause: "resource" },
     { t: `    "Condition": {`, stIdx: 1 },
     { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" },`, stIdx: 1, clause: "ip" },
     { t: `      "Bool": { "aws:MultiFactorAuthPresent": "true" }`, stIdx: 1, clause: "mfa" },
@@ -1045,8 +1063,11 @@ export function PolicyRequestTester() {
             이 정책엔 명시적 Deny 가 없으므로 거부는 전부 <b>“매칭되는 Allow 없음 = 암묵적 거부”</b>입니다.
             여러 정책이 얽힌 우선순위(Deny 우선 등)는 §06 평가 시뮬레이터에서 다룹니다.
           </p>
+          {/* 전제는 시나리오와 무관하게 고정 표시되므로 MFA 여부를 단정하면 안 된다 — "MFA 없이
+              요청" 시나리오에서 요청 패널(MFA: 없음)과 정면으로 어긋난다 (PR #151 Codex 지적).
+              고정된 것은 자격증명 타입(IAM 사용자)이고, MFA 유무는 시나리오가 정한다. */}
           <p style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.55, margin: "6px 0 0", opacity: 0.9 }}>
-            전제: 요청자는 <b>MFA로 인증한 IAM 사용자</b>이고, 사무실 요청은 회사 NAT를 거쳐 공인
+            전제: 요청자는 <b>IAM 사용자</b>(롤 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
             IP로 나갑니다. <span style={{ fontFamily: MONO }}>aws:MultiFactorAuthPresent</span>는
             자격증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
             <span style={{ fontFamily: MONO }}>aws:SourceIp</span>는 AWS가 관찰하는 공인 주소입니다.
