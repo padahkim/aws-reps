@@ -13,6 +13,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "01",
     q: "“임의의 Docker 이미지를 그대로 Lambda에서 실행한다” — 성립하나?",
     a: "성립하지 않는다 — Lambda 컨테이너 이미지는 반드시 Lambda Runtime API를 구현해야 한다. 임의의 Docker 이미지를 실행하고 싶다면 정답은 ECS/Fargate(빈출 함정).",
+    yn: "아니오",
   },
   {
     section: "01",
@@ -123,6 +124,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "11",
     q: "VPC 연결 Lambda를 퍼블릭 서브넷에 배치하면 인터넷에 접근되나?",
     a: "안 된다 — Lambda는 퍼블릭 서브넷에서도 공인 IP를 갖지 못한다(EC2와 다른 점, 최고 빈출 함정). 인터넷이 필요하면 프라이빗 서브넷 + NAT Gateway/Instance.",
+    yn: "아니오",
   },
   {
     section: "11",
@@ -207,6 +209,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "18",
     q: "함수 URL을 특정 게시 버전(V2)에 설정할 수 있나?",
     a: "불가 — 함수 URL은 alias 또는 $LATEST에만 설정할 수 있다.",
+    yn: "아니오",
   },
   {
     section: "18",
