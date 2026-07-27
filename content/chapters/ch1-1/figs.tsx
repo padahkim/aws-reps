@@ -179,7 +179,16 @@ export function StorageClassDecisionTree() {
       label: "꺼낼 때 얼마나 빨리 필요한가요?",
       options: [
         { v: "ms", label: "밀리초 — 복원 대기 불가", on: a2 === "ms", set: () => pick2("ms") },
-        { v: "wait", label: "복원 대기 가능 (분~시간 이상)", on: a2 === "wait", set: () => pick2("wait") },
+        {
+          v: "wait",
+          // "자주 꺼내지 않는다"를 선택지에 박아 둔다. 이 분기는 빈도를 따로 묻지 않고 복원
+          // 대기 시간만으로 Glacier 를 고르는데, 자주 꺼내는 데이터에 Glacier 를 붙이면 검색
+          // 요금이 저장 이득을 먹는다 — 조합 자체가 성립하지 않게 문구로 막는다
+          // (PR #151 Codex 지적. 질문을 늘리는 대신 함의를 명시하는 쪽).
+          label: "복원 대기 가능 — 자주 꺼내지 않는다",
+          on: a2 === "wait",
+          set: () => pick2("wait"),
+        },
       ],
     });
   }
