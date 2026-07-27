@@ -28,7 +28,9 @@ export const C = {
   codeFg: "#FFD9A0",
 } as const;
 
-const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+/** 폰트 스택 — 챕터 figs.tsx는 복제하지 말고 여기서 가져다 쓴다 (#156). */
+export const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+export const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 
 /** 섹션 빈출 배지 색상 (hi=★★★, mid=★★☆, lo=★☆☆). */
 const FREQ_STYLE: Record<"hi" | "mid" | "lo", CSSProperties> = {
@@ -157,6 +159,46 @@ export function Code({ children }: { children: ReactNode }) {
     >
       {children}
     </code>
+  );
+}
+
+/**
+ * 블록 코드 — 잉크 배경 카드. 내용은 \n 이스케이프 한 줄 템플릿으로 받는다(규약 v3).
+ * title 은 파일명·명령 라벨용 선택 인자 (없으면 라벨 줄 자체가 안 나온다).
+ */
+export function CodeBlock({ title, children }: { title?: string; children: string }) {
+  return (
+    <div style={{ margin: "1rem 0" }}>
+      {title && (
+        <div
+          style={{
+            fontFamily: MONO,
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            color: C.inkSoft,
+            marginBottom: 4,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {title}
+        </div>
+      )}
+      <pre
+        style={{
+          fontFamily: MONO,
+          fontSize: "0.8rem",
+          lineHeight: 1.7,
+          background: C.ink,
+          color: "#D5E0EC",
+          borderRadius: 11,
+          padding: "1rem 1.15rem",
+          overflowX: "auto",
+          margin: 0,
+        }}
+      >
+        {children}
+      </pre>
+    </div>
   );
 }
 
@@ -296,6 +338,26 @@ export function ExamPoint({ children }: { children: ReactNode }) {
 
 export function ExamLi({ children }: { children: ReactNode }) {
   return <li style={{ margin: "6px 0", fontSize: "0.92rem" }}>{children}</li>;
+}
+
+/** 주의(함정) 콜아웃 — 레드 왼쪽 보더. */
+export function WarnBox({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        background: C.redSoft,
+        color: C.ink,
+        borderLeft: `5px solid ${C.red}`,
+        borderRadius: "0 12px 12px 0",
+        padding: "0.85rem 1.15rem",
+        margin: "1.25rem 0",
+        fontSize: "0.93rem",
+      }}
+    >
+      <b style={{ color: C.red }}>⚠ 함정 </b>
+      {children}
+    </div>
+  );
 }
 
 /** 챕터 말미 자기평가 체크리스트 — 잉크 배경 패널. */

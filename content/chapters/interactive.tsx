@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { C } from "./ui";
+import { C, MONO } from "./ui";
 
 /**
  * 챕터 본문 공용 인터랙티브 컴포넌트 (#97) — useState 를 쓰므로 ui.tsx(서버 안전)와
@@ -12,8 +12,6 @@ import { C } from "./ui";
  * SimFrame·SelfQuiz 는 ch1-2 figs.tsx(#82, lambda-dva-study.jsx ChQuiz 이식)에서
  * 로직·스타일 무변경으로 이동한 것이다.
  */
-
-const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 /** 인터랙티브 공용 프레임 — ch0-2 EvalEngine 의 잉크 헤더 카드 관례. */
 export function SimFrame({ title, icon = "🎛", children }: { title: string; icon?: string; children: ReactNode }) {

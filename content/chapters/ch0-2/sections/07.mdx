@@ -1,5 +1,5 @@
-import { C, ChLink, Code, ExamLi, ExamPoint, Fig, SubTitle, Table } from "../../ui";
-import { AccentRow, CardGrid, CodeBlock, InfoCard, PointBox, StsSequenceSvg, WarnBox } from "../figs";
+import { C, ChLink, Code, CodeBlock, ExamLi, ExamPoint, Fig, SubTitle, Table, WarnBox } from "../../ui";
+import { AccentRow, CardGrid, InfoCard, PointBox, StsSequenceSvg } from "../figs";
 
 EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를 코드나 서버에 박아두면 유출 시 영구적으로 악용됩니다. 대신 **인스턴스에 롤을 부여**하면 SDK가 <b>STS(Security Token Service)</b>가 발급한 임시 자격증명을 자동으로 받아와 사용하고, 자격증명은 몇 시간 단위로 자동 만료·갱신됩니다 — <ChLink id="ch0-1">ch0-1의 자격증명 탐색 체인</ChLink> 마지막 단계(붙어 있는 IAM 롤)가 바로 이것입니다. **“AWS 위에서 도는 코드에는 키 대신 롤”** — 이 한 문장이 DVA 전체를 관통하는 정답 패턴입니다.
 
