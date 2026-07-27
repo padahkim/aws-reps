@@ -28,6 +28,21 @@ export const chapterMeta: ChapterMeta = {
   domain: "foundation",
   examWeight: 5,
   prerequisites: ["ch0-1"],
+  objectives: [
+    "영구 신원(유저)과 빌려 쓰는 신원(롤)을 구분하고, 권한이 정책 연결로만 생긴다는 것을 설명한다",
+    "정책 JSON의 Effect·Action·Resource·Principal·Condition을 읽고 그 정책이 무엇을 허용하는지 말한다",
+    "명시적 Deny 우선과 SCP ∩ Boundary ∩ Identity 교집합으로 유효 권한을 판정한다",
+    "AWS 위에서 도는 코드의 인증을 액세스 키가 아니라 롤·STS 임시 자격 증명으로 설계한다",
+    "자격 증명 보고서와 액세스 어드바이저를 용도로 구분해 계정 감사·미사용 권한 정리에 쓴다",
+  ],
+  // 파트 경계는 "무엇을 다 배워야 다음이 열리는가" 기준 — 주체를 알아야(01~03) 정책을 읽고
+  // (04~06), 정책을 알아야 롤·STS로 실제 인증을 설계한다(07~08). 09~10은 운영·복습이라 뒤로.
+  parts: [
+    { title: "IAM의 뼈대와 인증", from: "01", to: "03" },
+    { title: "정책 문법과 유효 권한", from: "04", to: "06" },
+    { title: "롤 · STS · 자격 증명 다루기", from: "07", to: "08" },
+    { title: "보안 운영과 시험 총정리", from: "09", to: "10" },
+  ],
 };
 
 // 두 원본 모두 퀴즈 성분 없음 (축2 리포트) — aws-cloud-drills iam.json 15문항 중 전면 확장된
