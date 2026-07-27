@@ -757,11 +757,13 @@ export function LifecycleSim() {
         >
           ❄️ 콜드 스타트 호출
         </button>
+        {/* 배경은 amber 가 아니라 amberText — 흰 글자 기준 2.73:1 이라 AA 미달이었다(#149).
+            옆의 콜드 스타트 버튼(C.blue, 6.78:1)과 무게도 이제 맞는다. */}
         <button
           type="button"
           onClick={() => run("warm")}
           aria-pressed={mode === "warm"}
-          style={{ cursor: "pointer", background: C.amber, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: "0.82rem", fontWeight: 600 }}
+          style={{ cursor: "pointer", background: C.amberText, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: "0.82rem", fontWeight: 600 }}
         >
           🔥 웜 호출
         </button>
