@@ -61,8 +61,13 @@ type TreeTerminal = {
   spec: string;
   exam: string;
   rejected: string[];
-  /** 이 종착지의 규칙이 항상 성립하지는 않을 때 다는 단서 (PR #151 Codex 지적). */
-  caveat?: string;
+  /**
+   * 최소 저장 기간(일). 없으면 그런 조항이 없는 클래스다.
+   * 이걸 트리의 게이트가 아니라 종착지의 경고로 두는 이유: S3 최소 저장 기간은 조기 삭제
+   * "요금" 조항이지 저장·검색을 막는 자격 조건이 아니다 (PR #151 Codex 지적). 보관 기간을
+   * 물어 경로를 잘라내면 사실과 어긋나고, 경계마다 구간을 쪼개는 일도 끝나지 않는다.
+   */
+  minDays?: number;
 };
 
 /**
@@ -77,17 +82,12 @@ type TreeTerminal = {
  */
 export function StorageClassDecisionTree() {
   const [a1, setA1] = useState<"known" | "unknown" | null>(null);
-  // 보관 기간 구간은 §06 표의 최소 저장 기간 경계를 그대로 쓴다 — 30일(IA)·90일(Glacier
-  // Instant/Flexible)·180일(Deep Archive). "30일 이상"으로 한데 묶으면 60일 보관 데이터가
-  // 아카이브 분기에서 고를 답이 없어 트리가 막힌다 (PR #151 Codex 지적).
-  const [keep, setKeep] = useState<"short" | "mid" | "long" | null>(null);
   const [a2, setA2] = useState<"ms" | "wait" | null>(null);
   const [a3, setA3] = useState<"freq" | "monthly" | "quarterly" | null>(null);
   const [a3b, setA3b] = useState<"recreate" | "unique" | null>(null);
   const [a4, setA4] = useState<"hours" | "days" | null>(null);
 
-  const pick1 = (v: "known" | "unknown") => { setA1(v); setKeep(null); setA2(null); setA3(null); setA3b(null); setA4(null); };
-  const pickKeep = (v: "short" | "mid" | "long") => { setKeep(v); setA2(null); setA3(null); setA3b(null); setA4(null); };
+  const pick1 = (v: "known" | "unknown") => { setA1(v); setA2(null); setA3(null); setA3b(null); setA4(null); };
   const pick2 = (v: "ms" | "wait") => { setA2(v); setA3(null); setA3b(null); setA4(null); };
   const pick3 = (v: "freq" | "monthly" | "quarterly") => { setA3(v); setA3b(null); };
 
@@ -104,21 +104,11 @@ export function StorageClassDecisionTree() {
       exam: "자주 접근하는 데이터의 기본값 — 빅데이터, 콘텐츠 배포",
       rejected: ["Standard-IA·One Zone-IA — 검색 비용 + 최소 30일 규칙: 자주 꺼내는 데이터엔 오히려 불리"],
     },
-    stdShort: {
-      name: "Standard",
-      spec: "최소 기간 없음 — 언제 지워도 그때까지만 과금",
-      exam: "최소 저장 기간이 걸리는 구간 — 30일 안에 지울 데이터를 IA·Glacier에 넣으면 쓰지도 않은 기간까지 청구된다. 시험이 묻는 것도 이 조기 삭제 요금이다.",
-      rejected: [
-        "Standard-IA·One Zone-IA — 최소 30일: 일주일 뒤 지워도 30일치가 청구된다",
-        "Glacier Instant·Flexible — 최소 90일 · Deep Archive — 최소 180일: 보관 예정 기간의 몇 배를 문다",
-      ],
-      caveat:
-        "다만 “30일 미만이면 무조건 Standard”는 아니다 — 객체가 크고 거의 꺼내지 않으면 IA의 낮은 저장 단가가 최소 기간 요금을 물고도 이길 수 있다. 시험은 이 손익분기 계산까지 묻지 않지만, 실무에서는 보관 기간·크기·검색 횟수를 함께 따진다.",
-    },
     sia: {
       name: "Standard-IA",
       spec: "최소 30일 · 밀리초 접근 · 저렴한 저장 + 검색 비용 · 가용성 99.9%",
       exam: "저빈도지만 즉시 필요한 데이터 — 백업, 재해 복구",
+      minDays: 30,
       rejected: [
         "One Zone-IA — 단일 AZ(가용성 99.5%)·AZ 파괴 시 유실: 원본·유일본엔 부적합",
         "Glacier류 — 최소 90일+ 이고 (GIR 제외) 복원 절차가 필요",
@@ -128,12 +118,14 @@ export function StorageClassDecisionTree() {
       name: "One Zone-IA",
       spec: "최소 30일 · 단일 AZ · 가용성 99.5%",
       exam: "“손실돼도 재생성 가능한 데이터의 저비용 보관” → One Zone-IA (2차 백업·재생성 가능 사본)",
+      minDays: 30,
       rejected: ["Standard-IA — 재생성 가능한 사본에는 다중 AZ 내구 구조가 초과 사양 (저비용 보관이 목적)"],
     },
     gir: {
       name: "Glacier Instant Retrieval",
       spec: "최소 90일 · 밀리초 검색 · 가용성 99.9%",
       exam: "“복원 없이 즉시 접근 + 아카이브 가격” → Glacier Instant Retrieval (분기 1회 접근 데이터)",
+      minDays: 90,
       rejected: [
         "Glacier Flexible — 가장 빠른 신속 검색도 1~5분 대기: “즉시(밀리초)”가 필요하면 탈락",
         "Standard-IA — 아카이브 가격이 아님: 분기 1회 수준이면 GIR이 경계 너머",
@@ -143,22 +135,20 @@ export function StorageClassDecisionTree() {
       name: "Glacier Flexible Retrieval",
       spec: "최소 90일 · 신속 1~5분 / 표준 3~5시간 / 대량 5~12시간(무료) · 복원 후 접근",
       exam: "복원 절차를 감수하는 아카이브 — 검색 속도 3옵션을 상황에 맞게 선택",
+      minDays: 90,
       rejected: ["Glacier Deep Archive — 신속 검색 미지원·표준 12시간: 분~수 시간 내 복원이 필요하면 탈락"],
     },
     gda: {
       name: "Glacier Deep Archive",
       spec: "최소 180일 · 표준 12시간 / 대량 48시간 · 최저가 · 신속 검색 미지원",
       exam: "“7년 규정 보관, 거의 안 봄” → Glacier Deep Archive. 검색 시간·최소 기간(30/90/180일) 암기",
+      minDays: 180,
       rejected: ["Glacier Flexible — 더 빨리 꺼낼 수 있지만 최저가는 아님: 12시간+ 대기가 가능하면 Deep Archive"],
     },
   };
 
-  // 보관 기간이 30일 미만이면 최소 저장 기간(IA 30일 · Glacier 90/180일)이 다른 모든 축을
-  // 이긴다 — 일주일 뒤 지울 객체를 GFR 에 넣으면 90일치를 문다. 그래서 검색 지연·빈도를
-  // 묻기 전에 여기서 단락시킨다 (PR #151 Codex 지적).
   const terminal: TreeTerminal | null =
     a1 === "unknown" ? TERMINALS.it
-    : keep === "short" ? TERMINALS.stdShort
     : a3 === "freq" ? TERMINALS.std
     : a3 === "quarterly" ? TERMINALS.gir
     : a3b === "recreate" ? TERMINALS.ozia
@@ -184,30 +174,6 @@ export function StorageClassDecisionTree() {
     },
   ];
   if (a1 === "known") {
-    questions.push({
-      key: "qKeep",
-      // 구간 경계 = §06 표의 최소 저장 기간. 이 질문이 곧 30/90/180일 암기 지점이다.
-      label: "얼마나 오래 보관하나요?",
-      options: [
-        { v: "short", label: "30일 안에 지운다", on: keep === "short", set: () => pickKeep("short") },
-        { v: "mid", label: "30~89일", on: keep === "mid", set: () => pickKeep("mid") },
-        { v: "long", label: "90일 이상", on: keep === "long", set: () => pickKeep("long") },
-      ],
-    });
-  }
-  if (keep === "mid") {
-    // 90일 미만이면 Glacier 3종이 전부 최소 기간 미달이라 아카이브 경로 자체가 없다.
-    // 그래서 검색 지연을 묻지 않고 바로 빈도로 간다 — 물어봐야 고를 수 있는 답이 같다.
-    questions.push({
-      key: "q3mid",
-      label: "얼마나 자주 접근하나요? (90일 미만이라 Glacier 계열은 최소 기간 미달로 제외됩니다)",
-      options: [
-        { v: "freq", label: "자주 — 월 여러 번", on: a3 === "freq", set: () => pick3("freq") },
-        { v: "monthly", label: "가끔 — 월 1회 수준 (백업·DR)", on: a3 === "monthly", set: () => pick3("monthly") },
-      ],
-    });
-  }
-  if (keep === "long") {
     questions.push({
       key: "q2",
       label: "꺼낼 때 얼마나 빨리 필요한가요?",
@@ -244,7 +210,7 @@ export function StorageClassDecisionTree() {
       label: "복원을 얼마나 기다릴 수 있나요?",
       options: [
         { v: "hours", label: "분~수 시간 안엔 필요", on: a4 === "hours", set: () => setA4("hours") },
-        { v: "days", label: "12시간+ 대기 가능 (180일 이상·규정 보관)", on: a4 === "days", set: () => setA4("days") },
+        { v: "days", label: "12시간+ 대기 가능 — 규정 보관", on: a4 === "days", set: () => setA4("days") },
       ],
     });
   }
@@ -317,23 +283,30 @@ export function StorageClassDecisionTree() {
                 </div>
               ))}
             </div>
-            {terminal.caveat && (
+            {terminal.minDays && (
+              // 최소 저장 기간은 이 클래스를 못 쓰게 막는 조건이 아니라 조기 삭제 요금이다.
+              // 그래서 경로를 잘라내는 대신 추천과 함께 비용을 알린다.
               <div
                 style={{
-                  marginTop: 8,
-                  paddingTop: 8,
-                  borderTop: `1px dashed ${C.teal}`,
-                  fontSize: "0.78rem",
-                  color: C.inkSoft,
+                  marginTop: 10,
+                  padding: "8px 11px",
+                  borderRadius: 8,
+                  background: C.amberSoft,
+                  borderLeft: `4px solid ${C.amber}`,
+                  fontSize: "0.79rem",
+                  color: C.ink,
                   lineHeight: 1.6,
                 }}
               >
-                {terminal.caveat}
+                <b style={{ color: C.amberText }}>⚠ 최소 저장 {terminal.minDays}일</b> — 그 전에 지워도{" "}
+                {terminal.minDays}일치가 청구됩니다(조기 삭제 요금). 저장·검색이 막히는 건 아니지만,
+                짧게 두고 지울 데이터라면 최소 기간이 없는 Standard·Intelligent-Tiering과 비교해 보세요.
+                시험은 이 30/90/180일 규칙을 묻습니다.
               </div>
             )}
             <button
               type="button"
-              onClick={() => { setA1(null); setKeep(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
+              onClick={() => { setA1(null); setA2(null); setA3(null); setA3b(null); setA4(null); }}
               className="widget-btn"
               style={{
                 ...fillBtn(C.ink, C.inkSoft),
