@@ -402,21 +402,35 @@ it = next((n for n in c['nodes'] if n['project']['id'] == pj['id']), None)
 print(f\"{it['id'] if it else '-'}|{((it or {}).get('fieldValueByName') or {}).get('name') or '-'}|{pj['id']}|{f['id']}|{opt}\")
 "; }
 
+# mutation 실행기 — 읽기와 **같은 3분기**를 mutation에도 준다: 성공이면 stdout 그대로,
+# 예산 소진이면 3, 그 외 실패면 1. 읽기만 막아두면 "첫 질의가 마지막 점수를 쓰는" 창이 남는다
+mut(){ local out rc; out=$("$@" 2>/tmp/land-mut.err); rc=$?
+  if [ $rc -eq 0 ]; then printf '%s' "$out"; return 0; fi
+  cat /tmp/land-mut.err >&2
+  grep -qiE 'rate limit|RATE_LIMITED' /tmp/land-mut.err && return 3
+  return 1; }
+
 apply_board(){                          # 성공 0 / 실패 1. 예산 소진은 "미갱신"으로 보고하고 0
   IFS='|' read -r IT CUR PJ FD OPT <<< "$1"
+  local OUT RC
 
   if [ "$IT" = "-" ]; then              # 보드에 없다 (읽기 실패와는 다르다 — 파서가 걸렀다)
     echo "보드에 없음 → 추가한다"
-    IT=$(gh project item-add "$PROJ" --owner "@me" --url "https://github.com/$OWNER/$REPO/issues/$N" \
-           --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || return 1
+    OUT=$(mut gh project item-add "$PROJ" --owner "@me" \
+            --url "https://github.com/$OWNER/$REPO/issues/$N" --format json); RC=$?
+    [ $RC -eq 3 ] && { echo "보드 미갱신 — GraphQL 예산 소진 (item-add)"; return 0; }
+    [ $RC -eq 0 ] || return 1
+    IT=$(printf '%s' "$OUT" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || return 1
     CUR=-
   fi
 
   if [ "$CUR" = "$TARGET" ]; then
     echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
   else
-    gh project item-edit --id "$IT" --project-id "$PJ" \
-      --field-id "$FD" --single-select-option-id "$OPT" || return 1
+    mut gh project item-edit --id "$IT" --project-id "$PJ" \
+      --field-id "$FD" --single-select-option-id "$OPT" >/dev/null; RC=$?
+    [ $RC -eq 3 ] && { echo "보드 미갱신 — GraphQL 예산 소진 (item-edit)"; return 0; }
+    [ $RC -eq 0 ] || return 1
   fi
 
   # 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다 (같은 질의, cost 1)
@@ -449,7 +463,8 @@ esac
 
 - **"보드에 없음"의 근거가 무엇인가** (#154가 막은 구멍을 다시 열지 않기 위해). 옛 블록은 "보드 전체 목록에 없음 + `totalCount` 대조로 잘리지 않았음"으로 확정했다. 단일 항목 질의에는 "보드 전체"라는 개념이 없으므로 근거를 **이슈 쪽에서** 세운다 — ① 질의가 실제로 응답했다(`viewer.projectV2`가 null 아님 = 예산·권한 정상), ② 이 이슈의 `projectItems`가 잘리지 않았다(`nodes == totalCount`), ③ 그 안에 `project.number == 1`인 항목이 없다. 셋이 모두 참일 때만 "없음"이고, 하나라도 깨지면 파서가 죽는다. 즉 **잘림 감지는 사라진 게 아니라 "보드 전체"에서 "이 이슈의 소속 목록"으로 옮겨 갔다** — 이슈가 어느 프로젝트에도 안 붙었으면 `totalCount=0`·`nodes=[]`로 잘림 없이 "없음"이 확정된다.
 - **예산 소진은 멈출 이유가 아니다 — 그것만 `exit 3`으로 구분한다** (PR #158 Codex P1). 이 블록은 **비가역인 머지 뒤, 이슈 close-out·잔재 정리·main 전파 앞**에 있다. 그래서 소진 시 통째로 `exit 1`을 하면 **PR은 머지된 채로 남은 단계가 전부 건너뛰어진다** — 이 스킬이 #146에서 배운 사고와 같은 모양이고, 정작 주의 절이 명문화한 폴백("보드만 건너뛰고 계속")과 코드가 어긋나 있었다. 이제 소진은 "보드 미갱신"으로 보고하고 계속하며, **잘림·빈 응답·형식 오류는 그대로 fail-closed**다 (그건 보드 상태를 모른다는 뜻이므로 계속하면 안 된다).
-  - 소진 판정은 `errors[].type == "RATE_LIMITED"`(또는 메시지의 `rate limit`)로 한다. `gh api graphql`은 GraphQL 오류에도 **응답 본문을 stdout에 그대로 준다**(실측: exit 1 + 본문 출력) — 그래서 파서가 읽을 수 있다. 2026-07-26 사고에서 빈 값이 왔던 건 `gh pr view --json … --jq`가 오류를 삼켰기 때문이고, 원본 응답에는 `type`이 들어 있다.
+  - **mutation도 같은 3분기를 받는다** (PR #158 Codex 라운드 2). 읽기만 고치면 창이 남는다 — **첫 질의가 마지막 남은 점수를 쓰면** 뒤따르는 `item-add`·`item-edit`이 rate-limit으로 실패하고, 그 실패가 `exit 1`로 번져 같은 부분 착지 상태를 만든다. 그래서 `mut()` 실행기가 mutation의 stderr에서 소진을 알아보고 3을 돌려준다. 읽기든 쓰기든 **"보드를 못 만졌다"는 착지를 멈출 이유가 아니다** — 멈출 이유는 "보드 상태를 잘못 알 위험"뿐이다.
+  - 소진 판정은 읽기에서는 `errors[].type == "RATE_LIMITED"`(또는 메시지의 `rate limit`), mutation에서는 stderr 문자열로 한다. `gh api graphql`은 GraphQL 오류에도 **응답 본문을 stdout에 그대로 준다**(실측: exit 1 + 본문 출력) — 그래서 파서가 읽을 수 있다. 2026-07-26 사고에서 빈 값이 왔던 건 `gh pr view --json … --jq`가 오류를 삼켰기 때문이고, 원본 응답에는 `type`이 들어 있다.
   - `data.viewer.projectV2` null 검사는 남아 있다 — 소진 외의 이유(권한·응답 이상)로 못 읽은 경우를 잡는다. 이 검사가 없으면 그 상태가 "보드에 없음"으로 읽혀 `item-add`가 중복 항목을 만든다.
 - **항목은 프로젝트 번호가 아니라 node id로 짚는다** (PR #158 Codex P2). 프로젝트 번호는 **소유자별 스코프**라, 이 이슈가 다른 사용자·조직의 프로젝트 #1에도 들어 있으면 `number == 1`이 그 항목을 고른다. 그러면 ① 그쪽 필드가 마침 목표값이면 설정과 검증이 **둘 다 거짓 성공**하고(우리 보드는 그대로), ② 아니면 다른 프로젝트의 항목 id에 우리 프로젝트의 필드 id를 넘겨 `item-edit`이 실패한다. 그래서 질의가 `project{ id }`를 받아 `viewer`의 프로젝트 id와 대조한다.
 
