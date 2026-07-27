@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { chapterParts, estimateChapterMinutes, getAllChapters, getChapter } from "@/lib/content";
+import { chapterParts, estimateChapter, getAllChapters, getChapter } from "@/lib/content";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
@@ -35,25 +35,34 @@ export default async function ChapterPage({
     sub: s.sub,
     freq: s.freq,
   }));
+  // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
+  const parts = chapterParts(entry);
+  const estimate = estimateChapter(entry, parts);
+
   // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다). 어느 파트에도 속하지 않으므로
-  // 파트 그룹들 뒤에 라벨 없는 묶음으로 붙는다.
+  // 파트 그룹들 뒤에 라벨 없는 묶음으로 붙는다 — 그룹 헤더가 없어 소요는 이 줄의 sub 에 적는다.
+  // 그래야 화면의 "파트별 분"을 다 더하면 오리엔테이션의 총합이 나온다 (estimateChapter 참조).
   const quizItem: TocItem | undefined =
     quiz.length > 0
       ? {
           sec: sections.length + 1,
           num: "Q",
           title: "챕터 퀴즈",
-          sub: `${quiz.length}문항 · 전 섹션 종합`,
+          sub: [
+            `${quiz.length}문항 · 전 섹션 종합`,
+            parts.length > 0 && estimate ? `약 ${estimate.quiz}분` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
         }
       : undefined;
 
-  // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
-  const parts = chapterParts(entry);
   const groups: TocGroup[] =
     parts.length > 0
       ? [
-          ...parts.map((part) => ({
+          ...parts.map((part, i) => ({
             label: `파트 ${part.index} — ${part.title}`,
+            minutes: estimate?.parts[i],
             items: items.slice(part.fromSec - 1, part.toSec),
           })),
           // 챕터 퀴즈는 어느 파트에도 속하지 않는다 — 파트들 뒤에 라벨 없이 붙인다
@@ -95,7 +104,7 @@ export default async function ChapterPage({
       {meta.objectives && (
         <ChapterOrientation
           objectives={meta.objectives}
-          minutes={estimateChapterMinutes(entry)}
+          minutes={estimate?.total}
           sectionCount={sections.length}
           partCount={parts.length}
         />

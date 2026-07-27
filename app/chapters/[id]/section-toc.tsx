@@ -18,7 +18,8 @@ export interface TocItem {
  * parts 가 없는 챕터는 label 없는 그룹 하나 = 예전과 같은 평평한 목차.
  */
 export interface TocGroup {
-  label?: string;   // "파트 2 — 호출 방식 세 가지"
+  label?: string;     // "파트 2 — 호출 방식 세 가지"
+  minutes?: number;   // 이 파트를 도는 데 걸리는 대략의 분 (label 이 있을 때만 표시된다)
   items: TocItem[];
 }
 
@@ -80,10 +81,15 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
                     fontWeight: 700,
                     fontVariantNumeric: "tabular-nums",
                     whiteSpace: "nowrap",
-                    color: complete ? "var(--accent)" : "var(--muted)",
                   }}
                 >
-                  {complete ? "✓ 완료" : `${groupDone}/${group.items.length}`}
+                  {/* 파트 소요 — 한 자리에서 끝낼 수 있는 단위인지 여기서 판단한다 (#161) */}
+                  {group.minutes !== undefined && (
+                    <span style={{ fontWeight: 400 }}>약 {group.minutes}분 · </span>
+                  )}
+                  <span style={{ color: complete ? "var(--accent)" : "var(--muted)" }}>
+                    {complete ? "✓ 완료" : `${groupDone}/${group.items.length}`}
+                  </span>
                 </span>
               </h2>
             )}

@@ -22,7 +22,8 @@ export type { ChapterEntry };
 
 // 예상 소요 (규약 v3.1, #161) — 서버 전용 모듈이다 (node:fs). 이 파일을 값으로 import 하는
 // 곳은 서버 컴포넌트뿐이라 통로를 여기로 통일한다 (앱은 content/ 를 직접 안 본다는 원칙).
-export { estimateChapterMinutes } from "./reading-time";
+export { estimateChapter } from "./reading-time";
+export type { ChapterEstimate } from "./reading-time";
 
 // 셀프 퀴즈 렌더 컴포넌트 (#98) — 앱은 content/ 를 직접 import 하지 않는다는 이 파일의
 // 원칙을 지키기 위한 통로 re-export ("use client" 경계는 원 모듈에 있어 그대로 보존된다).
