@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllChapters, getChapter } from "@/lib/content";
-import { SectionToc, type TocItem } from "./section-toc";
+import { chapterParts, estimateChapter, getAllChapters, getChapter } from "@/lib/content";
+import { ChapterOrientation } from "./chapter-orientation";
+import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
 // 레지스트리에 없는 id는 404. 단 output: "export"의 dev 서버는 미등록 param을 이 설정과
 // 무관하게 자체 500으로 거부한다 (dev 전용 — 배포본은 정적 파일이 없어 호스트 404).
@@ -27,20 +28,47 @@ export default async function ChapterPage({
   if (!entry) notFound();
 
   const { chapterMeta: meta, sections, quiz } = entry.data;
-  const items: TocItem[] = [
-    ...sections.map((s, i) => ({ sec: i + 1, num: s.num, title: s.title, sub: s.sub })),
-    // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다)
-    ...(quiz.length > 0
+  const items: TocItem[] = sections.map((s, i) => ({
+    sec: i + 1,
+    num: s.num,
+    title: s.title,
+    sub: s.sub,
+    freq: s.freq,
+  }));
+  // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
+  const parts = chapterParts(entry);
+  const estimate = estimateChapter(entry, parts);
+
+  // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다). 어느 파트에도 속하지 않으므로
+  // 파트 그룹들 뒤에 라벨 없는 묶음으로 붙는다 — 그룹 헤더가 없어 소요는 이 줄의 sub 에 적는다.
+  // 그래야 화면의 "파트별 분"을 다 더하면 오리엔테이션의 총합이 나온다 (estimateChapter 참조).
+  const quizItem: TocItem | undefined =
+    quiz.length > 0
+      ? {
+          sec: sections.length + 1,
+          num: "Q",
+          title: "챕터 퀴즈",
+          sub: [
+            `${quiz.length}문항 · 전 섹션 종합`,
+            parts.length > 0 && estimate ? `약 ${estimate.quiz}분` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        }
+      : undefined;
+
+  const groups: TocGroup[] =
+    parts.length > 0
       ? [
-          {
-            sec: sections.length + 1,
-            num: "Q",
-            title: "챕터 퀴즈",
-            sub: `${quiz.length}문항 · 전 섹션 종합`,
-          },
+          ...parts.map((part, i) => ({
+            label: `파트 ${part.index} — ${part.title}`,
+            minutes: estimate?.parts[i],
+            items: items.slice(part.fromSec - 1, part.toSec),
+          })),
+          // 챕터 퀴즈는 어느 파트에도 속하지 않는다 — 파트들 뒤에 라벨 없이 붙인다
+          ...(quizItem ? [{ items: [quizItem] }] : []),
         ]
-      : []),
-  ];
+      : [{ items: quizItem ? [...items, quizItem] : items }];
 
   return (
     <article>
@@ -72,7 +100,16 @@ export default async function ChapterPage({
           )}
         </p>
       </header>
-      <SectionToc chapterId={meta.id} items={items} />
+      {/* 오리엔테이션은 objectives 가 있는 챕터에만 (규약 v3.1 — 점진 적용, 소급은 #163) */}
+      {meta.objectives && (
+        <ChapterOrientation
+          objectives={meta.objectives}
+          minutes={estimate?.total}
+          sectionCount={sections.length}
+          partCount={parts.length}
+        />
+      )}
+      <SectionToc chapterId={meta.id} groups={groups} />
     </article>
   );
 }

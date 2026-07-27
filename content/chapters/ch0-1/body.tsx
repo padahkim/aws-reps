@@ -28,13 +28,16 @@ const INTRO_AT = 1;
  * 규약 v3 shim — 본문은 intro/outro/sections/*.mdx, 여기는 Sec 래핑(meta 스프레드)과
  * 인트로·아웃트로(마지막 섹션 하단)·섹션 꼬리 슬롯 배치만 담당한다.
  * afterSection(인출 개념 카드)은 본문과 아웃트로 사이 — 섹션 단위 인출이 챕터 마무리보다 먼저다.
+ * beforeBody(미리 보는 질문)는 <Sec> 의 첫 자식 — 섹션 헤더 바로 아래, 본문 앞이다 (v3.1 #161).
  */
 export default function Ch01Body({
   section,
   afterSection,
+  beforeBody,
 }: {
   section: number;
   afterSection?: ReactNode;
+  beforeBody?: ReactNode;
 }) {
   const S = SECTIONS[section];
   if (!S) throw new Error(`ch0-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
@@ -42,6 +45,7 @@ export default function Ch01Body({
     <>
       {section === INTRO_AT && <Intro />}
       <Sec {...sections[section]}>
+        {beforeBody}
         <S />
       </Sec>
       {afterSection}
