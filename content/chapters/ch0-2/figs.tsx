@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { C } from "../ui";
+import { C, Code } from "../ui";
+import { chipBtn, outlineBtn, SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -354,7 +355,7 @@ export function PolicyAnatomy() {
     { t: `    "Action": ["s3:GetObject"],`, k: "Action", code: "#FFB55C", chip: C.amberText, note: "허용/거부할 API 동작 (필수)" },
     { t: `    "Resource": "arn:aws:s3:::my-bucket/*",`, k: "Resource", code: "#F4A08A", chip: C.red, note: "대상 리소스의 ARN (필수)" },
     { t: `    "Condition": {`, k: "Condition", code: "#6FD3C4", chip: C.teal, note: "적용 조건 (IP·MFA·태그 등) — 선택" },
-    { t: `      "IpAddress": { "aws:SourceIp": "10.0.0.0/16" }` },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" }` },
     { t: `    }` },
     { t: `  }]` },
     { t: `}` },
@@ -597,44 +598,6 @@ export function StsSequenceSvg() {
 
 /* ============ 인터랙티브: 정책 평가 시뮬레이터 (iam_guide EvalEngine 이식) ============ */
 
-function Switch({ on, onClick, colorOn, label }: { on: boolean; onClick: () => void; colorOn: string; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onClick}
-      style={{
-        width: 44,
-        height: 24,
-        borderRadius: 20,
-        position: "relative",
-        cursor: "pointer",
-        border: "none",
-        padding: 0,
-        flex: "none",
-        background: on ? colorOn : "#A9B4BF",
-        transition: "background .2s",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 2,
-          left: on ? 22 : 2,
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          background: "#fff",
-          transition: "left .2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,.25)",
-        }}
-      />
-    </button>
-  );
-}
-
 /**
  * 정책 평가 시뮬레이터 — 토글 4개로 요청 조건을 바꾸면 AWS 평가 순서(단순화:
  * 명시적 Deny > SCP > Permission Boundary > 명시적 Allow > 암묵적 Deny)에 따라
@@ -745,5 +708,486 @@ export function EvalEngine() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ============ 인터랙티브: 정책 요청 테스터 (#72 신규) ============ */
+
+/** 요청 조립용 칩 버튼 — 호버·포커스는 공용 chipBtn + .widget-btn 체계(#144)에 맡긴다. */
+function ReqChip({
+  active,
+  onClick,
+  color,
+  soft,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: string;
+  soft: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="widget-btn"
+      style={{
+        ...chipBtn(active, color, soft),
+        fontFamily: MONO,
+        fontSize: "0.74rem",
+        padding: "6px 11px",
+        borderRadius: 8,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+/**
+ * 정책 요청 테스터 — 샘플 S3 정책(2 statement)에 요청 시나리오를 던져 ALLOW/암묵적 DENY 를
+ * 판정하고, 결정을 만든 절을 하이라이트한다. EvalEngine(§06)이 다루는 교차 정책 우선순위와
+ * 다른 축 — 여기는 "한 정책 안에서 어느 절이 왜 매칭/실패하는가"다.
+ *
+ * 자유 조합이 아니라 시나리오 프리셋인 이유 (2026-07-27 사용자 결정): 축 4개를 따로 두면
+ * 2×2×2×2 = 16 상태가 되고 그중 대부분이 "여러 조건이 동시에 어긋난" 상태다. 그러면 함정이
+ * 서로를 가려서 무엇을 배우는 화면인지 읽히지 않는다 — 실제로 Resource·IP·MFA 가 함께 틀린
+ * 상태에서 ✖ 배지는 셋인데 판정문은 하나만 지목해 서로 어긋나 보였다. 프리셋은 한 번에 한
+ * 가지만 어긋나게 고정하므로 각 시나리오가 함정 하나씩을 고립시킨다.
+ *
+ * 판정 로직의 사실 근거 (#72 코멘트 기록 대상):
+ * - 버킷 ARN(:::my-bucket)과 객체 ARN(:::my-bucket/*)은 다른 ARN — §04 본문·InfoCard.
+ * - Allow 절이 하나도 매칭되지 않으면 기본값인 암묵적 거부 — EvalEngine 평가 순서와 동일.
+ * - Condition 이 있는 절은 조건 불충족 시 발효되지 않음 (aws:SourceIp·aws:MultiFactorAuthPresent).
+ *
+ * IP 는 공인 주소로 모델링한다 (PR #151 Codex 지적, P1). aws:SourceIp 는 요청이 AWS 에
+ * 도달할 때 관찰되는 주소라, 사무실 사설 IP(10.x)는 NAT 를 거쳐 공인 주소로 바뀐 뒤에야
+ * 보인다 — 사설 CIDR 을 조건으로 걸면 "사내망이면 ALLOW"라는 성립 불가능한 인과를 가르치게
+ * 된다. 그래서 문서용 예약 대역(RFC 5737)의 공인 주소를 쓴다. (VPC 엔드포인트 경유 요청은
+ * aws:VpcSourceIp 를 쓰지만 그 경로는 이 섹션 범위 밖이다.)
+ */
+
+/** 요청 시나리오 — 각각 한 가지 축만 어긋나게 두어 함정을 하나씩 고립시킨다. */
+/** 정책이 객체 읽기 절에 쓴 Resource — 시나리오가 정한다 (정상은 객체 ARN, 함정은 버킷 ARN). */
+const OBJ_RESOURCE_OK = "arn:aws:s3:::my-bucket/*";
+const OBJ_RESOURCE_BAD = "arn:aws:s3:::my-bucket";
+
+const REQ_SCENARIOS = [
+  {
+    key: "get-ok",
+    label: "객체 다운로드",
+    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: true },
+    objResource: OBJ_RESOURCE_OK,
+    lesson: "기준점 — Action·Resource·조건이 모두 맞는 요청",
+  },
+  {
+    key: "list-ok",
+    label: "목록 조회",
+    req: { action: "s3:ListBucket", arn: "arn:aws:s3:::my-bucket", ip: "203.0.113.9 (사무실 NAT)", mfa: false },
+    objResource: OBJ_RESOURCE_OK,
+    lesson: "버킷 ARN 이 맞는 경우 — 목록 조회는 버킷을 대상으로 한다 (이 절엔 MFA 조건이 없다)",
+  },
+  {
+    // 함정은 요청이 아니라 정책에 있다: GetObject 요청은 반드시 객체 키를 실어 보내므로
+    // IAM 이 평가하는 대상도 객체 ARN 이다 — "버킷 ARN 으로 객체를 요청"하는 호출은 존재하지
+    // 않는다 (PR #151 Codex 지적). 실무에서 실제로 나는 실수는 정책의 Resource 를 버킷 ARN 으로
+    // 써 놓고 객체를 읽으려는 쪽이라, 그쪽을 모델링한다.
+    key: "arn-trap",
+    label: "정책이 버킷 ARN 만 허용",
+    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: true },
+    objResource: OBJ_RESOURCE_BAD,
+    lesson: "정책의 Resource 실수 — 객체를 읽으려면 :::my-bucket/* 여야 한다. 버킷 ARN 은 ListBucket 같은 버킷 수준 작업용이다",
+  },
+  {
+    key: "ip-out",
+    label: "카페 Wi-Fi 에서 요청",
+    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "198.51.100.7 (카페 Wi-Fi)", mfa: true },
+    objResource: OBJ_RESOURCE_OK,
+    lesson: "Condition 불충족 — Action·Resource 가 맞아도 절이 발효되지 않는다",
+  },
+  {
+    key: "no-mfa",
+    label: "MFA 없이 요청",
+    req: { action: "s3:GetObject", arn: "arn:aws:s3:::my-bucket/report.pdf", ip: "203.0.113.9 (사무실 NAT)", mfa: false },
+    objResource: OBJ_RESOURCE_OK,
+    lesson: "Bool 조건 불충족 — 나머지가 다 맞아도 MFA 하나로 갈린다",
+  },
+] as const;
+
+export function PolicyRequestTester() {
+  const [pick, setPick] = useState<(typeof REQ_SCENARIOS)[number]["key"]>("get-ok");
+  // 예측 게이트 — 답을 먼저 찍어야 판정이 열린다. 누르자마자 결과가 보이면 "예측"이 아니라
+  // 그냥 읽기가 되고, 그건 정적 설명과 다를 게 없다 (#72 가 찾으려던 것의 반대).
+  const [guess, setGuess] = useState<"allow" | "deny" | null>(null);
+  const choose = (k: (typeof REQ_SCENARIOS)[number]["key"]) => { setPick(k); setGuess(null); };
+  const sc = REQ_SCENARIOS.find((s) => s.key === pick) ?? REQ_SCENARIOS[0];
+  const { action, arn, ip, mfa } = sc.req;
+  const objResource = sc.objResource;
+
+  const inIpRange = ip.startsWith("203.0.113.");
+  // 정책의 Resource 가 요청 대상을 덮는가. `/*` 로 끝나면 그 접두사 아래 객체를 덮고,
+  // 아니면 그 ARN 자체(= 버킷)만 가리킨다 — 버킷 ARN 은 객체를 포함하지 않는다.
+  const covers = (policyArn: string, target: string) =>
+    policyArn.endsWith("/*") ? target.startsWith(policyArn.slice(0, -1)) : target === policyArn;
+
+  // statement 별 필드 매칭. 요청 Action 은 정확히 한 절에만 있으므로, Action 이 다른 절은
+  // "실패"가 아니라 "이 요청과 무관"이다 — 아래 표시에서 ✔/✖ 대신 그렇게 적는다.
+  const st = [
+    {
+      sid: "ListMyBucket",
+      actionOk: action === "s3:ListBucket",
+      resourceOk: arn === "arn:aws:s3:::my-bucket",
+      ipOk: inIpRange,
+      mfaOk: true,
+      hasMfa: false,
+    },
+    {
+      sid: "ReadObjectsWithMfa",
+      actionOk: action === "s3:GetObject",
+      resourceOk: covers(objResource, arn),
+      ipOk: inIpRange,
+      mfaOk: mfa,
+      hasMfa: true,
+    },
+  ].map((s) => ({ ...s, matched: s.actionOk && s.resourceOk && s.ipOk && s.mfaOk }));
+
+  const allow = st.some((s) => s.matched);
+  // 결정 절 = 요청 Action 을 가진 절. 나머지 절은 애초에 이 요청을 다루지 않는다.
+  const di = st.findIndex((s) => s.actionOk);
+  const d = st[di];
+  // 프리셋은 한 번에 한 축만 어긋나므로 실패 절도 항상 하나다.
+  const failClause = d.matched ? null : !d.resourceOk ? "resource" : !d.ipOk ? "ip" : "mfa";
+
+  const reason = allow
+    ? di === 0
+      // MFA 없이 통과하는 게 이 시나리오의 함정이다. 아래 절의 MFA 조건을 보고 "거부돼야
+      // 하는 것 아니냐"고 걸리는 지점이라(2026-07-27 사용자 피드백), 조건이 정책 전체가
+      // 아니라 절마다 따로 걸린다는 것을 판정문에서 짚는다.
+      ? "요청 Action(s3:ListBucket)을 가진 절은 첫 번째 ListMyBucket 하나뿐이고, 대상도 버킷 ARN이라 매칭됩니다. 이 절의 조건은 IP 하나뿐이라 MFA 없이도 통과합니다 — 아래 ReadObjectsWithMfa 절의 MFA 조건은 s3:GetObject 용이라 이 요청에는 걸리지 않습니다. 조건은 정책 전체가 아니라 절(statement)마다 따로 걸립니다."
+      : "객체 ARN · 사무실 IP · MFA 까지 절의 모든 조건을 충족해 매칭됩니다."
+    : failClause === "resource"
+      ? "s3:GetObject 는 허용돼 있지만 그 절의 Resource 가 버킷 ARN(:::my-bucket)입니다. 버킷 ARN 은 버킷 자체만 가리켜 그 안의 객체를 덮지 않으므로, 객체를 읽으려면 :::my-bucket/* 여야 합니다 — Action 이 맞아도 Resource 가 대상을 안 덮으면 암묵적 거부."
+      : failClause === "ip"
+        ? "Action·Resource 는 매칭되지만 요청 IP 가 IpAddress 조건(203.0.113.0/24) 밖입니다 — 조건이 안 맞으면 그 절은 발효되지 않아 암묵적 거부."
+        : "Action·Resource·IP 까지 매칭되지만 aws:MultiFactorAuthPresent:true 를 충족하지 못했습니다 — 조건 하나가 어긋나 절 전체가 발효되지 않습니다.";
+
+  const lines: { t: string; stIdx?: number; clause?: string }[] = [
+    { t: `{` },
+    { t: `  "Version": "2012-10-17",` },
+    { t: `  "Statement": [{` },
+    { t: `    "Sid": "ListMyBucket",`, stIdx: 0 },
+    { t: `    "Effect": "Allow",`, stIdx: 0 },
+    { t: `    "Action": ["s3:ListBucket"],`, stIdx: 0, clause: "action" },
+    { t: `    "Resource": "arn:aws:s3:::my-bucket",`, stIdx: 0, clause: "resource" },
+    { t: `    "Condition": {`, stIdx: 0 },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" }`, stIdx: 0, clause: "ip" },
+    { t: `    }`, stIdx: 0 },
+    { t: `  }, {` },
+    { t: `    "Sid": "ReadObjectsWithMfa",`, stIdx: 1 },
+    { t: `    "Effect": "Allow",`, stIdx: 1 },
+    { t: `    "Action": ["s3:GetObject"],`, stIdx: 1, clause: "action" },
+    { t: `    "Resource": "${objResource}",`, stIdx: 1, clause: "resource" },
+    { t: `    "Condition": {`, stIdx: 1 },
+    { t: `      "IpAddress": { "aws:SourceIp": "203.0.113.0/24" },`, stIdx: 1, clause: "ip" },
+    { t: `      "Bool": { "aws:MultiFactorAuthPresent": "true" }`, stIdx: 1, clause: "mfa" },
+    { t: `    }`, stIdx: 1 },
+    { t: `  }]` },
+    { t: `}` },
+  ];
+
+  // 요청 필드에 우리말 풀이를 붙인다 — Action·Resource 를 이미 아는 독자를 전제하면
+  // 이 위젯이 무슨 상황인지부터 안 잡힌다 (2026-07-27 사용자 피드백).
+  const reqRows: [string, string, string][] = [
+    ["Action", action, "무슨 작업을 하려는가"],
+    ["Resource", arn, "어떤 대상에 대해"],
+    ["SourceIp", ip, "어디서 접속했는가"],
+    ["MFA", mfa ? "인증함" : "없음", "2단계 인증을 거쳤는가"],
+  ];
+
+  return (
+    <SimFrame title="정책 요청 테스터 — 허용될지 먼저 맞혀 보세요" icon="🔍">
+      <div
+        style={{
+          background: C.blueSoft,
+          borderLeft: `4px solid ${C.blue}`,
+          borderRadius: "0 9px 9px 0",
+          padding: "10px 13px",
+          marginBottom: 12,
+          fontSize: "0.85rem",
+          lineHeight: 1.7,
+          color: C.ink,
+        }}
+      >
+        {/* 정책이 어디에 붙어 있는지를 정확히 말해야 한다. "버킷에 붙어 있다"고 하면 리소스
+            기반(버킷) 정책이 되는데, 그러면 Principal 이 필수라 아래 JSON 은 AWS 가 거부하는
+            형태가 된다 — 위 ExamPoint 가 가르치는 포인트와도 정면으로 어긋난다 (PR #151 Codex 지적). */}
+        <b style={{ color: C.blue }}>이런 상황입니다.</b> 여러분은 <b>IAM 사용자</b>이고, 아래{" "}
+        <b>정책 한 장</b>이 그 사용자에게 붙어 있습니다 — 사람·역할에 붙이는{" "}
+        <b>자격 증명 기반 정책</b>이라 “누가”에 해당하는 <Code>Principal</Code>이 없습니다(주체가 곧
+        이 정책을 달고 있는 나). 정책은 <b>무엇을 · 어디에 · 어떤 조건에서</b> 할 수 있는지 적어둔
+        규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다. 여기서는{" "}
+        <Code>my-bucket</Code>이라는 버킷을 다룹니다.
+        <div style={{ marginTop: 6 }}>
+          시나리오를 하나 고르면 <b>어떤 요청이 날아왔는지</b>가 보입니다. 정책과 요청을 견줘 보고{" "}
+          <b>통과할지 막힐지 먼저 찍은 다음</b> 정답을 여세요 — 시험도 딱 이 형식으로 묻습니다.
+        </div>
+      </div>
+
+      <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.inkSoft, letterSpacing: 0.5, marginBottom: 5 }}>
+        ① 시나리오 고르기
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {REQ_SCENARIOS.map((s) => (
+          <ReqChip key={s.key} active={pick === s.key} onClick={() => choose(s.key)} color={C.blue} soft={C.blueSoft}>
+            {s.label}
+          </ReqChip>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          // 320px 급 폰에서 트랙이 컨테이너보다 넓어지지 않게 min() 으로 캡한다 (#76 전례)
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.inkSoft, letterSpacing: 0.5, marginBottom: 5 }}>
+            ② 날아온 요청 — 이걸 정책과 견줘 봅니다
+          </div>
+          <div
+            style={{
+              border: `1px solid ${C.line}`,
+              borderRadius: 9,
+              padding: "8px 11px",
+              background: C.card,
+              marginBottom: 10,
+            }}
+          >
+            {reqRows.map(([k, v, hint]) => (
+              <div key={k} style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: "0.74rem", lineHeight: 1.75, padding: "2px 0" }}>
+                <span style={{ fontFamily: MONO, color: C.inkSoft, minWidth: 68, flex: "none" }}>{k}</span>
+                <span style={{ fontFamily: MONO, color: C.ink, wordBreak: "break-all" }}>{v}</span>
+                <span style={{ color: C.inkSoft, opacity: 0.8, fontSize: "0.7rem", flexBasis: "100%", paddingLeft: 76 }}>
+                  {hint}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <pre
+            style={{
+              fontFamily: MONO,
+              fontSize: "0.72rem",
+              lineHeight: 1.8,
+              background: C.ink,
+              color: "#C7D2E0",
+              borderRadius: 11,
+              padding: "0.9rem 1rem",
+              overflowX: "auto",
+              margin: 0,
+            }}
+          >
+            {lines.map((ln, i) => {
+              // 예측 전에는 하이라이트를 걸지 않는다 — 어느 줄이 붉은지가 곧 정답이다.
+              const isDecisiveSt = guess !== null && ln.stIdx === di;
+              const isFail = isDecisiveSt && failClause !== null && ln.clause === failClause;
+              const isMatchedSt = isDecisiveSt && d.matched;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    background: isFail
+                      ? "rgba(185,67,44,.45)"
+                      : isMatchedSt
+                        ? "rgba(14,124,123,.3)"
+                        : "transparent",
+                    // 예측 전에는 두 절을 똑같이 선명하게 — 어느 절이 밝은지도 단서가 된다
+                    opacity: guess !== null && ln.stIdx !== undefined && !isDecisiveSt ? 0.45 : 1,
+                    borderRadius: 4,
+                  }}
+                >
+                  {ln.t}
+                  {isFail && <span style={{ color: "#F4A08A", fontWeight: 700 }}>  ← 여기서 갈린다</span>}
+                </div>
+              );
+            })}
+          </pre>
+        </div>
+
+        <div>
+          {guess === null ? (
+            <div
+              style={{
+                padding: "14px 15px",
+                borderRadius: 10,
+                background: C.card,
+                border: `1.5px dashed ${C.amber}`,
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.amberText, letterSpacing: 0.5, fontWeight: 700 }}>
+                ③ 먼저 찍어 보세요
+              </div>
+              <p style={{ fontSize: "0.85rem", lineHeight: 1.7, color: C.ink, margin: "6px 0 12px" }}>
+                왼쪽 요청이 이 정책을 통과할까요? <b>Action → Resource → Condition</b> 순으로 짚어
+                보세요 — 정책의 어느 절이 이 요청을 다루는지, 그 절의 조건을 요청이 다 채우는지.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => setGuess("allow")}
+                  className="widget-btn"
+                  style={{ ...outlineBtn(C.teal, C.tealSoft), padding: "9px 16px", borderRadius: 9 }}
+                >
+                  ✔ 허용될 것 같다
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuess("deny")}
+                  className="widget-btn"
+                  style={{ ...outlineBtn(C.red, C.redSoft), padding: "9px 16px", borderRadius: 9 }}
+                >
+                  ✖ 거부될 것 같다
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 9,
+                  marginBottom: 8,
+                  background: (guess === "allow") === allow ? C.tealSoft : C.amberSoft,
+                  border: `1.5px solid ${(guess === "allow") === allow ? C.teal : C.amber}`,
+                  fontSize: "0.82rem",
+                  lineHeight: 1.6,
+                  color: C.ink,
+                }}
+              >
+                {(guess === "allow") === allow ? (
+                  <>
+                    <b style={{ color: C.teal }}>맞혔습니다.</b> 아래에서 어느 절이 결정했는지 확인해
+                    보세요.
+                  </>
+                ) : (
+                  <>
+                    <b style={{ color: C.amberText }}>예측과 다릅니다.</b> “{guess === "allow" ? "허용" : "거부"}
+                    ”이라고 보셨는데 실제 판정은 “{allow ? "허용" : "거부"}”입니다 — 왜 갈렸는지 아래를
+                    보세요. 틀린 자리가 기억에 가장 오래 남습니다.
+                  </>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: allow ? C.tealSoft : C.redSoft,
+                  border: `1.5px solid ${allow ? C.teal : C.red}`,
+                }}
+              >
+                <div style={{ fontFamily: MONO, fontSize: "1.2rem", fontWeight: 900, color: allow ? C.teal : C.red }}>
+                  {allow ? "✔ ALLOW" : "✖ DENY (암묵적)"}
+                </div>
+                <div style={{ fontSize: "0.8rem", marginTop: 6, lineHeight: 1.6 }}>{reason}</div>
+              </div>
+            </>
+          )}
+
+          {guess !== null && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "9px 12px",
+              borderRadius: 9,
+              background: C.amberSoft,
+              borderLeft: `4px solid ${C.amber}`,
+              color: C.ink,
+            }}
+          >
+            <div style={{ fontFamily: MONO, fontSize: "0.66rem", fontWeight: 700, color: C.amberText, letterSpacing: 0.5 }}>
+              이 시나리오가 보여주는 것
+            </div>
+            <div style={{ fontSize: "0.82rem", lineHeight: 1.6, marginTop: 3 }}>{sc.lesson}</div>
+          </div>
+          )}
+
+          {guess !== null && (
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+            {st.map((s, i) => {
+              const irrelevant = !s.actionOk;
+              return (
+                <div
+                  key={s.sid}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: `1.5px solid ${irrelevant ? C.line : s.matched ? C.teal : C.red}`,
+                    background: "#fff",
+                    opacity: irrelevant ? 0.55 : 1,
+                  }}
+                >
+                  <div style={{ fontFamily: MONO, fontSize: "0.72rem", fontWeight: 700, color: C.ink, marginBottom: 4 }}>
+                    &quot;{s.sid}&quot;
+                  </div>
+                  {irrelevant ? (
+                    // Action 이 다른 절은 채점 대상이 아니다 — ✖ 로 적으면 "실패"로 읽혀,
+                    // 왜 다른 조건은 맞는데 거부인지 되묻게 된다.
+                    <div style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.5 }}>
+                      이 요청과 무관 — 절의 Action 이 {action} 이 아니라 평가되지 않습니다
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {(
+                        [
+                          ["Action", s.actionOk],
+                          ["Resource", s.resourceOk],
+                          ["IP", s.ipOk],
+                          ["MFA", s.hasMfa ? s.mfaOk : null],
+                        ] as [string, boolean | null][]
+                      ).map(([lbl, ok]) => (
+                        <span
+                          key={lbl}
+                          style={{
+                            fontFamily: MONO,
+                            fontSize: "0.66rem",
+                            fontWeight: 700,
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            background: ok === null ? "#F1F3F5" : ok ? C.tealSoft : C.redSoft,
+                            color: ok === null ? C.inkSoft : ok ? C.teal : C.red,
+                          }}
+                        >
+                          {lbl} {ok === null ? "조건 없음" : ok ? "✔" : "✖"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          )}
+
+          {guess !== null && (
+          <p style={{ fontSize: "0.78rem", color: C.inkSoft, lineHeight: 1.6, margin: "10px 0 0" }}>
+            이 정책엔 명시적 Deny 가 없으므로 거부는 전부 <b>“매칭되는 Allow 없음 = 암묵적 거부”</b>입니다.
+            여러 정책이 얽힌 우선순위(Deny 우선 등)는 §06 평가 시뮬레이터에서 다룹니다.
+          </p>
+          )}
+          {/* 전제는 시나리오와 무관하게 고정 표시되므로 MFA 여부를 단정하면 안 된다 — "MFA 없이
+              요청" 시나리오에서 요청 패널(MFA: 없음)과 정면으로 어긋난다 (PR #151 Codex 지적).
+              고정된 것은 자격증명 타입(IAM 사용자)이고, MFA 유무는 시나리오가 정한다. */}
+          <p style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.55, margin: "6px 0 0", opacity: 0.9 }}>
+            전제: 요청자는 <b>IAM 사용자</b>(롤 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
+            IP로 나갑니다. <span style={{ fontFamily: MONO }}>aws:MultiFactorAuthPresent</span>는
+            자격증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
+            <span style={{ fontFamily: MONO }}>aws:SourceIp</span>는 AWS가 관찰하는 공인 주소입니다.
+          </p>
+        </div>
+      </div>
+    </SimFrame>
   );
 }

@@ -1,7 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../ui";
+import { chipBtn, SimFrame, Switch } from "../interactive";
 
-/** 챕터 도식 SVG 모음 (규약 v3) — sections/*.mdx 가 import 한다. 내용은 body.tsx 시절 그대로. */
+/**
+ * 챕터 도식 SVG 모음 (규약 v3) — sections/*.mdx 가 import 한다. 내용은 body.tsx 시절 그대로.
+ * CredentialChainResolver(#72)가 useState 를 쓰므로 파일 전체를 "use client"로 둔다
+ * (body.tsx 클라이언트 경계 안이라 무해 — ch0-2·ch1-2 figs 전례).
+ */
 
 const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 const MONO = "'JetBrains Mono', monospace";
@@ -269,6 +277,201 @@ export function ManagedSpectrumSvg() {
         ⏱ 컴퓨팅(실행 시간) · 💾 스토리지(GB × 기간) · 🌐 데이터 전송(나가는 방향, 아웃바운드)
       </text>
     </svg>
+  );
+}
+
+/* ============ 인터랙티브: 자격증명 체인 리졸버 (#72 신규) ============ */
+
+/**
+ * 자격증명 체인 리졸버 — "같은 코드·두 환경"(내 노트북 vs EC2) 프리셋 위에서 자격증명
+ * 소스 4개를 켜고 끄면, SDK 가 실제로 쓰는 소스를 first-hit(위에서부터 먼저 발견된 것)으로
+ * 판정한다. EvalEngine(ch0-2)의 first-true-wins 상태기계와 같은 구조.
+ *
+ * 사실 근거 (#72 코멘트 기록 대상): §02 본문 체인 순서(코드 파라미터 → 환경변수 →
+ * 설정 파일 → IAM 롤)와 "구체적인 지정이 기본값을 이깁니다". EC2에 환경변수가 있으면
+ * 롤보다 우선하는 엣지케이스 포함 — "EC2 = 항상 롤" 오개념 방지. 실제 SDK 체인에는
+ * 웹 아이덴티티·ECS 컨테이너 자격증명 등 중간 단계가 더 있다 (하단에 명시).
+ */
+export function CredentialChainResolver() {
+  const [env, setEnv] = useState<"laptop" | "ec2">("laptop");
+  const [src, setSrc] = useState({ code: false, envvar: false, config: true, role: false });
+
+  const switchEnv = (e: "laptop" | "ec2") => {
+    setEnv(e);
+    // 환경 전환 시 그 환경의 전형적 기본 상태로 — 노트북=설정 파일, EC2=롤
+    setSrc(
+      e === "laptop"
+        ? { code: false, envvar: false, config: true, role: false }
+        : { code: false, envvar: false, config: false, role: true },
+    );
+  };
+
+  const roleAvailable = env === "ec2";
+
+  const chain: { key: keyof typeof src; num: string; label: string; sub: string; available: boolean }[] = [
+    { key: "code", num: "①", label: "코드에 명시된 파라미터", sub: "키가 코드에 하드코딩 — 안티패턴", available: true },
+    { key: "envvar", num: "②", label: "환경변수", sub: "AWS_ACCESS_KEY_ID 등", available: true },
+    { key: "config", num: "③", label: "설정 파일", sub: "~/.aws/credentials (aws configure)", available: true },
+    {
+      key: "role",
+      num: "④",
+      label: "붙어 있는 IAM 롤",
+      sub: roleAvailable ? "EC2 인스턴스 프로파일" : "이 환경엔 없음 — 롤은 EC2·Lambda 같은 AWS 실행 환경에 붙는다",
+      available: roleAvailable,
+    },
+  ];
+
+  const winner = chain.find((c) => c.available && src[c.key])?.key ?? null;
+  const envMasksRole = env === "ec2" && winner === "envvar" && src.role;
+
+  const verdict: Record<string, { title: string; body: string; safe: boolean }> = {
+    code: {
+      title: "코드 파라미터 사용",
+      safe: false,
+      body: "체인 최우선 — 가장 구체적인 지정이라 나머지를 전부 이깁니다. 하지만 영구 키가 코드에 박혀 유출에 가장 취약한 안티패턴입니다.",
+    },
+    envvar: {
+      title: "환경변수 사용",
+      safe: false,
+      body: envMasksRole
+        ? "환경변수가 롤보다 앞 순서라, 롤이 붙어 있어도 환경변수의 키가 쓰입니다 — \"EC2면 항상 롤\"이 아닙니다. 롤을 쓰게 하려면 환경변수를 지워야 합니다."
+        : "설정 파일·롤보다 앞 순서 — 컨테이너·CI 환경에서 흔하지만, 영구 키라면 유출 리스크는 남습니다.",
+    },
+    config: {
+      title: "설정 파일 사용",
+      safe: false,
+      body: "내 노트북의 표준 경로 — aws configure가 저장한 영구 액세스 키로 서명합니다. 키 관리 책임이 내게 남습니다.",
+    },
+    role: {
+      title: "IAM 롤 사용",
+      safe: true,
+      body: "앞 순서 소스가 전부 없어서 롤까지 내려왔습니다 — 저장된 영구 키가 아예 없고 만료되는 임시 자격증명을 자동으로 받아 씁니다. 시험의 \"가장 안전한 방법\" 정답 (ch0-2 롤).",
+    },
+  };
+
+  return (
+    <SimFrame title="자격증명 체인 리졸버 — 같은 코드, 두 환경" icon="🔑">
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+        {(
+          [
+            ["laptop", "💻 내 노트북"],
+            ["ec2", "🖥 EC2 인스턴스"],
+          ] as const
+        ).map(([v, lbl]) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => switchEnv(v)}
+            aria-pressed={env === v}
+            className="widget-btn"
+            style={{
+              ...chipBtn(env === v, C.blue, C.blueSoft),
+              fontFamily: MONO,
+              fontSize: "0.78rem",
+              padding: "8px 14px",
+              borderRadius: 8,
+            }}
+          >
+            {lbl}
+          </button>
+        ))}
+      </div>
+      <p style={{ fontSize: "0.8rem", color: C.inkSoft, lineHeight: 1.6, margin: "0 0 12px" }}>
+        같은 코드가 환경에 따라 다른 자격증명으로 인증됩니다 — SDK는 아래 순서로 탐색해{" "}
+        <b style={{ color: C.ink }}>처음 발견한 소스</b>를 씁니다.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {chain.map((c, i) => {
+            const isWinner = winner === c.key;
+            const on = c.available && src[c.key];
+            return (
+              <div key={c.key}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: `1.5px solid ${isWinner ? C.teal : C.line}`,
+                    background: isWinner ? C.tealSoft : "#fff",
+                    opacity: c.available ? 1 : 0.5,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: isWinner ? C.teal : C.ink }}>
+                      {c.num} {c.label}
+                      {isWinner && <span style={{ fontFamily: MONO, fontSize: "0.68rem", marginLeft: 6 }}>← SDK가 사용</span>}
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: C.inkSoft, marginTop: 1 }}>{c.sub}</div>
+                  </div>
+                  <Switch
+                    on={on}
+                    onClick={() => setSrc({ ...src, [c.key]: !src[c.key] })}
+                    colorOn={C.teal}
+                    label={`${c.label} 존재`}
+                    disabled={!c.available}
+                  />
+                </div>
+                {i < chain.length - 1 && (
+                  <div style={{ height: 8, marginLeft: 20, borderLeft: `2px solid ${C.line}` }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div>
+          {winner ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: verdict[winner].safe ? C.tealSoft : C.amberSoft,
+                border: `1.5px solid ${verdict[winner].safe ? C.teal : C.amber}`,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontSize: "1rem",
+                  fontWeight: 900,
+                  color: verdict[winner].safe ? C.teal : C.amberText,
+                }}
+              >
+                {verdict[winner].safe ? "✔" : "→"} {verdict[winner].title}
+              </div>
+              <div style={{ fontSize: "0.82rem", marginTop: 6, lineHeight: 1.65, color: C.ink }}>
+                {verdict[winner].body}
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 10,
+                background: C.redSoft,
+                border: `1.5px solid ${C.red}`,
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: "1rem", fontWeight: 900, color: C.red }}>✖ 자격증명 없음</div>
+              <div style={{ fontSize: "0.82rem", marginTop: 6, lineHeight: 1.65, color: C.ink }}>
+                체인 끝까지 아무 소스도 없음 — SDK는 요청을 서명하지 못하고 에러를 냅니다.
+              </div>
+            </div>
+          )}
+
+          <p style={{ fontSize: "0.76rem", color: C.inkSoft, lineHeight: 1.6, margin: "10px 0 0" }}>
+            노트북에선 설정 파일이, EC2에선 롤이 이기는 게 전형 — 그래서 <b>같은 코드</b>가 두 환경에서
+            다르게 인증됩니다. 실제 SDK 체인에는 웹 아이덴티티 토큰·ECS 컨테이너 자격증명 등 중간
+            단계가 더 있습니다 — 시험 감각은 이 4개의 순서면 충분합니다.
+          </p>
+        </div>
+      </div>
+    </SimFrame>
   );
 }
 

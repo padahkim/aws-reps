@@ -57,7 +57,7 @@ export function SimFrame({ title, icon = "🎛", children }: { title: string; ic
  * 포커스 링은 채움색을 그대로 쓰지 않는다 — amber 는 흰 카드 위에서 2.73:1 이라 링이
  * 안 보인다(PR #147 Codex 지적). 한 단계 어둡게 해 3:1 을 넘긴다(amber 기준 5.16:1).
  */
-const fillBtn = (accent: string, hover?: string) =>
+export const fillBtn = (accent: string, hover?: string) =>
   ({
     "--btn-bg": accent,
     "--btn-fg": "#fff",
@@ -70,7 +70,7 @@ const fillBtn = (accent: string, hover?: string) =>
  * 이때 글자도 함께 어두워진다: accent 를 그대로 두면 soft 배경 위에서 4.24~4.40:1 로
  * 본문 대비 기준 4.5:1 에 못 미친다(PR #147 Codex 지적). 85% 로 낮추면 5.5:1 대다.
  */
-const outlineBtn = (accent: string, soft: string) =>
+export const outlineBtn = (accent: string, soft: string) =>
   ({
     "--btn-bg": C.card,
     "--btn-fg": accent,
@@ -79,6 +79,98 @@ const outlineBtn = (accent: string, soft: string) =>
     "--btn-ring": accent,
     borderColor: accent,
   }) as CSSProperties;
+
+/**
+ * 선택 칩 — 신규 인터랙티브 4종의 "고르는" 컨트롤(#72). 선택 상태는 accent 아웃라인 +
+ * soft 채움, 비선택은 흰 배경 + 회색 글자. 두 상태 모두 `.widget-btn` 위에 얹어 호버·
+ * 포커스를 #144 체계에 맡긴다 — 비선택 칩의 호버 배경은 그 칩이 선택되면 갖게 될 soft
+ * 톤이라, 호버가 곧 "누르면 이렇게 된다"의 예고가 된다.
+ */
+export const chipBtn = (active: boolean, accent: string, soft: string): CSSProperties =>
+  active
+    ? ({
+        "--btn-bg": soft,
+        "--btn-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-hover-bg": soft,
+        "--btn-ring": accent,
+        borderColor: accent,
+        fontWeight: 700,
+      } as CSSProperties)
+    : ({
+        "--btn-bg": C.card,
+        "--btn-fg": C.inkSoft,
+        "--btn-hover-bg": soft,
+        "--btn-hover-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-ring": accent,
+        borderColor: C.line,
+        fontWeight: 400,
+      } as CSSProperties);
+
+/**
+ * 토글 스위치 — ch0-2 EvalEngine 로컬 구현을 공용으로 승격(#72, 신규 인터랙티브 4종이 재사용).
+ * 텍스트 버튼이 아니라 알약형 스위치라 `.widget-btn`(radius 9px·굵은 글자)을 씌우면 모양이
+ * 깨진다 — 대신 같은 문법의 `.widget-switch`(globals.css)로 호버 밝기·포커스 링만 받는다.
+ * 상태 자체는 색 전환 + 노브 이동으로 이미 드러나므로 호버는 조작 가능하다는 신호에 그친다.
+ */
+export function Switch({
+  on,
+  onClick,
+  colorOn,
+  label,
+  disabled = false,
+}: {
+  on: boolean;
+  onClick: () => void;
+  colorOn: string;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="widget-switch"
+      style={
+        {
+          width: 44,
+          height: 24,
+          borderRadius: 20,
+          position: "relative",
+          cursor: disabled ? "not-allowed" : "pointer",
+          border: "none",
+          padding: 0,
+          flex: "none",
+          // 켜진 채 비활성화되는 경우(VPC 보드에서 NAT 를 켠 뒤 VPC 연결을 끄면 그렇다)에도
+          // 켜짐을 그대로 보여준다 — 노브만 off 로 밀면 화면은 꺼졌다고 하고 aria-checked 는
+          // 켜졌다고 해서 서로 어긋나고, 다시 활성화됐을 때 값이 살아나는 것도 설명되지
+          // 않는다 (PR #151 Codex 지적). 비활성은 색이 아니라 opacity 로만 표현한다.
+          background: on ? colorOn : "#A9B4BF",
+          opacity: disabled ? 0.45 : 1,
+          transition: "background .2s, filter .15s",
+          "--switch-ring": disabled ? "transparent" : colorOn,
+        } as CSSProperties
+      }
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: on ? 22 : 2,
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "#fff",
+          transition: "left .2s",
+          boxShadow: "0 1px 3px rgba(0,0,0,.25)",
+        }}
+      />
+    </button>
+  );
+}
 
 /** 셀프 퀴즈 문항 — 질문을 보고 스스로 답을 생성한 뒤 정답과 대조한다. */
 export interface SelfQuizItem {
