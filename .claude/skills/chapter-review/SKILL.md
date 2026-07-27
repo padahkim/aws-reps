@@ -20,8 +20,9 @@ description: 챕터 하나의 언어 품질(번역투·용어 일관성)을 1회
   - `body.tsx`·`figs.tsx` — JSX 안의 한국어 문자열(문단·그림 캡션·라벨)
   - `drills.ts` — 퀴즈 문항·선택지·해설(`title`·`question`·`explanation` 등)
   - `session.ts` — 인출 세션 카드의 질문·답·심화 질문(`q`·`a`·`why` — 셋 다 학습자에게 렌더된다, `section-concepts.tsx`)
-  - `selfquiz.ts` — 섹션 셀프 퀴즈의 `q`·`a` (#98. 인출 카드 아래 같은 페이지에 렌더된다 —
-    `app/chapters/[id]/[sec]/page.tsx`. 2026-07-28 ch0-2 소급에서 목록 누락이 드러나 추가)
+  - `selfquiz.ts` — 섹션 셀프 퀴즈의 `q`·`a` (#98. 같은 섹션 페이지의 **인출 카드 바로 위**에
+    렌더된다 — `app/chapters/[id]/[sec]/page.tsx`, 순서는 #105가 #98의 아래 배치를 뒤집은 것.
+    2026-07-28 ch0-2 소급에서 목록 누락이 드러나 추가)
   - `meta.ts` — 챕터 제목·설명
 - **스캔 제외**: import 문, 컴포넌트 이름, `id`/`ap-northeast-2` 같은 코드·식별자, 영어 원어 병기(`가용영역(AZ)`의 AZ 등)는 대상이 아니다.
 
