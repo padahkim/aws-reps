@@ -2,19 +2,17 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { C, Code } from "../ui";
+import { C, Code, MONO, SANS } from "../ui";
 import { chipBtn, outlineBtn, SimFrame, Switch } from "../interactive";
 
 /**
- * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
+ * 이 챕터 고유의 도식 SVG·인터랙티브 (규약 v3) — sections/*.mdx 가 import 한다.
+ * 범용 프리미티브·상수는 여기 두지 않는다 (schema.ts "공용 승격 규약", #156).
  * EvalEngine 은 iam_guide.jsx 의 인터랙티브 정책 평가 시뮬레이터 이식본(#68) —
  * useState 를 쓰므로 파일 전체를 "use client"로 둔다 (body.tsx 클라이언트 경계 안이라 무해).
  * CardGrid/InfoCard/PointBox/AccentRow 는 iam_guide 의 TwoCol·Card·Note·색 보더 행
  * 프리미티브 이식(#75) — 본문 기조를 표 중심에서 iam_guide 카드·콜아웃 중심으로 되돌린다.
  */
-
-const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-const MONO = "'JetBrains Mono', monospace";
 
 /** iam_guide TwoCol 이식 — 카드들을 반응형 그리드로 배치한다. */
 export function CardGrid({ children }: { children: ReactNode }) {
@@ -169,47 +167,6 @@ export function AccentRow({
       <span style={{ fontSize: "0.88rem", color: C.inkSoft, lineHeight: 1.6, flex: "1 1 260px" }}>
         {children}
       </span>
-    </div>
-  );
-}
-
-/** 블록 코드 — ch1-1 figs 전례. 내용은 \n 이스케이프 한 줄 템플릿으로 받는다. */
-export function CodeBlock({ children }: { children: string }) {
-  return (
-    <pre
-      style={{
-        fontFamily: MONO,
-        fontSize: "0.8rem",
-        lineHeight: 1.7,
-        background: C.ink,
-        color: "#D5E0EC",
-        borderRadius: 11,
-        padding: "1rem 1.15rem",
-        overflowX: "auto",
-        margin: "1rem 0",
-      }}
-    >
-      {children}
-    </pre>
-  );
-}
-
-/** 주의(함정) 콜아웃 — 레드 왼쪽 보더 (ch1-1 figs 전례). */
-export function WarnBox({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        background: C.redSoft,
-        color: C.ink,
-        borderLeft: `5px solid ${C.red}`,
-        borderRadius: "0 12px 12px 0",
-        padding: "0.85rem 1.15rem",
-        margin: "1.25rem 0",
-        fontSize: "0.93rem",
-      }}
-    >
-      <b style={{ color: C.red }}>⚠ 함정 </b>
-      {children}
     </div>
   );
 }

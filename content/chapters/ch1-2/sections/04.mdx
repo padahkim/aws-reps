@@ -1,5 +1,4 @@
-import { ExamLi, ExamPoint, Note, SubTitle, Table } from "../../ui";
-import { WarnBox } from "../figs";
+import { ExamLi, ExamPoint, Note, SubTitle, Table, WarnBox } from "../../ui";
 
 <b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 핵심 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>(그 밖에 Amazon MSK·자체 관리 Kafka도 ESM 소스지만 DVA 출제는 이 3가지에 집중). 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
 

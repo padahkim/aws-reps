@@ -18,7 +18,23 @@
  *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (첫 섹션 페이지 상단. 없으면 생략)
  *   content/chapters/{id}/sections/NN.mdx — 섹션 본문 (Sec 래핑 없이 내용만). NN = meta.sections[i].num
  *   content/chapters/{id}/outro.mdx      — 말미 체크리스트 (마지막 섹션 페이지 하단. 없으면 생략)
- *   content/chapters/{id}/figs.tsx       — 챕터 도식 SVG + 챕터 로컬 컴포넌트 (mdx가 import)
+ *   content/chapters/{id}/figs.tsx       — 그 챕터에서만 쓰는 도식 SVG·인터랙티브 (mdx가 import)
+ *   content/chapters/ui.tsx              — 전 챕터 공용 프리미티브·상수 (팔레트 C, MONO·SANS,
+ *                                          Sec·Table·ExamPoint·CodeBlock·WarnBox·Fig 등)
+ *   content/chapters/interactive.tsx     — 인터랙티브 공용 프레임·버튼 (SimFrame·SelfQuiz·chipBtn 등)
+ *
+ * 공용 승격 규약 (#156 — 2026-07-28):
+ *   • figs.tsx 는 **챕터 고유물 전용**이다. 챕터와 무관한 프리미티브·상수를 여기 두지 않는다 —
+ *     둘 이상의 챕터가 쓸 수 있는 것은 ui.tsx(정적)·interactive.tsx(상태 있는 프레임)로 올린다.
+ *     figs.tsx 에 복제를 허용하면 챕터마다 사본이 생기고 조용히 갈라진다 (#156 실측:
+ *     CodeBlock 3벌 중 ch1-2만 title 지원, MONO 6벌 중 2벌만 폴백 체인이 짧았다).
+ *   • 이미 ui.tsx 에 있는 이름을 챕터에서 다시 정의하지 않는다 — 확장이 필요하면 ui.tsx 쪽을
+ *     상위집합으로 넓혀 한 벌로 만든다 (CodeBlock 의 title? 이 그 방식).
+ *   • 판정이 애매하면 rule of three — 두 번째 챕터가 같은 것을 요구할 때 승격한다
+ *     (ch0-2 단독의 CardGrid·InfoCard·PointBox·AccentRow 는 그래서 아직 챕터 로컬이다).
+ *
+ * 앱(app/)은 content/ 를 lib/content.ts 로만 소비하므로 ui.tsx 를 직접 import 하지 않는다 —
+ * app/ 쪽 팔레트·폰트 상수 복제는 이 계층 경계의 결과이며 위 규약의 대상이 아니다.
  *
  * 인터랙티브 이식 원칙 (#68 EvalEngine 관행 → #71 규칙화):
  *   • 레거시 원본 변환 시 학습용 인터랙티브(시뮬레이터·슬라이더 등 상태 있는 학습 장치)는

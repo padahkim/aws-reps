@@ -2,74 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { C, FigSwitch } from "../ui";
+import { C, FigSwitch, MONO } from "../ui";
 import { chipBtn, SimFrame, Switch } from "../interactive";
 
 /**
- * 챕터 도식 SVG + 챕터 로컬 컴포넌트 (규약 v3) — sections/*.mdx 가 import 한다.
+ * 이 챕터 고유의 도식 SVG·인터랙티브 (규약 v3) — sections/*.mdx 가 import 한다.
+ * 범용 프리미티브·상수는 여기 두지 않는다 (schema.ts "공용 승격 규약", #156).
  * InvocationModeExplorer/ReservedConcurrencySlider/CanaryWeightSlider 는 원본
  * aws-lambda-dva-guide-2.jsx 의 학습용 인터랙티브 3종 이식본(#71) — useState 를
  * 쓰므로 파일 전체를 "use client"로 둔다 (body.tsx 클라이언트 경계 안이라 무해, ch0-2 전례).
  */
-
-export const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
-
-/** 코드/CLI 예시 블록 — 잉크 배경 카드 (전역 셀렉터 없이 인라인 스타일만). */
-export function CodeBlock({ title, children }: { title?: string; children: string }) {
-  return (
-    <div style={{ margin: "1rem 0" }}>
-      {title && (
-        <div
-          style={{
-            fontFamily: MONO,
-            fontSize: "0.72rem",
-            fontWeight: 700,
-            color: C.inkSoft,
-            marginBottom: 4,
-            letterSpacing: "0.04em",
-          }}
-        >
-          {title}
-        </div>
-      )}
-      <pre
-        style={{
-          fontFamily: MONO,
-          fontSize: "0.8rem",
-          lineHeight: 1.7,
-          background: C.ink,
-          color: "#D5E0EC",
-          borderRadius: 11,
-          padding: "1rem 1.15rem",
-          overflowX: "auto",
-          margin: 0,
-        }}
-      >
-        {children}
-      </pre>
-    </div>
-  );
-}
-
-/** 주의(함정) 콜아웃 — 레드 왼쪽 보더. */
-export function WarnBox({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        background: C.redSoft,
-        color: C.ink,
-        borderLeft: `5px solid ${C.red}`,
-        borderRadius: "0 12px 12px 0",
-        padding: "0.85rem 1.15rem",
-        margin: "1.25rem 0",
-        fontSize: "0.93rem",
-      }}
-    >
-      <b style={{ color: C.red }}>⚠ 함정 </b>
-      {children}
-    </div>
-  );
-}
 
 /**
  * 두 방향 권한 도식 — 원본 aws-lambda-dva-guide-2.jsx TabSecurity 이식(#81). Lambda를 가운데

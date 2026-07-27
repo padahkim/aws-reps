@@ -2,17 +2,15 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { C } from "../ui";
+import { C, MONO, SANS } from "../ui";
 import { chipBtn, SimFrame, Switch } from "../interactive";
 
 /**
- * 챕터 도식 SVG 모음 (규약 v3) — sections/*.mdx 가 import 한다. 내용은 body.tsx 시절 그대로.
+ * 이 챕터 고유의 도식 SVG·인터랙티브 (규약 v3) — sections/*.mdx 가 import 한다.
+ * 범용 프리미티브·상수는 여기 두지 않는다 (schema.ts "공용 승격 규약", #156).
  * CredentialChainResolver(#72)가 useState 를 쓰므로 파일 전체를 "use client"로 둔다
  * (body.tsx 클라이언트 경계 안이라 무해 — ch0-2·ch1-2 figs 전례).
  */
-
-const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-const MONO = "'JetBrains Mono', monospace";
 
 export function GlobalInfraSvg() {
   const az = (x: number, code: string, name: string) => (
