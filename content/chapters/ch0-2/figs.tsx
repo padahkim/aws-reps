@@ -861,7 +861,10 @@ export function PolicyRequestTester() {
 
   const reason = allow
     ? di === 0
-      ? "요청 Action 이 이 절에 있고 대상도 버킷 ARN 이라 매칭 — 이 절엔 MFA 조건이 없어 MFA 여부와 무관합니다."
+      // MFA 없이 통과하는 게 이 시나리오의 함정이다. 아래 절의 MFA 조건을 보고 "거부돼야
+      // 하는 것 아니냐"고 걸리는 지점이라(2026-07-27 사용자 피드백), 조건이 정책 전체가
+      // 아니라 절마다 따로 걸린다는 것을 판정문에서 짚는다.
+      ? "요청 Action(s3:ListBucket)을 가진 절은 첫 번째 ListMyBucket 하나뿐이고, 대상도 버킷 ARN이라 매칭됩니다. 이 절의 조건은 IP 하나뿐이라 MFA 없이도 통과합니다 — 아래 ReadObjectsWithMfa 절의 MFA 조건은 s3:GetObject 용이라 이 요청에는 걸리지 않습니다. 조건은 정책 전체가 아니라 절(statement)마다 따로 걸립니다."
       : "객체 ARN · 사무실 IP · MFA 까지 절의 모든 조건을 충족해 매칭됩니다."
     : failClause === "resource"
       ? "s3:GetObject 는 허용돼 있지만 그 절의 Resource 가 버킷 ARN(:::my-bucket)입니다. 버킷 ARN 은 버킷 자체만 가리켜 그 안의 객체를 덮지 않으므로, 객체를 읽으려면 :::my-bucket/* 여야 합니다 — Action 이 맞아도 Resource 가 대상을 안 덮으면 암묵적 거부."
@@ -916,9 +919,15 @@ export function PolicyRequestTester() {
           color: C.ink,
         }}
       >
-        <b style={{ color: C.blue }}>이런 상황입니다.</b> 회사 S3 버킷 <Code>my-bucket</Code>에 아래{" "}
-        <b>정책 한 장</b>이 붙어 있습니다. 정책은 “누가 · 무엇을 · 어떤 조건에서” 할 수 있는지 적어둔
-        규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다.
+        {/* 정책이 어디에 붙어 있는지를 정확히 말해야 한다. "버킷에 붙어 있다"고 하면 리소스
+            기반(버킷) 정책이 되는데, 그러면 Principal 이 필수라 아래 JSON 은 AWS 가 거부하는
+            형태가 된다 — 위 ExamPoint 가 가르치는 포인트와도 정면으로 어긋난다 (PR #151 Codex 지적). */}
+        <b style={{ color: C.blue }}>이런 상황입니다.</b> 여러분은 <b>IAM 사용자</b>이고, 아래{" "}
+        <b>정책 한 장</b>이 그 사용자에게 붙어 있습니다 — 사람·역할에 붙이는{" "}
+        <b>자격 증명 기반 정책</b>이라 “누가”에 해당하는 <Code>Principal</Code>이 없습니다(주체가 곧
+        이 정책을 달고 있는 나). 정책은 <b>무엇을 · 어디에 · 어떤 조건에서</b> 할 수 있는지 적어둔
+        규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다. 여기서는{" "}
+        <Code>my-bucket</Code>이라는 버킷을 다룹니다.
         <div style={{ marginTop: 6 }}>
           시나리오를 하나 고르면 <b>어떤 요청이 날아왔는지</b>가 보입니다. 정책과 요청을 견줘 보고{" "}
           <b>통과할지 막힐지 먼저 찍은 다음</b> 정답을 여세요 — 시험도 딱 이 형식으로 묻습니다.
