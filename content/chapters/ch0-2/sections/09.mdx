@@ -1,18 +1,18 @@
 import { ExamLi, ExamPoint, SubTitle, WarnBox } from "../../ui";
 import { CardGrid, InfoCard } from "../figs";
 
-권한을 “한 번 잘 주고 끝”이 아니라 **감사(audit)하고 줄여나가는** 도구들, 그리고 IAM에서 AWS와 고객이 각자 책임지는 범위입니다.
+권한을 “한 번 잘 주고 끝”이 아니라 **감사(audit)하고 줄여나가는** 도구, 그리고 IAM에서 AWS와 고객이 각자 책임지는 범위입니다.
 
 <SubTitle>점검 도구 4종</SubTitle>
 
 <CardGrid>
-  <InfoCard title="📋 자격 증명 보고서 (Credentials Report)" sub="수준: 계정 전체">모든 유저와 자격증명 상태(비밀번호 사용/변경일, MFA 여부, 키 로테이션 등)를 담은 <b>CSV</b>. 계정 전체 감사용.</InfoCard>
+  <InfoCard title="📋 자격 증명 보고서 (Credential Report)" sub="수준: 계정 전체">모든 유저와 자격 증명 상태(비밀번호 사용/변경일, MFA 여부, 키 로테이션 등)를 담은 <b>CSV</b>. 계정 전체 감사용.</InfoCard>
   <InfoCard tone="teal" title="🔎 액세스 어드바이저 (Access Advisor)" sub="수준: 유저 (그룹·롤·정책도 지원)">주체에게 부여된 서비스 권한 + 각 서비스 <b>마지막 접근 시각</b> (콘솔에선 “Last Accessed” 탭). 미사용 권한 제거 → 최소 권한 실현.</InfoCard>
   <InfoCard tone="amber" title="🛰 Access Analyzer" sub="수준: 계정">외부(다른 계정·퍼블릭)에 공유된 리소스 탐지. 의도치 않은 외부 노출 점검.</InfoCard>
   <InfoCard tone="red" title="🧪 Policy Simulator" sub="수준: 정책">정책을 배포 전에 시뮬레이션 — “이 요청이 허용되는가?” 사전 테스트. 정책 디버깅용.</InfoCard>
 </CardGrid>
 
-<WarnBox>구분 문제 대비: “계정 전체 유저 목록과 자격증명 상태” → <b>자격 증명 보고서</b> / “이 유저가 어떤 서비스를 언제 마지막으로 썼는가” → <b>액세스 어드바이저</b>. 두 도구를 바꿔 묻는 문제가 자주 나옵니다.</WarnBox>
+<WarnBox>구분 문제 대비: “계정 전체 유저 목록과 자격 증명 상태” → <b>자격 증명 보고서</b> / “이 유저가 어떤 서비스를 언제 마지막으로 썼는가” → <b>액세스 어드바이저</b>. 두 도구를 바꿔 묻는 문제가 자주 나옵니다.</WarnBox>
 
 <SubTitle>IAM 모범 사례 — 한곳에 모아 두기</SubTitle>
 

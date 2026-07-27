@@ -19,6 +19,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "01",
     q: "“EBS 볼륨을 다른 AZ의 EC2 인스턴스에 붙인다” — 이 구성이 성립하나? 성립 여부를 가르는 개념은?",
     a: "성립하지 않는다 — EBS 볼륨·EC2 인스턴스·서브넷은 AZ 단위 리소스라 같은 AZ여야 붙는다. 가르는 개념은 서비스의 “범위”: IAM·Route 53·CloudFront는 글로벌, S3·DynamoDB·Lambda는 리전, EC2·EBS는 AZ.",
+    yn: "아니오",
   },
   {
     section: "01",

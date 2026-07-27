@@ -460,6 +460,15 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
             message: `selfQuiz[${i}] (section "${e.section}"): q 또는 a 가 비어 있음`,
           });
         }
+        // yn(판정형 표시, #150): 있으면 "예"|"아니오"만 — 그 외 값(빈 문자열 포함)이면
+        // 위젯의 어느 버튼과도 매칭되지 않아 그 문항은 항상 오답 처리된다.
+        if (e.yn !== undefined && e.yn !== "예" && e.yn !== "아니오") {
+          problems.push({
+            chapterId: cid,
+            code: "SELFQUIZ_YN_INVALID",
+            message: `selfQuiz[${i}] (section "${e.section}"): yn 값 ${JSON.stringify(e.yn)} — "예" 또는 "아니오"만 허용`,
+          });
+        }
       });
     }
   }
