@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { C } from "../ui";
-import { chipBtn, SimFrame, Switch } from "../interactive";
+import { C, Code } from "../ui";
+import { chipBtn, outlineBtn, SimFrame, Switch } from "../interactive";
 
 /**
  * 챕터 도식 SVG + 로컬 컴포넌트 모음 (규약 v3) — sections/*.mdx 가 import 한다.
@@ -817,6 +817,10 @@ const REQ_SCENARIOS = [
 
 export function PolicyRequestTester() {
   const [pick, setPick] = useState<(typeof REQ_SCENARIOS)[number]["key"]>("get-ok");
+  // 예측 게이트 — 답을 먼저 찍어야 판정이 열린다. 누르자마자 결과가 보이면 "예측"이 아니라
+  // 그냥 읽기가 되고, 그건 정적 설명과 다를 게 없다 (#72 가 찾으려던 것의 반대).
+  const [guess, setGuess] = useState<"allow" | "deny" | null>(null);
+  const choose = (k: (typeof REQ_SCENARIOS)[number]["key"]) => { setPick(k); setGuess(null); };
   const sc = REQ_SCENARIOS.find((s) => s.key === pick) ?? REQ_SCENARIOS[0];
   const { action, arn, ip, mfa } = sc.req;
   const objResource = sc.objResource;
@@ -889,18 +893,44 @@ export function PolicyRequestTester() {
     { t: `}` },
   ];
 
-  const reqRows: [string, string][] = [
-    ["Action", action],
-    ["Resource", arn],
-    ["SourceIp", ip],
-    ["MFA", mfa ? "인증함" : "없음"],
+  // 요청 필드에 우리말 풀이를 붙인다 — Action·Resource 를 이미 아는 독자를 전제하면
+  // 이 위젯이 무슨 상황인지부터 안 잡힌다 (2026-07-27 사용자 피드백).
+  const reqRows: [string, string, string][] = [
+    ["Action", action, "무슨 작업을 하려는가"],
+    ["Resource", arn, "어떤 대상에 대해"],
+    ["SourceIp", ip, "어디서 접속했는가"],
+    ["MFA", mfa ? "인증함" : "없음", "2단계 인증을 거쳤는가"],
   ];
 
   return (
-    <SimFrame title="정책 요청 테스터 — 시나리오를 골라 판정을 예측해 보세요" icon="🔍">
+    <SimFrame title="정책 요청 테스터 — 허용될지 먼저 맞혀 보세요" icon="🔍">
+      <div
+        style={{
+          background: C.blueSoft,
+          borderLeft: `4px solid ${C.blue}`,
+          borderRadius: "0 9px 9px 0",
+          padding: "10px 13px",
+          marginBottom: 12,
+          fontSize: "0.85rem",
+          lineHeight: 1.7,
+          color: C.ink,
+        }}
+      >
+        <b style={{ color: C.blue }}>이런 상황입니다.</b> 회사 S3 버킷 <Code>my-bucket</Code>에 아래{" "}
+        <b>정책 한 장</b>이 붙어 있습니다. 정책은 “누가 · 무엇을 · 어떤 조건에서” 할 수 있는지 적어둔
+        규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다.
+        <div style={{ marginTop: 6 }}>
+          시나리오를 하나 고르면 <b>어떤 요청이 날아왔는지</b>가 보입니다. 정책과 요청을 견줘 보고{" "}
+          <b>통과할지 막힐지 먼저 찍은 다음</b> 정답을 여세요 — 시험도 딱 이 형식으로 묻습니다.
+        </div>
+      </div>
+
+      <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.inkSoft, letterSpacing: 0.5, marginBottom: 5 }}>
+        ① 시나리오 고르기
+      </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
         {REQ_SCENARIOS.map((s) => (
-          <ReqChip key={s.key} active={pick === s.key} onClick={() => setPick(s.key)} color={C.blue} soft={C.blueSoft}>
+          <ReqChip key={s.key} active={pick === s.key} onClick={() => choose(s.key)} color={C.blue} soft={C.blueSoft}>
             {s.label}
           </ReqChip>
         ))}
@@ -916,7 +946,7 @@ export function PolicyRequestTester() {
       >
         <div>
           <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.inkSoft, letterSpacing: 0.5, marginBottom: 5 }}>
-            REQUEST — 이 요청이 날아온다
+            ② 날아온 요청 — 이걸 정책과 견줘 봅니다
           </div>
           <div
             style={{
@@ -927,10 +957,13 @@ export function PolicyRequestTester() {
               marginBottom: 10,
             }}
           >
-            {reqRows.map(([k, v]) => (
-              <div key={k} style={{ display: "flex", gap: 8, fontSize: "0.74rem", lineHeight: 1.9 }}>
+            {reqRows.map(([k, v, hint]) => (
+              <div key={k} style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: "0.74rem", lineHeight: 1.75, padding: "2px 0" }}>
                 <span style={{ fontFamily: MONO, color: C.inkSoft, minWidth: 68, flex: "none" }}>{k}</span>
                 <span style={{ fontFamily: MONO, color: C.ink, wordBreak: "break-all" }}>{v}</span>
+                <span style={{ color: C.inkSoft, opacity: 0.8, fontSize: "0.7rem", flexBasis: "100%", paddingLeft: 76 }}>
+                  {hint}
+                </span>
               </div>
             ))}
           </div>
@@ -949,7 +982,8 @@ export function PolicyRequestTester() {
             }}
           >
             {lines.map((ln, i) => {
-              const isDecisiveSt = ln.stIdx === di;
+              // 예측 전에는 하이라이트를 걸지 않는다 — 어느 줄이 붉은지가 곧 정답이다.
+              const isDecisiveSt = guess !== null && ln.stIdx === di;
               const isFail = isDecisiveSt && failClause !== null && ln.clause === failClause;
               const isMatchedSt = isDecisiveSt && d.matched;
               return (
@@ -961,7 +995,8 @@ export function PolicyRequestTester() {
                       : isMatchedSt
                         ? "rgba(14,124,123,.3)"
                         : "transparent",
-                    opacity: ln.stIdx !== undefined && !isDecisiveSt ? 0.45 : 1,
+                    // 예측 전에는 두 절을 똑같이 선명하게 — 어느 절이 밝은지도 단서가 된다
+                    opacity: guess !== null && ln.stIdx !== undefined && !isDecisiveSt ? 0.45 : 1,
                     borderRadius: 4,
                   }}
                 >
@@ -974,20 +1009,85 @@ export function PolicyRequestTester() {
         </div>
 
         <div>
-          <div
-            style={{
-              padding: "12px 14px",
-              borderRadius: 10,
-              background: allow ? C.tealSoft : C.redSoft,
-              border: `1.5px solid ${allow ? C.teal : C.red}`,
-            }}
-          >
-            <div style={{ fontFamily: MONO, fontSize: "1.2rem", fontWeight: 900, color: allow ? C.teal : C.red }}>
-              {allow ? "✔ ALLOW" : "✖ DENY (암묵적)"}
+          {guess === null ? (
+            <div
+              style={{
+                padding: "14px 15px",
+                borderRadius: 10,
+                background: C.card,
+                border: `1.5px dashed ${C.amber}`,
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: "0.68rem", color: C.amberText, letterSpacing: 0.5, fontWeight: 700 }}>
+                ③ 먼저 찍어 보세요
+              </div>
+              <p style={{ fontSize: "0.85rem", lineHeight: 1.7, color: C.ink, margin: "6px 0 12px" }}>
+                왼쪽 요청이 이 정책을 통과할까요? <b>Action → Resource → Condition</b> 순으로 짚어
+                보세요 — 정책의 어느 절이 이 요청을 다루는지, 그 절의 조건을 요청이 다 채우는지.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => setGuess("allow")}
+                  className="widget-btn"
+                  style={{ ...outlineBtn(C.teal, C.tealSoft), padding: "9px 16px", borderRadius: 9 }}
+                >
+                  ✔ 허용될 것 같다
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuess("deny")}
+                  className="widget-btn"
+                  style={{ ...outlineBtn(C.red, C.redSoft), padding: "9px 16px", borderRadius: 9 }}
+                >
+                  ✖ 거부될 것 같다
+                </button>
+              </div>
             </div>
-            <div style={{ fontSize: "0.8rem", marginTop: 6, lineHeight: 1.6 }}>{reason}</div>
-          </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 9,
+                  marginBottom: 8,
+                  background: (guess === "allow") === allow ? C.tealSoft : C.amberSoft,
+                  border: `1.5px solid ${(guess === "allow") === allow ? C.teal : C.amber}`,
+                  fontSize: "0.82rem",
+                  lineHeight: 1.6,
+                  color: C.ink,
+                }}
+              >
+                {(guess === "allow") === allow ? (
+                  <>
+                    <b style={{ color: C.teal }}>맞혔습니다.</b> 아래에서 어느 절이 결정했는지 확인해
+                    보세요.
+                  </>
+                ) : (
+                  <>
+                    <b style={{ color: C.amberText }}>예측과 다릅니다.</b> “{guess === "allow" ? "허용" : "거부"}
+                    ”이라고 보셨는데 실제 판정은 “{allow ? "허용" : "거부"}”입니다 — 왜 갈렸는지 아래를
+                    보세요. 틀린 자리가 기억에 가장 오래 남습니다.
+                  </>
+                )}
+              </div>
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: allow ? C.tealSoft : C.redSoft,
+                  border: `1.5px solid ${allow ? C.teal : C.red}`,
+                }}
+              >
+                <div style={{ fontFamily: MONO, fontSize: "1.2rem", fontWeight: 900, color: allow ? C.teal : C.red }}>
+                  {allow ? "✔ ALLOW" : "✖ DENY (암묵적)"}
+                </div>
+                <div style={{ fontSize: "0.8rem", marginTop: 6, lineHeight: 1.6 }}>{reason}</div>
+              </div>
+            </>
+          )}
 
+          {guess !== null && (
           <div
             style={{
               marginTop: 10,
@@ -1003,7 +1103,9 @@ export function PolicyRequestTester() {
             </div>
             <div style={{ fontSize: "0.82rem", lineHeight: 1.6, marginTop: 3 }}>{sc.lesson}</div>
           </div>
+          )}
 
+          {guess !== null && (
           <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
             {st.map((s, i) => {
               const irrelevant = !s.actionOk;
@@ -1058,11 +1160,14 @@ export function PolicyRequestTester() {
               );
             })}
           </div>
+          )}
 
+          {guess !== null && (
           <p style={{ fontSize: "0.78rem", color: C.inkSoft, lineHeight: 1.6, margin: "10px 0 0" }}>
             이 정책엔 명시적 Deny 가 없으므로 거부는 전부 <b>“매칭되는 Allow 없음 = 암묵적 거부”</b>입니다.
             여러 정책이 얽힌 우선순위(Deny 우선 등)는 §06 평가 시뮬레이터에서 다룹니다.
           </p>
+          )}
           {/* 전제는 시나리오와 무관하게 고정 표시되므로 MFA 여부를 단정하면 안 된다 — "MFA 없이
               요청" 시나리오에서 요청 패널(MFA: 없음)과 정면으로 어긋난다 (PR #151 Codex 지적).
               고정된 것은 자격증명 타입(IAM 사용자)이고, MFA 유무는 시나리오가 정한다. */}
