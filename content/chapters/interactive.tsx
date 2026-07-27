@@ -252,13 +252,14 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
   }
 
   const cur = items[i];
-  // 판정형(#150): 예/아니오 클릭 = 확답이자 정답 공개 트리거. 판정 오답은 그 자리에서
-  // 틀림으로 집계한다 (자기채점 생략 — 자기기만 여지 제거). 정답을 읽힌 뒤 next 로만 진행.
+  // 판정형(#150): 예/아니오 클릭 = 확답이자 정답 공개이자 채점. 자기채점 단계를 두지
+  // 않는 건 한 문항에 채점 탭이 두 번 생기기 때문(2026-07-28 결정 변경 — #150 코멘트).
+  // 근거·수치는 공개된 정답으로 읽히고, 서술 인출의 깊이는 인출 카드 몫이다(#98 역할 분담).
   const judge = (choice: "예" | "아니오") => {
     const ok = choice === cur.yn;
     setVerdict(ok);
     setOpen(true);
-    if (!ok) setScore((s) => ({ ...s, x: s.x + 1 }));
+    setScore((s) => ({ o: s.o + (ok ? 1 : 0), x: s.x + (ok ? 0 : 1) }));
   };
   return (
     <SimFrame icon="✍️" title="셀프 퀴즈 — 답을 열기 전에 소리 내어/글로 답하기">
@@ -348,7 +349,7 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
         <div>
           {cur.yn && (
             <div style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: 8, color: verdict ? C.teal : C.red }}>
-              {verdict ? "판정 정답 ✓ — 근거까지 맞았나?" : `판정 오답 ✗ — 정답은 “${cur.yn}”. 근거를 확인하세요.`}
+              {verdict ? "판정 정답 ✓ — 근거·수치까지 확인하고 넘어가세요." : `판정 오답 ✗ — 정답은 “${cur.yn}”. 근거를 확인하세요.`}
             </div>
           )}
           <div
@@ -364,8 +365,8 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
           >
             {cur.a}
           </div>
-          {cur.yn && verdict === false ? (
-            // 판정 오답 경로 — 이미 틀림으로 집계됐으므로 자기채점 없이 진행만 남는다.
+          {cur.yn ? (
+            // 판정형 — 클릭 시점에 이미 채점됐으므로 정오 무관하게 진행만 남는다.
             <button
               type="button"
               onClick={next}
