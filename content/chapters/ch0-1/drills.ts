@@ -1,6 +1,6 @@
 /**
  * 생성물 — 손편집 금지. `node scripts/import-drills.ts aws-basics` 재실행으로 갱신.
- * 원본: aws-cloud-drills data/questions/aws-basics.json (11문항)
+ * 원본: content/drills-src/aws-basics.json (11문항)
  */
 import type { Question } from "../../schema";
 

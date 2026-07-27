@@ -1,6 +1,6 @@
 /**
  * 생성물 — 손편집 금지. `node scripts/import-drills.ts s3` 재실행으로 갱신.
- * 원본: aws-cloud-drills data/questions/s3.json (15문항)
+ * 원본: content/drills-src/s3.json (15문항)
  */
 import type { Question } from "../../schema";
 

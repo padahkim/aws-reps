@@ -1,0 +1,757 @@
+[
+  {
+    "slug": "sqs-sns-queue-vs-topic-fanout-decision",
+    "chapterId": "sqs-sns",
+    "title": "한 이벤트를 여러 독립 시스템이 받게 하는 방법",
+    "question": "주문이 완료되면 재고 시스템, 이메일 발송 시스템, 분석 파이프라인이 각각 그 이벤트를 받아 독립적으로 처리해야 한다. 생산자는 소비자가 몇 개인지 알 필요 없이 한 번만 게시하고 싶다. 가장 적절한 구성은?",
+    "choices": [
+      "단일 SQS 큐를 만들고 세 시스템이 같은 큐를 함께 폴링하게 한다.",
+      "세 시스템을 위해 SQS 큐 3개를 만들고 생산자가 각 큐에 같은 메시지를 세 번 보낸다.",
+      "SNS 토픽에 게시하고 세 시스템을 그 토픽의 구독자로 등록해 각자 메시지 사본을 받게 한다.",
+      "DynamoDB 테이블에 이벤트를 쓰고 세 시스템이 주기적으로 테이블을 조회한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "한 메시지를 여러 독립 소비자에게 사본으로 전달하는 1:N 패턴은 SNS 토픽의 게시·구독(pub/sub) 모델입니다.",
+    "explanation": [
+      "SNS는 푸시 기반 게시·구독 서비스다. 생산자는 토픽에 한 번만 게시하고, 토픽에 등록된 모든 구독자가 메시지 사본을 각각 받는다. 소비자가 늘거나 줄어도 생산자 코드는 바뀌지 않으므로, '한 이벤트를 여러 독립 시스템에 전달'하는 요구에 정확히 들어맞는다.",
+      "반대로 SQS 큐는 폴링 기반의 1:1 작업 분배 모델이다. 여러 워커가 한 큐를 폴링하면 각 메시지는 그 중 한 워커만 가져가 처리한다 — 모든 소비자가 같은 이벤트를 받는 것이 아니다. '여러 소비자가 동일 이벤트를 각자 받아야 한다'는 단서는 토픽(SNS), '한 작업을 워커 풀이 나눠 처리한다'는 단서는 큐(SQS)를 가리킨다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "한 큐를 여러 워커가 폴링하면 각 메시지는 한 워커만 받는다. 세 시스템이 같은 이벤트를 모두 받는 fanout이 아니라 작업을 나눠 갖는 구조다."
+      },
+      {
+        "choice": 1,
+        "note": "생산자가 소비자 수만큼 직접 보내면 소비자가 추가될 때마다 생산자 코드를 고쳐야 한다 — '한 번만 게시'와 결합 분리 요구를 모두 어긴다."
+      },
+      {
+        "choice": 3,
+        "note": "테이블 폴링은 푸시가 아니라 풀 방식이고, 이벤트 전파에 폴링 지연·비용이 따른다. 메시징 fanout 용도로는 부적절한 우회 구성이다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 1,
+    "tags": [
+      "sns",
+      "sqs",
+      "fanout",
+      "pub-sub",
+      "decoupling"
+    ],
+    "references": [
+      {
+        "title": "Fanout to Amazon SQS queues",
+        "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-visibility-timeout-shorter-than-processing",
+    "chapterId": "sqs-sns",
+    "title": "처리 시간보다 짧은 가시성 제한 시간이 부르는 중복",
+    "question": "표준 SQS 큐를 폴링하는 워커가 메시지 하나를 처리하는 데 평균 90초가 걸린다. 큐는 기본 설정이고, 워커는 처리가 끝난 뒤에야 메시지를 삭제한다. 운영 중 같은 메시지가 여러 번 처리되는 현상이 발견됐다. 가장 가능성 높은 원인은?",
+    "choices": [
+      "표준 큐는 메시지를 항상 정확히 한 번만 전달하므로 중복은 코드 버그 때문이다.",
+      "가시성 제한 시간(기본 30초)이 처리 시간(90초)보다 짧아, 처리가 끝나기 전에 메시지가 다시 보이게 되어 다른 폴링이 같은 메시지를 가져간다.",
+      "메시지 보존 기간이 너무 짧아 메시지가 만료되었다가 재생성된다.",
+      "롱 폴링이 비활성화되어 있어 같은 메시지가 여러 서버에서 중복 반환된다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "처리 시간이 가시성 제한 시간을 넘기면 메시지가 다시 보이게 되어 다른 소비자가 같은 메시지를 가져가 중복 처리됩니다.",
+    "explanation": [
+      "메시지를 수신하면 가시성 제한 시간(기본 30초) 동안 다른 소비자에게 보이지 않는다. 이 시간 안에 삭제하지 못하면 메시지가 다시 큐에 보이게 되고, 또 다른 ReceiveMessage가 같은 메시지를 가져가 처리한다. 처리에 90초가 걸리는데 타임아웃이 30초면 60초 시점에 이미 메시지가 재가시화되어 중복 처리가 거의 보장된다.",
+      "해결은 큐(또는 메시지)의 가시성 제한 시간을 처리 시간보다 넉넉히 길게 잡거나, 처리가 길어질 때 ChangeMessageVisibility로 타임아웃을 연장하는 것이다. 시험에서 '간헐적/반복적 중복 처리 + 처리 시간 > 타임아웃' 조합이 보이면 거의 항상 가시성 제한 시간 미스매치가 정답이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "표준 큐는 '최소 한 번(at-least-once)' 전달이라 본래 중복 가능성이 있다. '정확히 한 번'은 FIFO 큐의 특성이며, 이 시나리오의 중복은 설정 문제다."
+      },
+      {
+        "choice": 2,
+        "note": "보존 기간이 만료된 메시지는 삭제될 뿐 '재생성'되지 않는다. 중복 처리는 보존 기간과 무관한 현상이다."
+      },
+      {
+        "choice": 3,
+        "note": "롱/숏 폴링은 빈 응답을 줄이는 비용·응답성 설정일 뿐, 동일 메시지를 중복 전달하는 원인이 아니다. 숏 폴링도 메시지를 여러 번 '전달'하지는 않는다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "sqs",
+      "visibility-timeout",
+      "duplicate-processing",
+      "standard-queue"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS visibility timeout",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-fifo-ordering-and-no-duplicates",
+    "chapterId": "sqs-sns",
+    "title": "순서 보장과 중복 없는 처리가 동시에 필요할 때",
+    "question": "결제 트랜잭션 이벤트를 큐로 처리하는데, 두 가지가 반드시 보장돼야 한다 — 이벤트가 보낸 순서 그대로 처리될 것, 그리고 같은 이벤트가 두 번 처리되지 않을 것. 어떤 큐를 선택해야 하는가?",
+    "choices": [
+      "표준 SQS 큐 — 거의 무제한 처리량을 제공하므로 순서가 자연히 지켜진다.",
+      "표준 SQS 큐 + 소비자 측에서 타임스탬프로 정렬하고 중복을 제거하는 로직.",
+      "SNS 표준 토픽 — 토픽은 게시 순서를 보장한다.",
+      "FIFO SQS 큐 — 메시지 순서를 엄격히 보장하고 중복 없는(정확히 한 번) 처리를 제공한다."
+    ],
+    "answers": [
+      3
+    ],
+    "answerSummary": "엄격한 순서 + 정확히 한 번 처리를 동시에 요구하면 FIFO 큐가 정답입니다.",
+    "explanation": [
+      "FIFO 큐는 메시지가 전송된 순서대로(First-In-First-Out) 전달되고, 중복 메시지가 큐에 들어가는 것을 막아 정확히 한 번 처리(exactly-once processing)를 제공한다. 결제처럼 순서와 중복이 모두 중요한 워크로드를 겨냥한 큐 타입이다.",
+      "표준 큐는 '최선 노력 순서(best-effort ordering)'와 '최소 한 번 전달'이라 순서가 뒤바뀌거나 중복이 생길 수 있다. 소비자에서 정렬·중복 제거를 직접 구현할 수도 있지만, 요구사항을 서비스 기능으로 깔끔히 충족하는 답이 있을 때 시험은 그 답(FIFO)을 고른다. 단, FIFO는 처리량 한도(배치로 초당 약 3,000건, 고처리량 모드 시 그 이상)가 있다는 트레이드오프를 기억한다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "표준 큐는 '최선 노력 순서'라 순서가 뒤바뀔 수 있다. 처리량이 높은 것과 순서 보장은 별개의 속성이다."
+      },
+      {
+        "choice": 1,
+        "note": "소비자 측 정렬·중복 제거는 복잡한 커스텀 구현이다. FIFO 큐가 같은 보장을 서비스 기능으로 제공하므로 굳이 직접 만들 이유가 없다."
+      },
+      {
+        "choice": 2,
+        "note": "표준 SNS 토픽은 순서·중복 없음을 보장하지 않는다(최선 노력). 순서가 필요하면 FIFO 토픽/큐를 써야 한다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "fifo",
+      "ordering",
+      "exactly-once",
+      "standard-queue"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS queue types",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-queue-types.html"
+      },
+      {
+        "title": "Exactly-once processing in Amazon SQS",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-dlq-maxreceivecount-poison-message",
+    "chapterId": "sqs-sns",
+    "title": "반복 실패하는 메시지를 분리하기",
+    "question": "SQS 큐를 처리하는 소비자가 형식이 깨진 일부 메시지에서 계속 예외를 던진다. 이 메시지들은 삭제되지 않은 채 가시성 제한 시간이 지나면 다시 큐로 돌아와 정상 메시지 처리를 방해한다. 문제 메시지를 자동으로 격리해 나중에 분석하려면?",
+    "choices": [
+      "데드레터 큐(DLQ)를 만들고 원본 큐의 리드라이브 정책에 maxReceiveCount를 설정해, 수신 횟수가 그 값을 넘은 메시지를 DLQ로 보낸다.",
+      "원본 큐의 가시성 제한 시간을 0으로 설정해 실패 메시지가 즉시 사라지게 한다.",
+      "메시지 보존 기간을 60초로 줄여 실패 메시지가 빨리 만료되게 한다.",
+      "큐를 FIFO로 전환하면 형식이 깨진 메시지가 자동으로 걸러진다."
+    ],
+    "answers": [
+      0
+    ],
+    "answerSummary": "반복 실패 메시지를 격리하는 표준 메커니즘은 DLQ + 리드라이브 정책의 maxReceiveCount입니다.",
+    "explanation": [
+      "데드레터 큐(DLQ)는 처리에 반복 실패한 메시지를 모아 두는 별도 큐다. 원본 큐에 리드라이브 정책(redrive policy)으로 maxReceiveCount를 지정하면, 메시지가 그 횟수만큼 수신되고도 삭제되지 않았을 때 SQS가 자동으로 그 메시지를 DLQ로 옮긴다. 덕분에 '독성 메시지'가 정상 처리를 막는 것을 끊고, 나중에 로그·내용을 분석할 수 있다.",
+      "DLQ는 자동 생성되지 않으므로 먼저 만들어야 하고, 원본 큐와 같은 타입이어야 한다(표준↔표준, FIFO↔FIFO). 또한 표준 큐는 원래 인큐 타임스탬프를 기준으로 만료되므로, DLQ의 보존 기간을 원본보다 길게 두는 것이 권장된다. maxReceiveCount를 너무 낮게(예: 1) 잡으면 일시적 오류 한 번에도 메시지가 DLQ로 빠지므로, 재시도 여유를 두고 설정한다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "가시성 제한 시간 0은 메시지를 삭제하는 설정이 아니다. 오히려 메시지가 곧바로 다시 보여 더 빠르게 반복 처리·실패한다."
+      },
+      {
+        "choice": 2,
+        "note": "보존 기간 단축은 정상 메시지까지 만료시켜 데이터 손실을 부른다. 문제 메시지만 격리하는 수단이 아니다."
+      },
+      {
+        "choice": 3,
+        "note": "FIFO 전환은 순서·중복 처리에 관한 것일 뿐, 메시지 내용을 검증하거나 형식 오류를 걸러 주지 않는다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 4,
+    "tags": [
+      "sqs",
+      "dead-letter-queue",
+      "redrive-policy",
+      "max-receive-count"
+    ],
+    "references": [
+      {
+        "title": "Using dead-letter queues in Amazon SQS",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-long-polling-empty-responses-cost",
+    "chapterId": "sqs-sns",
+    "title": "빈 응답과 폴링 비용 줄이기",
+    "question": "한 서비스가 SQS 큐를 1초 간격으로 계속 ReceiveMessage 한다. 큐가 비어 있는 시간이 많아 빈 응답이 대량으로 발생하고, SQS 요청 비용이 불필요하게 늘고 있다. 코드 구조를 크게 바꾸지 않고 빈 응답과 비용을 줄이는 방법은?",
+    "choices": [
+      "ReceiveMessage 호출 간격을 100밀리초로 더 줄여 메시지를 더 빨리 가져온다.",
+      "메시지가 올 때까지 클라이언트가 sleep 했다가 다시 호출하는 로직을 직접 구현한다.",
+      "롱 폴링을 사용한다 — WaitTimeSeconds(또는 큐의 ReceiveMessageWaitTimeSeconds)를 최대 20초로 설정해, 메시지가 생길 때까지 응답을 기다리게 한다.",
+      "큐를 FIFO로 바꿔 빈 응답이 발생하지 않게 한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "롱 폴링(WaitTimeSeconds를 0보다 크게, 최대 20초)은 빈 응답과 false empty 응답을 줄여 비용을 낮추는 정석입니다.",
+    "explanation": [
+      "기본값인 숏 폴링은 서버의 일부만 조회하고 즉시 응답하므로, 큐가 비어 있으면 빈 응답이 자주 나온다. 롱 폴링은 WaitTimeSeconds를 0보다 크게(최대 20초) 두어 메시지가 생기거나 대기 시간이 끝날 때까지 응답을 보류한다. 이렇게 하면 빈 응답과, 메시지가 있는데도 못 받는 false empty 응답이 줄고, 결과적으로 ReceiveMessage 요청 수와 비용이 감소한다.",
+      "WaitTimeSeconds는 ReceiveMessage 호출 단위로도, 큐 속성(ReceiveMessageWaitTimeSeconds)으로도 설정할 수 있어 코드 변경을 최소화할 수 있다. AWS는 대개 20초를 권장한다. 시험에서 '빈 응답이 많다 / 폴링 비용을 줄여라'는 단서는 롱 폴링을 가리킨다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "폴링 간격을 더 줄이면 빈 응답과 요청 수가 오히려 늘어 비용이 증가한다. 문제를 악화시키는 선택이다."
+      },
+      {
+        "choice": 1,
+        "note": "직접 sleep·재호출을 구현하는 것은 롱 폴링이 서비스 차원에서 제공하는 기능을 수작업으로 재발명하는 것이다. WaitTimeSeconds 설정 한 줄이면 충분하다."
+      },
+      {
+        "choice": 3,
+        "note": "FIFO 전환은 순서·중복 처리에 관한 것이고 빈 응답과 무관하다. 숏/롱 폴링은 표준·FIFO 큐 모두에 동일하게 적용된다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "long-polling",
+      "short-polling",
+      "cost-optimization",
+      "wait-time-seconds"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS short and long polling",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-message-filtering-subset-delivery",
+    "chapterId": "sqs-sns",
+    "title": "구독자별로 일부 메시지만 받게 하기",
+    "question": "하나의 SNS 토픽에 모든 주문 이벤트가 게시된다. '환불' 이벤트만 받는 큐와 '신규 주문' 이벤트만 받는 큐를 분리하고 싶다. 생산자가 토픽을 여러 개로 쪼개거나 소비자가 받은 메시지를 일일이 걸러내지 않도록 하려면?",
+    "choices": [
+      "각 이벤트 유형마다 별도의 SNS 토픽을 만들고 생산자가 유형에 따라 다른 토픽에 게시하게 한다.",
+      "각 구독에 필터 정책(filter policy)을 적용해, 메시지 속성이나 본문 조건에 맞는 메시지만 해당 구독으로 전달되게 한다.",
+      "각 소비자가 모든 메시지를 받은 뒤 자기와 무관한 메시지를 무시하도록 코드를 작성한다.",
+      "메시지 보존 기간을 유형별로 다르게 설정해 원치 않는 메시지가 먼저 만료되게 한다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "구독에 필터 정책을 걸면 SNS가 조건에 맞는 메시지만 그 구독으로 전달합니다 — 토픽 분할도 소비자 측 필터링도 필요 없습니다.",
+    "explanation": [
+      "기본적으로 토픽 구독자는 게시된 모든 메시지를 받는다. 구독에 필터 정책(JSON)을 지정하면, SNS가 게시 메시지의 속성(또는 본문)을 정책 조건과 비교해 일치하는 메시지만 그 구독으로 보낸다. 환불 큐 구독에는 '환불' 조건을, 신규 주문 큐 구독에는 '신규 주문' 조건을 거는 식이다. 필터링 로직이 SNS 서비스로 이동하므로 생산자·소비자 모두 단순해진다.",
+      "토픽을 유형별로 쪼개면 토픽이 난립하고 생산자에 라우팅 로직이 생긴다. 소비자에서 거르면 불필요한 전달·처리 비용이 든다 — 필터 정책이 이 두 안티패턴을 모두 없앤다. 주의: 필터 정책 추가·변경은 최종 일관성 때문에 적용까지 최대 15분이 걸릴 수 있다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "유형마다 토픽을 만들면 토픽이 난립하고 생산자가 라우팅을 떠안는다. 필터 정책은 토픽 하나로 같은 결과를 낸다."
+      },
+      {
+        "choice": 2,
+        "note": "소비자 측 필터링은 무관한 메시지까지 전부 전달·수신하므로 처리·비용 낭비다. 필터링을 SNS로 위임하는 것이 목적에 맞다."
+      },
+      {
+        "choice": 3,
+        "note": "보존 기간은 메시지가 큐에 머무는 최대 시간일 뿐, 어떤 구독자에게 전달할지를 결정하지 않는다. 라우팅 수단이 아니다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sns",
+      "message-filtering",
+      "filter-policy",
+      "subscription"
+    ],
+    "references": [
+      {
+        "title": "Amazon SNS message filtering",
+        "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-message-filtering.html"
+      },
+      {
+        "title": "Applying a subscription filter policy in Amazon SNS",
+        "url": "https://docs.aws.amazon.com/sns/latest/dg/message-filtering-apply.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-fanout-immediate-and-deferred-processing",
+    "chapterId": "sqs-sns",
+    "title": "즉시 알림과 지연 처리를 한 이벤트로 동시에",
+    "question": "사진이 업로드되면 두 가지가 일어나야 한다 — (1) 알림 시스템이 즉시 푸시를 받고, (2) 무거운 이미지 처리 작업은 워커가 자기 속도로 나중에 처리한다. 한 번의 업로드 이벤트로 이를 모두 충족하는 구성은? (2개를 고르세요)",
+    "choices": [
+      "업로드 이벤트를 SNS 토픽에 게시한다.",
+      "이미지 처리용 SQS 큐를 토픽의 구독자로 등록해, 게시된 메시지가 큐에 적재되고 워커가 폴링으로 천천히 처리하게 한다.",
+      "이미지 처리 워커가 SNS 토픽을 직접 폴링해 메시지를 가져가게 한다.",
+      "알림과 이미지 처리를 모두 단일 SQS 큐 하나로 묶어 처리한다."
+    ],
+    "answers": [
+      0,
+      1
+    ],
+    "answerSummary": "SNS 토픽에 게시해 즉시 알림을 보내고(푸시), 같은 토픽에 SQS 큐를 구독시켜 무거운 작업을 비동기로 버퍼링하는 fanout 패턴입니다.",
+    "explanation": [
+      "SNS는 푸시 기반이라 시간이 중요한 알림을 구독자에게 즉시 전달한다. 같은 토픽에 SQS 큐를 구독시키면 게시된 메시지가 그 큐에도 사본으로 적재되어, 무거운 이미지 처리는 워커가 폴링으로 자기 속도에 맞춰 비동기 처리할 수 있다. 이 'SNS→SQS fanout'이 즉시성과 지연 처리(내구성 있는 버퍼)를 한 이벤트로 동시에 만족시키는 표준 패턴이다.",
+      "토픽에 게시(선택지 0)하고 처리 큐를 구독(선택지 1)시키는 두 조각이 함께 정답을 이룬다. SQS 큐가 버퍼 역할을 하므로 처리 컴포넌트가 잠깐 느리거나 내려가도 메시지가 보존된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 2,
+        "note": "SNS는 푸시 모델이라 토픽을 폴링하는 개념이 없다. 큐로 메시지를 받으려면 SQS를 토픽에 구독시켜야 한다."
+      },
+      {
+        "choice": 3,
+        "note": "단일 큐로만 묶으면 메시지를 워커가 가져가 처리할 뿐, 알림 시스템이 같은 이벤트를 즉시 받는 fanout이 성립하지 않는다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sns",
+      "sqs",
+      "fanout",
+      "asynchronous-processing",
+      "decoupling"
+    ],
+    "references": [
+      {
+        "title": "Fanout to Amazon SQS queues",
+        "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-per-message-delay-message-timer",
+    "chapterId": "sqs-sns",
+    "title": "특정 메시지만 잠시 늦춰 전달하기",
+    "question": "표준 SQS 큐를 쓰는 애플리케이션에서, 대부분의 메시지는 즉시 처리하되 일부 메시지만 전송 시점부터 약 60초 동안 소비자에게 보이지 않게 늦추고 싶다. 큐 전체의 동작은 바꾸지 않아야 한다. 가장 적절한 방법은?",
+    "choices": [
+      "큐의 가시성 제한 시간을 60초로 늘린다.",
+      "큐에 60초짜리 지연 큐(delay queue, DelaySeconds)를 설정한다.",
+      "해당 메시지의 보존 기간을 60초로 설정한다.",
+      "메시지를 보낼 때 그 메시지에 60초짜리 메시지 타이머(message timer, DelaySeconds)를 지정한다."
+    ],
+    "answers": [
+      3
+    ],
+    "answerSummary": "개별 메시지에만 초기 비가시 지연을 주려면 메시지 타이머(per-message DelaySeconds)를 사용합니다.",
+    "explanation": [
+      "메시지 타이머는 메시지를 큐에 넣을 때 그 메시지에만 초기 비가시 기간(최대 15분)을 설정한다. 큐 전체 설정은 그대로 두고 특정 메시지만 늦추고 싶을 때 정확히 맞는 기능이다. 메시지 타이머 값은 지연 큐의 DelaySeconds보다 우선한다.",
+      "헷갈리기 쉬운 두 짝을 구분하자. 지연 큐(선택지 2)는 DelaySeconds를 큐 전체에 적용해 모든 새 메시지를 늦추므로 '일부만'이라는 조건에 맞지 않는다. 가시성 제한 시간은 메시지가 '수신된 후' 숨겨지는 시간이고, 지연 큐·메시지 타이머는 '큐에 추가될 때부터' 숨겨지는 시간이라는 점이 핵심 차이다. 참고로 FIFO 큐는 개별 메시지 타이머를 지원하지 않는다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "가시성 제한 시간은 메시지를 '수신한 뒤' 숨기는 시간이다. 전송 직후부터 늦추는 것이 아니고, 게다가 큐 전체 동작을 바꾼다."
+      },
+      {
+        "choice": 1,
+        "note": "지연 큐의 DelaySeconds는 큐로 들어오는 모든 새 메시지에 적용된다. '일부 메시지만'이라는 요구를 어긴다."
+      },
+      {
+        "choice": 2,
+        "note": "보존 기간은 메시지가 큐에 머무는 최대 수명이지 전달을 늦추는 지연이 아니다. 60초로 두면 처리 전에 메시지가 사라질 위험이 있다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "message-timer",
+      "delay-queue",
+      "delay-seconds"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS message timers",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-timers.html"
+      },
+      {
+        "title": "Amazon SQS delay queues",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-delay-queues.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-fifo-message-group-id-parallel-streams",
+    "chapterId": "sqs-sns",
+    "title": "고객별 순서는 지키되 병렬 처리도 하기",
+    "question": "FIFO 큐로 고객별 주문 변경 이벤트를 처리한다. 같은 고객의 이벤트는 반드시 순서대로 처리돼야 하지만, 서로 다른 고객의 이벤트는 동시에(병렬로) 처리해 처리량을 높이고 싶다. 어떻게 메시지를 보내야 하는가?",
+    "choices": [
+      "모든 메시지에 동일한 메시지 그룹 ID를 부여한다.",
+      "고객마다 서로 다른 메시지 그룹 ID(예: 고객 ID)를 부여한다.",
+      "메시지 그룹 ID를 비우고 메시지 중복 제거 ID(deduplication ID)만 지정한다.",
+      "큐를 표준 큐로 바꾸면 고객별 순서가 자동으로 유지된다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "메시지 그룹 ID를 고객 단위로 다르게 주면 그룹 내부는 순서대로, 서로 다른 그룹은 병렬로 처리됩니다.",
+    "explanation": [
+      "FIFO 큐의 메시지 그룹 ID(MessageGroupId)는 메시지를 그룹으로 나눈다. 같은 그룹 ID의 메시지는 한 번에 하나씩 엄격한 순서로 처리되지만, 서로 다른 그룹은 독립적으로(병렬로) 처리될 수 있다. 고객 ID를 그룹 ID로 쓰면 '같은 고객은 순서 보장, 다른 고객은 병렬'이라는 요구가 정확히 충족된다.",
+      "모든 메시지에 같은 그룹 ID를 주면 전부 한 줄로 직렬화되어 병렬성이 사라진다. 메시지 그룹 ID는 순서 단위이자 병렬 처리 단위이며, 중복 제거 ID(MessageDeduplicationId)는 그와 별개로 중복 전송을 막는 토큰이다. Lambda를 이벤트 소스로 쓸 때 FIFO 큐의 동시 호출 수는 활성 메시지 그룹 수에 의해서도 제한된다 — 그룹이 곧 병렬성의 상한이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "같은 그룹 ID를 전부 부여하면 모든 메시지가 한 그룹으로 묶여 직렬 처리된다. 고객 간 병렬성이 사라진다."
+      },
+      {
+        "choice": 2,
+        "note": "FIFO 전송에는 메시지 그룹 ID가 필요하다. 중복 제거 ID는 중복 방지용일 뿐 순서·병렬 단위를 정의하지 않는다."
+      },
+      {
+        "choice": 3,
+        "note": "표준 큐는 순서를 보장하지 않는다(최선 노력). 고객별 순서 요구를 충족하지 못한다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "fifo",
+      "message-group-id",
+      "ordering",
+      "parallelism"
+    ],
+    "references": [
+      {
+        "title": "Using the message group ID with Amazon SQS FIFO Queues",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html"
+      },
+      {
+        "title": "Amazon SQS FIFO queue key terms",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-key-terms.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-lambda-sqs-max-concurrency-downstream",
+    "chapterId": "sqs-sns",
+    "title": "SQS 트리거 Lambda가 다운스트림을 압도할 때",
+    "question": "SQS 큐를 이벤트 소스로 하는 Lambda 함수가, 큐에 메시지가 쌓이면 빠르게 스케일업해 동시 실행 수가 급증한다. 그 결과 함수가 호출하는 다운스트림 RDS 데이터베이스가 연결 폭주로 과부하된다. 큐 처리를 멈추지 않으면서 이 함수의 동시 실행 수를 제한하는 가장 적절한 방법은?",
+    "choices": [
+      "원본 큐의 가시성 제한 시간을 크게 늘려 메시지가 천천히 처리되게 한다.",
+      "이벤트 소스 매핑의 배치 크기(batch size)를 1로 낮춰 한 번에 메시지 하나만 처리한다.",
+      "이벤트 소스 매핑에 최대 동시성(maximum concurrency, ScalingConfig의 MaximumConcurrency)을 설정해 이 SQS 이벤트 소스가 호출할 수 있는 동시 함수 인스턴스 수를 제한한다.",
+      "함수의 메모리를 늘려 각 호출이 더 빨리 끝나게 한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "SQS 이벤트 소스 매핑의 최대 동시성(MaximumConcurrency) 설정이 큐 처리를 유지하면서 동시 실행 상한을 거는 전용 수단입니다.",
+    "explanation": [
+      "SQS 이벤트 소스 매핑의 최대 동시성 설정은 그 이벤트 소스가 호출할 수 있는 동시 함수 인스턴스 수를 직접 제한한다. 다운스트림 보호를 위해 동시성을 묶고 싶을 때, 예약된 동시성(reserved concurrency)을 쓰면 한도를 넘긴 메시지가 큐로 반환되거나 만료·DLQ로 빠지는 부작용이 생기는데, 최대 동시성은 그런 부작용 없이 더 매끄럽게 스케일을 제어한다.",
+      "최대 동시성은 이벤트 소스 단위 설정이라 같은 함수에 여러 SQS 소스가 있어도 각각 따로 줄 수 있다. 가시성 제한 시간·배치 크기·메모리는 처리 속도나 단건/배치 동작을 바꿀 뿐, 동시에 뜨는 인스턴스 수의 상한을 정하지는 못한다. '동시 실행 수를 제한해 다운스트림 보호'라는 단서가 핵심이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "가시성 제한 시간은 메시지 재가시화 시점을 미룰 뿐 동시 실행 수를 줄이지 않는다. 오히려 처리가 길어지면 메시지가 더 오래 in-flight로 남는다."
+      },
+      {
+        "choice": 1,
+        "note": "배치 크기 1은 호출당 메시지 수만 줄인다. 동시에 뜨는 함수 인스턴스 수는 그대로라 다운스트림 연결 폭주를 막지 못한다."
+      },
+      {
+        "choice": 3,
+        "note": "메모리 증설은 호출 속도·비용에 영향을 줄 뿐 동시성 상한과 무관하다. 빨라지면 오히려 더 많은 호출이 다운스트림을 때릴 수 있다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 4,
+    "tags": [
+      "lambda",
+      "sqs",
+      "event-source-mapping",
+      "maximum-concurrency",
+      "throttling"
+    ],
+    "references": [
+      {
+        "title": "Configuring scaling behavior for SQS event source mappings",
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-scaling.html"
+      },
+      {
+        "title": "Lambda parameters for Amazon SQS event source mappings",
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-parameters.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-message-retention-period-lost-messages",
+    "chapterId": "sqs-sns",
+    "title": "처리되지 못한 메시지가 사라지는 이유",
+    "question": "다운스트림 시스템이 사흘간 점검으로 중단된 동안, 그 시스템이 폴링하는 SQS 큐(기본 설정)에 메시지가 계속 쌓였다. 점검이 끝나고 폴링을 재개하니 일부 오래된 메시지가 사라져 있었다. 가장 가능성 높은 원인과 대응은?",
+    "choices": [
+      "메시지 보존 기간(기본 4일)이 지난 메시지가 자동 삭제됐다. 예상 중단 시간을 견딜 수 있도록 보존 기간(최대 14일)을 늘린다.",
+      "가시성 제한 시간이 만료되어 메시지가 영구 삭제됐다. 가시성 제한 시간을 늘린다.",
+      "표준 큐는 소비자가 없으면 메시지를 버린다. 큐를 FIFO로 바꾼다.",
+      "롱 폴링이 꺼져 있어 메시지가 누락됐다. 롱 폴링을 켠다."
+    ],
+    "answers": [
+      0
+    ],
+    "answerSummary": "삭제되지 않은 메시지는 보존 기간(기본 4일, 최대 14일)이 지나면 자동 제거됩니다 — 긴 중단을 견디려면 보존 기간을 늘립니다.",
+    "explanation": [
+      "SQS는 메시지를 보존 기간(60초~14일, 기본 4일) 동안만 보관하고, 그 안에 삭제되지 않은 메시지는 자동으로 제거한다. 소비자가 사흘 넘게 멈춰 있었고 큐가 기본값(4일)이라면, 중단 초반에 들어온 메시지가 4일 한도를 넘겨 사라질 수 있다. 예상되는 중단 시간을 견디도록 보존 기간을 충분히(필요하면 14일까지) 늘리는 것이 대응이다.",
+      "혼동 포인트를 짚자. 가시성 제한 시간은 '수신된' 메시지가 처리 중 잠시 숨는 시간이지 미수신 메시지를 삭제하지 않는다. 표준 큐는 소비자가 없다고 메시지를 버리지 않는다 — 버리는 기준은 오직 보존 기간이다. 보존 기간 만료는 데이터 손실로 이어지므로, DLQ의 보존 기간은 원본 큐보다 길게 두는 것이 권장된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "가시성 제한 시간 만료는 메시지를 삭제하는 게 아니라 다시 보이게 만든다. 미수신 메시지의 소멸 원인이 아니다."
+      },
+      {
+        "choice": 2,
+        "note": "표준 큐는 소비자 유무와 무관하게 보존 기간까지 메시지를 보관한다. FIFO로 바꿔도 보존 기간이 짧으면 똑같이 만료된다."
+      },
+      {
+        "choice": 3,
+        "note": "롱 폴링은 빈 응답·비용에 관한 설정이다. 폴링을 멈춘 사이 메시지가 사라진 것은 폴링 방식이 아니라 보존 기간 문제다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "sqs",
+      "message-retention-period",
+      "data-loss",
+      "queue-configuration"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS message quotas",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html"
+      },
+      {
+        "title": "Amazon SQS visibility timeout",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+      },
+      {
+        "title": "Using dead-letter queues in Amazon SQS",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-standard-vs-fifo-throughput-tradeoff",
+    "chapterId": "sqs-sns",
+    "title": "초고처리량 워크로드에서 큐 타입 고르기",
+    "question": "초당 수만 건의 클릭스트림 이벤트를 큐로 수집하려 한다. 이벤트 순서는 중요하지 않고, 거의 무제한에 가까운 처리량이 가장 중요하다. 어떤 큐 타입이 가장 적절한가?",
+    "choices": [
+      "FIFO 큐 — 항상 표준 큐보다 빠르다.",
+      "표준 큐 — 거의 무제한 처리량과 최소 한 번 전달을 제공하며, 순서가 필요 없는 고볼륨 워크로드에 적합하다.",
+      "FIFO 큐 — 순서가 중요하지 않아도 정확히 한 번 처리가 항상 더 안전하다.",
+      "SNS FIFO 토픽 — 토픽이 큐보다 처리량이 높다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "순서가 불필요하고 처리량이 최우선이면 거의 무제한 처리량의 표준 큐가 정답입니다.",
+    "explanation": [
+      "표준 큐는 거의 무제한 처리량, 최소 한 번 전달, 최선 노력 순서를 제공해 순서가 중요하지 않은 고볼륨 워크로드에 적합하다. FIFO 큐는 엄격한 순서·정확히 한 번 처리를 보장하는 대신 처리량 한도(배치로 초당 약 3,000건, 고처리량 모드 시 더 높음)가 있다. 따라서 초당 수만 건 + 순서 불필요 조건에서는 표준 큐가 맞다.",
+      "시험의 함정은 'FIFO가 더 고급이니 항상 낫다'는 착각이다. FIFO의 순서·중복 보장은 처리량을 희생해 얻는 것이므로, 순서가 필요 없으면 표준 큐가 더 빠르고 단순하며 비용 효율적이다. 요구사항(순서 필요? 처리량 우선?)으로 타입을 고르는 것이 핵심이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "FIFO 큐는 순서·중복 보장을 위해 처리량 한도를 둔다. 표준 큐보다 '항상 빠르다'는 것은 사실과 반대다."
+      },
+      {
+        "choice": 2,
+        "note": "정확히 한 번 처리는 처리량을 희생해 얻는 보장이다. 순서·중복이 문제되지 않는데 FIFO를 쓰면 불필요하게 처리량을 제한한다."
+      },
+      {
+        "choice": 3,
+        "note": "SNS FIFO 토픽은 SQS 구독만 지원하고 처리량 한도가 있는 게시·구독 서비스다. 고볼륨 큐 수집 용도로 큐보다 높은 처리량을 주지 않는다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "standard-queue",
+      "fifo",
+      "throughput"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS queue types",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-queue-types.html"
+      },
+      {
+        "title": "High throughput for FIFO queues in Amazon SQS",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-extend-visibility-for-long-tasks",
+    "chapterId": "sqs-sns",
+    "title": "처리 시간이 들쭉날쭉할 때 중복 처리 막기",
+    "question": "SQS 메시지 처리 시간이 작업에 따라 10초에서 8분까지 크게 다르다. 일부 긴 작업이 가시성 제한 시간을 넘겨 메시지가 다시 보이고, 그 사이 다른 워커가 같은 메시지를 가져가 중복 처리하는 일이 생긴다. 중복을 줄이기 위한 적절한 조치는? (2개를 고르세요)",
+    "choices": [
+      "처리가 길어질 때 ChangeMessageVisibility로 해당 메시지의 가시성 제한 시간을 동적으로 연장한다.",
+      "큐의 메시지 보존 기간을 14일로 늘린다.",
+      "큐의 가시성 제한 시간을 가장 긴 작업이 끝날 만큼 충분히 길게 설정한다.",
+      "롱 폴링을 끄고 숏 폴링으로 전환한다."
+    ],
+    "answers": [
+      0,
+      2
+    ],
+    "answerSummary": "가시성 제한 시간을 충분히 길게 잡고, 처리가 더 길어지면 ChangeMessageVisibility로 연장해 메시지가 처리 중 재가시화되지 않게 합니다.",
+    "explanation": [
+      "중복 처리의 직접 원인은 메시지가 처리 도중 가시성 제한 시간이 만료되어 다른 소비자에게 다시 보이는 것이다. 1차 대응은 가시성 제한 시간을 예상 처리 시간(가장 긴 작업 포함)보다 넉넉히 잡는 것이다. 처리 시간이 가변적이면 고정값만으로는 부족하므로, 처리가 길어질 때 ChangeMessageVisibility로 그 메시지의 타임아웃을 동적으로 연장(하트비트)해 끝날 때까지 비가시 상태를 유지한다.",
+      "두 조치를 함께 쓰면 짧은 작업엔 적당한 기본 타임아웃을, 긴 작업엔 연장을 적용해 재가시화를 막는다. 다만 표준 큐는 최소 한 번 전달이라 드물게 여전히 중복이 가능하므로, 처리는 멱등(idempotent)하게 설계하는 것이 안전하다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "보존 기간은 메시지의 큐 내 최대 수명일 뿐, 처리 중 재가시화로 인한 중복과 무관하다."
+      },
+      {
+        "choice": 3,
+        "note": "숏 폴링은 빈 응답·비용에 관한 설정이다. 폴링 방식은 가시성 제한 시간 만료로 생기는 중복 처리를 줄이지 못한다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 4,
+    "tags": [
+      "sqs",
+      "visibility-timeout",
+      "change-message-visibility",
+      "duplicate-processing"
+    ],
+    "references": [
+      {
+        "title": "Amazon SQS visibility timeout",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-fifo-deduplication-methods",
+    "chapterId": "sqs-sns",
+    "title": "FIFO 큐에서 중복 전송 막기",
+    "question": "FIFO 큐에 메시지를 보내는 생산자가, 네트워크 재시도로 같은 SendMessage가 두 번 호출돼도 큐에 중복이 들어가지 않게 하려 한다. 5분 중복 제거 구간 안에서 중복을 막는 방법은? (2개를 고르세요)",
+    "choices": [
+      "큐의 가시성 제한 시간을 0으로 설정한다.",
+      "콘텐츠 기반 중복 제거(content-based deduplication)를 켜서 SQS가 메시지 본문의 SHA-256 해시로 중복 제거 ID를 생성하게 한다.",
+      "큐를 표준 큐로 바꿔 SQS가 중복을 자동으로 제거하게 한다.",
+      "각 메시지에 메시지 중복 제거 ID(MessageDeduplicationId)를 명시적으로 지정한다."
+    ],
+    "answers": [
+      1,
+      3
+    ],
+    "answerSummary": "FIFO 중복 제거는 콘텐츠 기반 중복 제거를 켜거나, 메시지마다 중복 제거 ID를 명시하는 두 방법 중 하나로 구성합니다.",
+    "explanation": [
+      "FIFO 큐는 5분 중복 제거 구간 안에서 같은 SendMessage가 재시도돼도 중복을 큐에 넣지 않는다. 이를 활성화하려면 둘 중 하나를 해야 한다 — (1) 콘텐츠 기반 중복 제거를 켜면 SQS가 메시지 본문(속성 제외)의 SHA-256 해시로 중복 제거 ID를 자동 생성한다, (2) 메시지마다 중복 제거 ID(MessageDeduplicationId)를 명시적으로 제공한다. 같은 중복 제거 ID를 가진 메시지는 구간 내에서 한 번만 받아들여진다.",
+      "본문이 항상 유일하다고 보장되면 콘텐츠 기반 중복 제거가 편하고, 본문이 같아도 별개로 취급해야 하면 명시적 중복 제거 ID가 맞다. 가시성 제한 시간이나 표준 큐 전환은 'FIFO에서 전송 단계 중복을 막는' 이 요구와 무관하다 — 특히 표준 큐는 정확히 한 번을 보장하지 않는다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "가시성 제한 시간은 수신 후 처리 중 비가시 시간이다. 전송 단계의 중복 제거와 전혀 관련이 없다."
+      },
+      {
+        "choice": 2,
+        "note": "표준 큐는 최소 한 번 전달이라 중복을 자동 제거하지 않는다. 전송 중복 방지는 FIFO 큐의 기능이다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "sqs",
+      "fifo",
+      "deduplication",
+      "message-deduplication-id",
+      "content-based-deduplication"
+    ],
+    "references": [
+      {
+        "title": "Exactly-once processing in Amazon SQS",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html"
+      },
+      {
+        "title": "Amazon SQS FIFO queue key terms",
+        "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-key-terms.html"
+      }
+    ]
+  },
+  {
+    "slug": "sqs-sns-lambda-partial-batch-failure-reporting",
+    "chapterId": "sqs-sns",
+    "title": "배치 일부만 실패했는데 전체가 재처리될 때",
+    "question": "SQS 표준 큐를 이벤트 소스로 하는 Lambda 함수가 한 번에 10개 메시지 배치를 받는다. 그중 1개 처리가 실패하면 함수가 오류를 반환하는데, 이때 이미 성공한 9개까지 다시 큐로 돌아와 중복 처리된다. 성공한 메시지의 불필요한 재처리를 막는 방법은?",
+    "choices": [
+      "배치 크기를 10,000으로 늘려 한 번에 더 많이 처리한다.",
+      "큐의 가시성 제한 시간을 0으로 설정해 실패 메시지가 즉시 사라지게 한다.",
+      "이벤트 소스 매핑에서 ReportBatchItemFailures(부분 배치 응답)를 켜고, 함수가 실패한 메시지의 식별자만 반환하도록 구현한다.",
+      "함수의 예약된 동시성을 1로 설정한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "부분 배치 응답(ReportBatchItemFailures)을 켜고 실패 항목 ID만 반환하면 성공한 메시지는 삭제되고 실패한 것만 재처리됩니다.",
+    "explanation": [
+      "기본적으로 함수가 배치 처리 중 오류를 반환하면 SQS는 배치 전체를 실패로 보고 모든 메시지를 다시 큐로 되돌린다. 그래서 성공한 메시지까지 재전달·중복 처리된다. 이벤트 소스 매핑의 FunctionResponseTypes에 ReportBatchItemFailures를 추가하고, 함수가 실패한 메시지의 식별자(batchItemFailures)만 응답으로 돌려주면, Lambda는 성공한 메시지를 큐에서 삭제하고 실패한 메시지만 재시도하도록 남긴다.",
+      "이것이 '부분 배치 응답(partial batch response)' 패턴이다. 배치 크기를 키우면 실패 시 되돌아오는 메시지만 늘어 문제가 악화되고, 가시성 제한 시간 0이나 동시성 1은 재처리 범위를 좁히는 수단이 아니다. 배치 처리에서 '일부 실패 시 성공분 재처리 방지' 단서가 보이면 ReportBatchItemFailures가 정답이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "배치 크기를 키우면 한 번 실패할 때 되돌아오는 성공 메시지가 더 많아져 중복 재처리가 오히려 늘어난다."
+      },
+      {
+        "choice": 1,
+        "note": "가시성 제한 시간 0은 메시지를 삭제하지 않는다. 오히려 실패·성공 메시지가 곧바로 다시 보여 재처리가 빨라진다."
+      },
+      {
+        "choice": 3,
+        "note": "예약된 동시성 1은 동시 실행만 제한할 뿐, 배치 일부 실패 시 성공 메시지가 되돌아오는 동작은 그대로다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 4,
+    "tags": [
+      "lambda",
+      "sqs",
+      "report-batch-item-failures",
+      "partial-batch-response",
+      "event-source-mapping"
+    ],
+    "references": [
+      {
+        "title": "Lambda parameters for Amazon SQS event source mappings",
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-parameters.html"
+      }
+    ]
+  }
+]

@@ -1,11 +1,12 @@
 /**
- * aws-cloud-drills 퀴즈 임포트 어댑터 (이슈 #6).
+ * 드릴 퀴즈 임포트 어댑터 (이슈 #6).
  *
- * 원본: ~/pdk/projects/aws-cloud-drills/data/questions/<subject>.json
- *       (스키마: 그 리포의 types/quiz.ts — slug·title·question·choices·answers·
+ * 원본: content/drills-src/<subject>.json — **이 리포가 정본** (#93에서 업스트림
+ *       aws-cloud-drills로부터 11과목 이관, 2026-07-28. 업스트림 데이터는 동결)
+ *       (스키마: 아래 DrillsQuestion — slug·title·question·choices·answers·
  *        answerSummary·explanation[]·wrongChoiceNotes·difficulty·domain·tags·references)
  * 출력: content/chapters/<chapterId>/drills.ts — `export const quiz: Question[]` (커밋되는 생성물.
- *       손편집 금지 — 수정은 원본 리포에서 하고 이 스크립트를 재실행한다.)
+ *       손편집 금지 — 수정은 drills-src의 JSON에 하고 이 스크립트를 재실행한다.)
  *
  * 변환 규칙 (content/schema.ts Question 기준, 정보 손실 최소화):
  *   question           → scenario
@@ -19,10 +20,8 @@
  *   domain(번호)       → 버림 — chapterMeta.domain이 챕터 수준에서 이미 커버
  *
  * 실행: node scripts/import-drills.ts [subject ...]   (무인자 = 매핑된 전 과목)
- *       원본 위치 재정의: DRILLS_DIR=/path/to/aws-cloud-drills
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Question } from "../content/schema.ts";
 
@@ -85,7 +84,7 @@ function render(subject: string, src: DrillsQuestion[], questions: Question[]): 
     .join("\n");
   return `/**
  * 생성물 — 손편집 금지. \`node scripts/import-drills.ts ${subject}\` 재실행으로 갱신.
- * 원본: aws-cloud-drills data/questions/${subject}.json (${questions.length}문항)
+ * 원본: content/drills-src/${subject}.json (${questions.length}문항)
  */
 import type { Question } from "../../schema";
 
@@ -95,7 +94,6 @@ ${items}
 `;
 }
 
-const drillsDir = process.env.DRILLS_DIR ?? join(homedir(), "pdk/projects/aws-cloud-drills");
 const repoRoot = new URL("..", import.meta.url).pathname;
 const subjects = process.argv.slice(2).length > 0 ? process.argv.slice(2) : Object.keys(SUBJECT_TO_CHAPTER);
 
@@ -105,7 +103,7 @@ for (const subject of subjects) {
     console.error(`✗ "${subject}" 는 SUBJECT_TO_CHAPTER 에 없는 과목 (등록: ${Object.keys(SUBJECT_TO_CHAPTER).join(", ")})`);
     process.exit(1);
   }
-  const srcPath = join(drillsDir, "data/questions", `${subject}.json`);
+  const srcPath = join(repoRoot, "content/drills-src", `${subject}.json`);
   const src: DrillsQuestion[] = JSON.parse(readFileSync(srcPath, "utf8"));
   const questions = convert(subject, src);
   const outPath = join(repoRoot, "content/chapters", chapterId, "drills.ts");
