@@ -24,7 +24,7 @@ import { CardGrid, InfoCard, PointBox, PolicyAnatomy, PolicyRequestTester } from
 
 <SubTitle>Condition — 조건부 허용의 재료</SubTitle>
 
-자주 나오는 전역 조건 키 두 개는 외워둘 가치가 있습니다: <Code>aws:SourceIp</Code>(요청 IP 제한)과 <Code>aws:MultiFactorAuthPresent</Code>(MFA 없으면 거부). 한 단계 더 들어가면 **앱 수준의 세분화 인가**도 Condition으로 구현합니다 — 예를 들어 <Code>dynamodb:LeadingKeys</Code> 조건 키로 “각 사용자는 자기 파티션 키로 시작하는 항목만 읽기” 같은 사용자별 행 단위 접근 제어를 정책 한 장으로 걸 수 있습니다.
+자주 나오는 전역 조건 키 두 개는 외워두세요: <Code>aws:SourceIp</Code>(요청 IP 제한)과 <Code>aws:MultiFactorAuthPresent</Code>(MFA 없으면 거부). 한 단계 더 들어가면 **앱 수준의 세분화 인가**도 Condition으로 구현합니다 — 예를 들어 <Code>dynamodb:LeadingKeys</Code> 조건 키로 “각 사용자는 자기 파티션 키로 시작하는 항목만 읽기” 같은 사용자별 행 단위 접근 제어를 정책 한 장으로 걸 수 있습니다.
 
 여기까지의 재료 — Action·Resource ARN·Condition — 를 실제 판독에 써 봅니다. 시험이 내는 함정 둘(버킷 ARN vs 객체 ARN 불일치, 조건 불충족)이 그대로 들어 있습니다:
 

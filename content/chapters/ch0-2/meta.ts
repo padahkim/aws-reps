@@ -4,7 +4,7 @@ import { quiz as drills } from "./drills.ts";
 /**
  * 원본: content/iam_guide.jsx(9섹션 + EvalEngine 시뮬레이터) + content/aws-dva-iam-guide-2.jsx
  * (10섹션 심화) 전량 통합 (#68 — stage0 분리 예고편에서 전면 확장).
- * 뼈대는 iam_guide 9섹션, §07(자격증명&보안)만 08 접근 방법·09 보안 도구로 분리해 guide-2의
+ * 뼈대는 iam_guide 9섹션, §07(자격 증명&보안)만 08 접근 방법·09 보안 도구로 분리해 guide-2의
  * 16·18~23·26·28~29강을 수용 — 총 10섹션 (목차 초안은 #68 코멘트).
  * 기조(#75): 본문 프로즈는 iam_guide 설명(문장·카드 구성·비유·콜아웃)을 기본으로 재작성 —
  * 설명성 표는 InfoCard/AccentRow/PointBox(iam_guide TwoCol·Card·Note 이식)로 전환하고,
@@ -16,7 +16,7 @@ import { quiz as drills } from "./drills.ts";
  * 인터랙티브: iam_guide EvalEngine(정책 평가 시뮬레이터)을 figs.tsx로 격하 없이 이식.
  * guide-2 PolicyEvalDiagram은 EvalEngine의 DECISION FLOW 패널과 중복이라 별도 이식 안 함.
  * 사실 수정: reports/{axis1,axis2}/{iam_guide,aws-dva-iam-guide-2}.md 수정 지시 전부 반영 —
- * 0-1 자격증명 체인·SigV4 역참조 브리지(§03·§07), ch1-1 버킷 정책 역참조(§06),
+ * 0-1 자격 증명 체인·SigV4 역참조 브리지(§03·§07), ch1-1 버킷 정책 역참조(§06),
  * STS 4종 명시 + GetSessionToken 추가(§07), Condition 키 구체 예시 + dynamodb:LeadingKeys
  * 세분화 인가(§04), CloudShell 축약 + 0-1 참조(§08), "CLI가 boto3 위" → botocore 정정(§08),
  * 베어러 토큰 보충(§03), 페더레이션 흐름 보충(§07).
@@ -76,8 +76,8 @@ export const sections: SectionMeta[] = [
   { num: "04", title: "정책 JSON 해부", sub: "Effect·Action·Resource·Principal·Condition + 정책 변수", freq: "hi", freqLabel: "최빈출 ★★★ · 정책 판독 문제의 재료" },
   { num: "05", title: "정책 유형과 유효 권한", sub: "Identity/Resource/Boundary/SCP — 교집합", freq: "hi", freqLabel: "빈출 ★★★ · Boundary 그룹 불가 함정" },
   { num: "06", title: "정책 평가 로직", sub: "명시적 Deny > Allow > 암묵적 Deny — 시뮬레이터로 확인", freq: "hi", freqLabel: "최빈출 ★★★ · DVA 최다 출제 지점" },
-  { num: "07", title: "롤 & STS", sub: "빌려 쓰는 신원, 임시 자격증명, iam:PassRole", freq: "hi", freqLabel: "최빈출 ★★★ · 키 대신 롤 + PassRole" },
-  { num: "08", title: "접근 방법과 자격증명", sub: "콘솔·CLI·SDK, 액세스 키, 비밀번호 정책·MFA", freq: "mid", freqLabel: "빈출 ★★☆ · 도구·자격증명 매칭" },
+  { num: "07", title: "롤 & STS", sub: "빌려 쓰는 신원, 임시 자격 증명, iam:PassRole", freq: "hi", freqLabel: "최빈출 ★★★ · 키 대신 롤 + PassRole" },
+  { num: "08", title: "접근 방법과 자격 증명", sub: "콘솔·CLI·SDK, 액세스 키, 비밀번호 정책·MFA", freq: "mid", freqLabel: "빈출 ★★☆ · 도구·자격 증명 매칭" },
   { num: "09", title: "보안 도구·모범 사례·공동 책임", sub: "Credential Report vs Access Advisor가 핵심", freq: "mid", freqLabel: "빈출 ★★☆ · 도구 스왑 함정" },
   { num: "10", title: "DVA 시험 핵심 정리", sub: "한 장 요약 + 시험 직전 체크", freq: "hi", freqLabel: "총정리 · 시험 직전 복습용" },
 ];

@@ -85,11 +85,11 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     section: "07",
     q: "EC2 안의 앱이 S3를 호출해야 한다. 액세스 키를 인스턴스에 저장하는 안과 인스턴스 프로파일(롤) 중 정답과 근거는?",
-    a: "롤 — STS가 발급한 임시 자격증명이 자동 제공·순환되어 유출돼도 만료된다. 키를 코드·환경변수·AMI에 넣는 선택지는 언제나 오답이다.",
+    a: "롤 — STS가 발급한 임시 자격 증명이 자동 제공·순환되어 유출돼도 만료된다. 키를 코드·환경변수·AMI에 넣는 선택지는 언제나 오답이다.",
   },
   {
     section: "07",
-    q: "사내 SAML SSO 사용자가 AWS 임시 자격증명을 받는 STS API는? 웹/모바일 앱(OIDC) 로그인 사용자라면?",
+    q: "사내 SAML SSO 사용자가 AWS 임시 자격 증명을 받는 STS API는? 웹/모바일 앱(OIDC) 로그인 사용자라면?",
     a: "사내 SSO는 AssumeRoleWithSAML, 웹/모바일(Cognito·Google 등 OIDC)은 AssumeRoleWithWebIdentity. 교차 계정 기본은 AssumeRole, MFA 자기발급은 GetSessionToken.",
   },
   {
@@ -98,7 +98,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     a: "iam:PassRole — 서비스에 롤을 지정하는 작업자에게 필요하며, Resource는 전달할 롤 ARN으로 좁힌다. 전달 후에도 서비스가 못 쓰면 롤의 신뢰 정책 Principal을 본다.",
   },
 
-  // ── 08 접근 방법과 자격증명 ────────────────────────────────────────────
+  // ── 08 접근 방법과 자격 증명 ────────────────────────────────────────────
   {
     section: "08",
     q: "동료가 Secret Access Key를 분실했다 — 콘솔에서 다시 확인할 수 있나?",
@@ -114,7 +114,7 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     section: "09",
     q: "① 계정 전체 유저의 MFA·키 로테이션 상태를 CSV로 뽑기 ② 특정 유저의 서비스별 마지막 접근 시각 보기 — 각각의 도구는?",
-    a: "① 자격 증명 보고서(Credentials Report, 계정 수준) ② 액세스 어드바이저(Access Advisor, 유저 수준 — 미사용 권한 제거용). 둘을 바꿔 묻는 스왑 함정이 최다 출제다.",
+    a: "① 자격 증명 보고서(Credential Report, 계정 수준) ② 액세스 어드바이저(Access Advisor, 유저 수준 — 미사용 권한 제거용). 둘을 바꿔 묻는 스왑 함정이 최다 출제다.",
   },
   {
     section: "09",

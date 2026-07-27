@@ -284,7 +284,7 @@ export function ComponentsSvg() {
 
       {/* 롤을 맡는 주체(Trust) */}
       <rect x={520} y={210} width={250} height={120} rx={12} fill="#FFF" stroke={C.red} strokeWidth={1.5} strokeDasharray="5 4" />
-      <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>역할을 맡는 주체 (Trust)</text>
+      <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>롤을 맡는 주체 (Trust)</text>
       {[
         ["EC2 / Lambda", 262],
         ["다른 AWS 계정의 유저", 287],
@@ -541,7 +541,7 @@ export function StsSequenceSvg() {
       <text x={244} y={90} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle">① AssumeRole 요청 (롤 ARN)</text>
 
       <line x1={385} y1={152} x2={117} y2={152} stroke={C.amber} strokeWidth={2} markerEnd="url(#arrow-sts)" />
-      <text x={244} y={144} fontSize={11} fontWeight={700} fill={C.amberText} textAnchor="middle">② 임시 자격증명 발급</text>
+      <text x={244} y={144} fontSize={11} fontWeight={700} fill={C.amberText} textAnchor="middle">② 임시 자격 증명 발급</text>
       <text x={244} y={170} fontSize={10} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>AccessKeyId · SecretAccessKey · SessionToken (만료 있음)</text>
 
       <line x1={110} y1={218} x2={638} y2={218} stroke={C.teal} strokeWidth={2} markerEnd="url(#arrow-sts)" />
@@ -879,8 +879,8 @@ export function PolicyRequestTester() {
         {/* 정책이 어디에 붙어 있는지를 정확히 말해야 한다. "버킷에 붙어 있다"고 하면 리소스
             기반(버킷) 정책이 되는데, 그러면 Principal 이 필수라 아래 JSON 은 AWS 가 거부하는
             형태가 된다 — 위 ExamPoint 가 가르치는 포인트와도 정면으로 어긋난다 (PR #151 Codex 지적). */}
-        <b style={{ color: C.blue }}>이런 상황입니다.</b> 여러분은 <b>IAM 사용자</b>이고, 아래{" "}
-        <b>정책 한 장</b>이 그 사용자에게 붙어 있습니다 — 사람·역할에 붙이는{" "}
+        <b style={{ color: C.blue }}>이런 상황입니다.</b> 여러분은 <b>IAM 유저</b>이고, 아래{" "}
+        <b>정책 한 장</b>이 그 유저에게 붙어 있습니다 — 사람·롤에 붙이는{" "}
         <b>자격 증명 기반 정책</b>이라 “누가”에 해당하는 <Code>Principal</Code>이 없습니다(주체가 곧
         이 정책을 달고 있는 나). 정책은 <b>무엇을 · 어디에 · 어떤 조건에서</b> 할 수 있는지 적어둔
         규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다. 여기서는{" "}
@@ -1136,11 +1136,11 @@ export function PolicyRequestTester() {
           )}
           {/* 전제는 시나리오와 무관하게 고정 표시되므로 MFA 여부를 단정하면 안 된다 — "MFA 없이
               요청" 시나리오에서 요청 패널(MFA: 없음)과 정면으로 어긋난다 (PR #151 Codex 지적).
-              고정된 것은 자격증명 타입(IAM 사용자)이고, MFA 유무는 시나리오가 정한다. */}
+              고정된 것은 자격 증명 타입(IAM 유저)이고, MFA 유무는 시나리오가 정한다. */}
           <p style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.55, margin: "6px 0 0", opacity: 0.9 }}>
-            전제: 요청자는 <b>IAM 사용자</b>(롤 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
+            전제: 요청자는 <b>IAM 유저</b>(롤 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
             IP로 나갑니다. <span style={{ fontFamily: MONO }}>aws:MultiFactorAuthPresent</span>는
-            자격증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
+            자격 증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
             <span style={{ fontFamily: MONO }}>aws:SourceIp</span>는 AWS가 관찰하는 공인 주소입니다.
           </p>
         </div>
