@@ -174,6 +174,8 @@ export function Switch({
 export interface SelfQuizItem {
   q: string;
   a: string;
+  // 판정형(#150) — 값 = 정답 판정. 있으면 "답 확인하기" 대신 예/아니오 확답 게이트로 렌더.
+  yn?: "예" | "아니오";
 }
 
 /**
@@ -188,20 +190,27 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
   const [open, setOpen] = useState(false);
   const [score, setScore] = useState({ o: 0, x: 0 });
   const [done, setDone] = useState(false);
+  // 판정형(#150) 전용 — 클릭한 예/아니오가 정답 판정과 일치했는지. 서술형 문항에서는 null.
+  const [verdict, setVerdict] = useState<boolean | null>(null);
 
-  const grade = (ok: boolean) => {
-    setScore((s) => ({ o: s.o + (ok ? 1 : 0), x: s.x + (ok ? 0 : 1) }));
+  const next = () => {
     if (i + 1 >= items.length) setDone(true);
     else {
       setI(i + 1);
       setOpen(false);
+      setVerdict(null);
     }
+  };
+  const grade = (ok: boolean) => {
+    setScore((s) => ({ o: s.o + (ok ? 1 : 0), x: s.x + (ok ? 0 : 1) }));
+    next();
   };
   const reset = () => {
     setI(0);
     setOpen(false);
     setScore({ o: 0, x: 0 });
     setDone(false);
+    setVerdict(null);
   };
 
   const multi = items.length > 1;
@@ -243,6 +252,14 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
   }
 
   const cur = items[i];
+  // 판정형(#150): 예/아니오 클릭 = 확답이자 정답 공개 트리거. 판정 오답은 그 자리에서
+  // 틀림으로 집계한다 (자기채점 생략 — 자기기만 여지 제거). 정답을 읽힌 뒤 next 로만 진행.
+  const judge = (choice: "예" | "아니오") => {
+    const ok = choice === cur.yn;
+    setVerdict(ok);
+    setOpen(true);
+    if (!ok) setScore((s) => ({ ...s, x: s.x + 1 }));
+  };
   return (
     <SimFrame icon="✍️" title="셀프 퀴즈 — 답을 열기 전에 소리 내어/글로 답하기">
       <p style={{ fontSize: "0.82rem", color: C.inkSoft, margin: "0 0 12px", lineHeight: 1.6 }}>
@@ -291,16 +308,49 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
           2.73:1 로 AA 본문 기준(4.5:1)에 못 미쳤다(#149). 내려서 5.42:1. 글자를 어둡게 하는
           대신 배경을 내린 건, 채움+흰 글자라는 '1차 동작' 신호를 유지하기 위해서다. */}
       {!open ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="widget-btn"
-          style={{ ...fillBtn(C.amberText), padding: "10px 18px" }}
-        >
-          답 확인하기
-        </button>
+        cur.yn ? (
+          <div>
+            <p style={{ fontSize: "0.78rem", color: C.inkSoft, margin: "0 0 8px", lineHeight: 1.6 }}>
+              판정을 정해 누르세요 — 클릭과 동시에 정답이 열리고 채점됩니다.
+            </p>
+            {/* 확답 두 버튼은 자기채점 쌍과 같은 등가 아웃라인(#144)이되, 색은 둘 다 중립
+                blue 다 — teal/red 를 쓰면 정오 신호가 새어 판정을 유도한다. */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => judge("예")}
+                className="widget-btn"
+                style={{ ...outlineBtn(C.blue, C.blueSoft), flex: 1, padding: "10px" }}
+              >
+                예
+              </button>
+              <button
+                type="button"
+                onClick={() => judge("아니오")}
+                className="widget-btn"
+                style={{ ...outlineBtn(C.blue, C.blueSoft), flex: 1, padding: "10px" }}
+              >
+                아니오
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="widget-btn"
+            style={{ ...fillBtn(C.amberText), padding: "10px 18px" }}
+          >
+            답 확인하기
+          </button>
+        )
       ) : (
         <div>
+          {cur.yn && (
+            <div style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: 8, color: verdict ? C.teal : C.red }}>
+              {verdict ? "판정 정답 ✓ — 근거까지 맞았나?" : `판정 오답 ✗ — 정답은 “${cur.yn}”. 근거를 확인하세요.`}
+            </div>
+          )}
           <div
             style={{
               background: C.tealSoft,
@@ -314,26 +364,38 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
           >
             {cur.a}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {/* 자기채점 두 버튼은 같은 무게의 아웃라인이다 — 한쪽만 채우면 아직 누르지 않은
-                선택지가 이미 선택된 것처럼 읽힌다(#144). 색은 정답/오답 의미로만 남긴다. */}
+          {cur.yn && verdict === false ? (
+            // 판정 오답 경로 — 이미 틀림으로 집계됐으므로 자기채점 없이 진행만 남는다.
             <button
               type="button"
-              onClick={() => grade(true)}
+              onClick={next}
               className="widget-btn"
-              style={{ ...outlineBtn(C.teal, C.tealSoft), flex: 1, padding: "10px" }}
+              style={{ ...fillBtn(C.ink, C.inkSoft), padding: "10px 18px" }}
             >
-              맞혔다 ✓
+              {i + 1 >= items.length ? "결과 보기" : "다음 문항"}
             </button>
-            <button
-              type="button"
-              onClick={() => grade(false)}
-              className="widget-btn"
-              style={{ ...outlineBtn(C.red, C.redSoft), flex: 1, padding: "10px" }}
-            >
-              틀렸다 ✗
-            </button>
-          </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              {/* 자기채점 두 버튼은 같은 무게의 아웃라인이다 — 한쪽만 채우면 아직 누르지 않은
+                  선택지가 이미 선택된 것처럼 읽힌다(#144). 색은 정답/오답 의미로만 남긴다. */}
+              <button
+                type="button"
+                onClick={() => grade(true)}
+                className="widget-btn"
+                style={{ ...outlineBtn(C.teal, C.tealSoft), flex: 1, padding: "10px" }}
+              >
+                맞혔다 ✓
+              </button>
+              <button
+                type="button"
+                onClick={() => grade(false)}
+                className="widget-btn"
+                style={{ ...outlineBtn(C.red, C.redSoft), flex: 1, padding: "10px" }}
+              >
+                틀렸다 ✗
+              </button>
+            </div>
+          )}
         </div>
       )}
     </SimFrame>

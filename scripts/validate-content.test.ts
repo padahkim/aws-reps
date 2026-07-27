@@ -10,6 +10,7 @@ import type {
   ChapterData,
   Question,
   SectionMeta,
+  SelfQuizEntry,
   SessionConcept,
   SessionData,
 } from "../content/schema.ts";
@@ -50,9 +51,10 @@ function ch(
   chapterMeta: ReturnType<typeof meta>,
   quiz: Question[] = [],
   sections: SectionMeta[] = [section()],
-  session?: SessionData
+  session?: SessionData,
+  selfQuiz?: SelfQuizEntry[]
 ): ChapterData {
-  return { chapterMeta, quiz, sections, session };
+  return { chapterMeta, quiz, sections, session, selfQuiz };
 }
 
 function codes(problems: Problem[]): Set<string> {
@@ -214,7 +216,28 @@ expectCaught(
   "SESSION_MIXED_EMPTY"
 );
 
+// 셀프 퀴즈 yn (#150 — 판정형 표시는 "예"|"아니오"만. TS 밖 데이터 유입 대비 런타임 검사)
+expectCaught(
+  "selfQuiz yn 허용 밖 값",
+  [ch(meta("1-1"), [], [section()], undefined, [{ section: "01", q: "되나?", a: "안 된다", yn: "no" as SelfQuizEntry["yn"] }])],
+  "SELFQUIZ_YN_INVALID"
+);
+expectCaught(
+  "selfQuiz yn 빈 문자열",
+  [ch(meta("1-1"), [], [section()], undefined, [{ section: "01", q: "되나?", a: "안 된다", yn: "" as SelfQuizEntry["yn"] }])],
+  "SELFQUIZ_YN_INVALID"
+);
+
 console.log("\n── 통과해야 하는 적법 입력 ──");
+
+// 셀프 퀴즈: yn 태깅·미태깅 혼재는 적법 (#150 — yn 은 optional, 없으면 서술형)
+expectClean("정상 selfQuiz(yn 태깅+미태깅 혼재)", [
+  ch(meta("1-1"), [], [section()], undefined, [
+    { section: "01", q: "되나?", a: "안 된다", yn: "아니오" },
+    { section: "01", q: "가능한가?", a: "가능하다", yn: "예" },
+    { section: "01", q: "무엇인가?", a: "이것" },
+  ]),
+]);
 
 // 빈 레지스트리
 expectClean("빈 레지스트리", []);
