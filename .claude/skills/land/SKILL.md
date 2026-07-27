@@ -363,10 +363,11 @@ OWNER=padahkim; REPO=aws-reps; PROJ=1
 
 # 항목 id·현재값·프로젝트 id·필드 id·옵션 id 를 **한 질의(cost 1)** 로 받는다.
 # gh project item-list / field-list 는 각각 102점이라 쓰지 않는다 (아래 실측 표)
+# 항목을 프로젝트 **node id** 로 짚는다 — number 는 소유자별 스코프라 남의 프로젝트 #1과 겹친다
 Q='query($owner:String!,$repo:String!,$num:Int!,$field:String!,$proj:Int!){
   repository(owner:$owner,name:$repo){ issue(number:$num){
     projectItems(first:20){ totalCount
-      nodes{ id project{ number }
+      nodes{ id project{ id }
              fieldValueByName(name:$field){ ... on ProjectV2ItemFieldSingleSelectValue{ name } } } } } }
   viewer{ projectV2(number:$proj){ id
     field(name:$field){ ... on ProjectV2SingleSelectField{ id options{ id name } } } } } }'
@@ -374,15 +375,22 @@ Q='query($owner:String!,$repo:String!,$num:Int!,$field:String!,$proj:Int!){
 board(){ gh api graphql -f query="$Q" \
            -F owner="$OWNER" -F repo="$REPO" -F num="$N" -F field="$FIELD" -F proj="$PROJ"; }
 
-# 파서 = 게이트다. 빈 응답·오류·잘림을 전부 **즉시 실패**로 만든다 — 조용히 통과하는 것이
-# 이 절차의 사고 지점이었다 (#154 는 잘림, #157 은 예산 소진 시의 빈 값)
+# 파서 = 게이트다. 잘림·빈 응답·형식 오류는 **즉시 실패**(exit 1)로 만들고, **예산 소진만
+# exit 3** 으로 구분한다 — 소진은 "보드를 건너뛰고 계속"이 정답이고 나머지는 fail-closed다.
+# gh 는 GraphQL 오류에도 응답 본문을 stdout 에 그대로 준다(실측) — 그래서 여기서 읽을 수 있다
 parse(){ python3 -c "
 import json,sys
-p = json.load(sys.stdin)
-if p.get('errors'): sys.exit('GraphQL 오류: ' + json.dumps(p['errors'], ensure_ascii=False))
+try: p = json.load(sys.stdin)
+except Exception as e: sys.exit(f'보드 응답을 파싱할 수 없다: {e}')
+errs = p.get('errors') or []
+if errs:
+    msg = json.dumps(errs, ensure_ascii=False)
+    if any(e.get('type') == 'RATE_LIMITED' for e in errs) or 'rate limit' in msg.lower():
+        print('예산 소진: ' + msg, file=sys.stderr); sys.exit(3)
+    sys.exit('GraphQL 오류: ' + msg)
 d = p.get('data') or {}
 pj = (d.get('viewer') or {}).get('projectV2')
-if not pj: sys.exit('보드를 못 읽었다 (예산 소진·권한) — 빈 값을 결과로 쓰지 않는다')
+if not pj: sys.exit('보드를 못 읽었다 (권한·응답 이상) — 빈 값을 결과로 쓰지 않는다')
 f = pj.get('field') or {}
 opt = next((o['id'] for o in f.get('options', []) if o['name'] == '$TARGET'), None)
 if not opt: sys.exit(\"필드 '$FIELD' 에 옵션 '$TARGET' 이 없다\")
@@ -390,32 +398,42 @@ c = ((d.get('repository') or {}).get('issue') or {}).get('projectItems')
 if c is None: sys.exit('이슈 #$N 을 못 읽었다')
 if len(c['nodes']) < c['totalCount']:
     sys.exit(f\"항목 조회가 잘렸다: {len(c['nodes'])}/{c['totalCount']} — first 를 올려라\")
-it = next((n for n in c['nodes'] if n['project']['number'] == $PROJ), None)
+it = next((n for n in c['nodes'] if n['project']['id'] == pj['id']), None)
 print(f\"{it['id'] if it else '-'}|{((it or {}).get('fieldValueByName') or {}).get('name') or '-'}|{pj['id']}|{f['id']}|{opt}\")
 "; }
 
-INFO=$(board | parse) || exit 1        # 실패 판정은 반드시 여기서 — read 로 받은 뒤엔 종료 코드가 죽는다(#154)
-IFS='|' read -r IT CUR PJ FD OPT <<< "$INFO"
+apply_board(){                          # 성공 0 / 실패 1. 예산 소진은 "미갱신"으로 보고하고 0
+  IFS='|' read -r IT CUR PJ FD OPT <<< "$1"
 
-if [ "$IT" = "-" ]; then                      # 보드에 없다 (읽기 실패와는 다르다 — 파서가 걸렀다)
-  echo "보드에 없음 → 추가한다"
-  IT=$(gh project item-add "$PROJ" --owner "@me" --url "https://github.com/$OWNER/$REPO/issues/$N" \
-         --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || exit 1
-  CUR=-
-fi
+  if [ "$IT" = "-" ]; then              # 보드에 없다 (읽기 실패와는 다르다 — 파서가 걸렀다)
+    echo "보드에 없음 → 추가한다"
+    IT=$(gh project item-add "$PROJ" --owner "@me" --url "https://github.com/$OWNER/$REPO/issues/$N" \
+           --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || return 1
+    CUR=-
+  fi
 
-if [ "$CUR" = "$TARGET" ]; then
-  echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
-else
-  gh project item-edit --id "$IT" --project-id "$PJ" \
-    --field-id "$FD" --single-select-option-id "$OPT" || exit 1
-fi
+  if [ "$CUR" = "$TARGET" ]; then
+    echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
+  else
+    gh project item-edit --id "$IT" --project-id "$PJ" \
+      --field-id "$FD" --single-select-option-id "$OPT" || return 1
+  fi
 
-# 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다 (같은 질의, cost 1)
-INFO=$(board | parse) || exit 1
-IFS='|' read -r _ NOW _ _ _ <<< "$INFO"
-echo "보드 확인: #$N $FIELD=$NOW"
-[ "$NOW" = "$TARGET" ] || { echo "보드 갱신 실패 — 위 값이 목표와 다르다"; exit 1; }
+  # 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다 (같은 질의, cost 1)
+  local INFO2 RC2; INFO2=$(board | parse); RC2=$?
+  [ $RC2 -eq 3 ] && { echo "보드 갱신 결과 미확인 — GraphQL 예산 소진"; return 0; }
+  [ $RC2 -eq 0 ] || return 1
+  IFS='|' read -r _ NOW _ _ _ <<< "$INFO2"
+  echo "보드 확인: #$N $FIELD=$NOW"
+  [ "$NOW" = "$TARGET" ] || { echo "보드 갱신 실패 — 위 값이 목표와 다르다"; return 1; }
+}
+
+INFO=$(board | parse); RC=$?            # 실패 판정은 반드시 여기서 — read 로 받은 뒤엔 종료 코드가 죽는다(#154)
+case $RC in
+  0) apply_board "$INFO" || exit 1 ;;
+  3) echo "보드 미갱신 — GraphQL 예산 소진 (착지의 나머지 단계는 그대로 계속한다)" ;;
+  *) exit 1 ;;                          # 잘림·빈 응답·형식 오류 = fail-closed
+esac
 ```
 
 **왜 이렇게 바꿨나 — 실측 (2026-07-27, #157)**. GraphQL 한도는 요청 수가 아니라 **점수**이고 점수는 반환 노드 수에 비례한다:
@@ -430,7 +448,10 @@ echo "보드 확인: #$N $FIELD=$NOW"
 옛 블록은 착지 1건에 `item-list`×2 + `field-list` + `view` + `item-edit` = **309점**(실측)을 썼다. 새 블록은 질의 2회 + 편집 1회 = **약 3점**이다. 시간당 5000점을 **모든 세션이 공유**하므로, 병렬 세션 3~4개 리듬에서 이 차이가 착지 가능 횟수를 정한다.
 
 - **"보드에 없음"의 근거가 무엇인가** (#154가 막은 구멍을 다시 열지 않기 위해). 옛 블록은 "보드 전체 목록에 없음 + `totalCount` 대조로 잘리지 않았음"으로 확정했다. 단일 항목 질의에는 "보드 전체"라는 개념이 없으므로 근거를 **이슈 쪽에서** 세운다 — ① 질의가 실제로 응답했다(`viewer.projectV2`가 null 아님 = 예산·권한 정상), ② 이 이슈의 `projectItems`가 잘리지 않았다(`nodes == totalCount`), ③ 그 안에 `project.number == 1`인 항목이 없다. 셋이 모두 참일 때만 "없음"이고, 하나라도 깨지면 파서가 죽는다. 즉 **잘림 감지는 사라진 게 아니라 "보드 전체"에서 "이 이슈의 소속 목록"으로 옮겨 갔다** — 이슈가 어느 프로젝트에도 안 붙었으면 `totalCount=0`·`nodes=[]`로 잘림 없이 "없음"이 확정된다.
-- **예산이 소진되면 오류가 아니라 빈 값으로 온다** — 그래서 파서가 `data.viewer.projectV2` null을 명시적으로 잡는다. 이 검사가 없으면 소진 상태가 "보드에 없음"으로 읽혀 `item-add`가 중복 항목을 만든다.
+- **예산 소진은 멈출 이유가 아니다 — 그것만 `exit 3`으로 구분한다** (PR #158 Codex P1). 이 블록은 **비가역인 머지 뒤, 이슈 close-out·잔재 정리·main 전파 앞**에 있다. 그래서 소진 시 통째로 `exit 1`을 하면 **PR은 머지된 채로 남은 단계가 전부 건너뛰어진다** — 이 스킬이 #146에서 배운 사고와 같은 모양이고, 정작 주의 절이 명문화한 폴백("보드만 건너뛰고 계속")과 코드가 어긋나 있었다. 이제 소진은 "보드 미갱신"으로 보고하고 계속하며, **잘림·빈 응답·형식 오류는 그대로 fail-closed**다 (그건 보드 상태를 모른다는 뜻이므로 계속하면 안 된다).
+  - 소진 판정은 `errors[].type == "RATE_LIMITED"`(또는 메시지의 `rate limit`)로 한다. `gh api graphql`은 GraphQL 오류에도 **응답 본문을 stdout에 그대로 준다**(실측: exit 1 + 본문 출력) — 그래서 파서가 읽을 수 있다. 2026-07-26 사고에서 빈 값이 왔던 건 `gh pr view --json … --jq`가 오류를 삼켰기 때문이고, 원본 응답에는 `type`이 들어 있다.
+  - `data.viewer.projectV2` null 검사는 남아 있다 — 소진 외의 이유(권한·응답 이상)로 못 읽은 경우를 잡는다. 이 검사가 없으면 그 상태가 "보드에 없음"으로 읽혀 `item-add`가 중복 항목을 만든다.
+- **항목은 프로젝트 번호가 아니라 node id로 짚는다** (PR #158 Codex P2). 프로젝트 번호는 **소유자별 스코프**라, 이 이슈가 다른 사용자·조직의 프로젝트 #1에도 들어 있으면 `number == 1`이 그 항목을 고른다. 그러면 ① 그쪽 필드가 마침 목표값이면 설정과 검증이 **둘 다 거짓 성공**하고(우리 보드는 그대로), ② 아니면 다른 프로젝트의 항목 id에 우리 프로젝트의 필드 id를 넘겨 `item-edit`이 실패한다. 그래서 질의가 `project{ id }`를 받아 `viewer`의 프로젝트 id와 대조한다.
 
 - **보드에는 내장 워크플로가 이미 돌고 있다** (2026-07-27 실측, `ProjectV2.workflows` GraphQL 조회 — 전부 enabled): `Item closed`·`Item added to project`·`Pull request merged`·`Pull request linked to issue`·`Auto-add sub-issues to project`·`Auto-close issue`. 그래서 `closes #N`으로 닫히는 **표준 경로에서는 Done이 자동으로 붙는다** — 위 스크립트가 Done을 "설정"이 아니라 **"확인하고 다를 때만 설정"** 으로 바뀐 이유다. 반면 **`In Progress`는 자동화가 없으므로** 착수 시 세션이 반드시 설정해야 한다.
 - 순서 주의: **추가가 먼저, 상태 설정이 나중** — 보드에 없는 이슈를 상태부터 설정하려 하면 빈 id로 `item-edit`을 불러 GraphQL 오류로 죽는다(#154 실측). 위 스크립트는 "조회가 잘림"(즉시 실패)과 "보드에 없음"(추가)을 **구분**한다.
