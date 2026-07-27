@@ -404,11 +404,14 @@ print(f\"{it['id'] if it else '-'}|{((it or {}).get('fieldValueByName') or {}).g
 
 # mutation 실행기 — 읽기와 **같은 3분기**를 mutation에도 준다: 성공이면 stdout 그대로,
 # 예산 소진이면 3, 그 외 실패면 1. 읽기만 막아두면 "첫 질의가 마지막 점수를 쓰는" 창이 남는다
-mut(){ local out rc; out=$("$@" 2>/tmp/land-mut.err); rc=$?
-  if [ $rc -eq 0 ]; then printf '%s' "$out"; return 0; fi
-  cat /tmp/land-mut.err >&2
-  grep -qiE 'rate limit|RATE_LIMITED' /tmp/land-mut.err && return 3
-  return 1; }
+# stderr 파일은 **프로세스별**이다 ($$) — 고정 경로면 병렬 착지 세션이 서로의 진단을 덮어써서
+# 소진을 일반 실패로 오분류한다 (= 머지 뒤 중단). 이 리포는 병렬 세션이 상수 조건이다
+mut(){ local out rc err="/tmp/land-mut.$$.err"
+  out=$("$@" 2>"$err"); rc=$?
+  if [ $rc -eq 0 ]; then rm -f "$err"; printf '%s' "$out"; return 0; fi
+  cat "$err" >&2
+  if grep -qiE 'rate limit|RATE_LIMITED' "$err"; then rm -f "$err"; return 3; fi
+  rm -f "$err"; return 1; }
 
 apply_board(){                          # 성공 0 / 실패 1. 예산 소진은 "미갱신"으로 보고하고 0
   IFS='|' read -r IT CUR PJ FD OPT <<< "$1"
