@@ -662,9 +662,11 @@ export function VpcReachabilityBoard() {
                   aria-pressed={subnet === v}
                   className="widget-btn"
                   style={{
-                    // VPC 미연결이면 선택 상태를 죽여 회색으로 — 이 컨트롤이 아직 의미가
-                    // 없다는 걸 보여준다. :disabled 라 호버·포커스 전환도 뜨지 않는다.
-                    ...chipBtn(vpc && subnet === v, C.blue, C.blueSoft),
+                    // 선택 시각은 vpc 와 무관하게 유지한다 — 비활성일 때 선택을 지우면 화면은
+                    // "아무것도 안 골랐다"인데 aria-pressed 는 여전히 true 라 서로 어긋나고,
+                    // VPC 를 다시 켰을 때 값이 살아나는 것도 설명되지 않는다. 비활성 표현은
+                    // 부모 행의 opacity 가 맡는다 (Switch 와 같은 원칙, PR #151 Codex 지적).
+                    ...chipBtn(subnet === v, C.blue, C.blueSoft),
                     cursor: vpc ? "pointer" : "not-allowed",
                     fontFamily: MONO,
                     fontSize: "0.74rem",
