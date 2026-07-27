@@ -119,19 +119,26 @@ git -C "$MAIN" push origin --delete "$BR" 2>/dev/null || true # origin에 올렸
 ### B-1. push → PR 생성
 
 ```bash
+API=repos/padahkim/aws-reps            # 아래 모든 REST 호출의 접두 (B-2·B-3도 같은 값을 쓴다)
+
 git push -u origin "$BR"
-gh pr create --base develop --head "$BR" --title "<conventional-commits 제목>" --body "<아래 'PR 본문 표준'을 따른 본문>"
+PR_URL=$(gh pr create --base develop --head "$BR" \
+           --title "<conventional-commits 제목>" --body "<아래 'PR 본문 표준'을 따른 본문>") || exit 1
+PR=${PR_URL##*/}                       # 이후 B-2·B-3이 전부 이 번호를 쓴다 (브랜치 이름 대신)
+case "$PR" in ''|*[!0-9]*) echo "PR 번호를 못 얻었다: $PR_URL"; exit 1;; esac
 ```
 
 프리뷰 URL은 PR을 만든 **뒤** Vercel 봇 코멘트로 달린다. 리뷰 가이드가 필요한 PR이면 PR 생성 직후 URL을 얻어 본문을 채운다 (봇 코멘트까지 1분 남짓 걸릴 수 있다 — 비면 잠시 뒤 다시 조회):
 
 ```bash
-gh pr view "$BR" --json comments \
-  --jq '.comments[] | select(.author.login=="vercel") | .body' \
+gh api --paginate "$API"/issues/"$PR"/comments \
+  --jq '.[] | select(.user.login=="vercel[bot]") | .body' \
   | grep -oE 'https://aws-reps-git-[a-z0-9-]+\.vercel\.app' | head -1
 # 얻은 URL로 리뷰 가이드 절을 채워 본문 갱신
-gh pr edit "$BR" --body-file <파일>
+gh api -X PATCH "$API"/pulls/"$PR" -F body=@<파일>
 ```
+
+- 조회·본문 갱신 모두 **REST**다 (2026-07-27, #157) — GraphQL 예산을 쓰지 않고, 한도가 별개다. 봇 계정 표기는 API마다 다르다: REST는 `vercel[bot]`, GraphQL(`gh pr view --json comments`)은 `vercel` — REST로 통일했으므로 `vercel[bot]`이 정본이다.
 
 PR URL과 "PR 대기"를 사용자에게 보고한다. **여기까지 하면 이 세션의 착지 의무는 충족** — 머지는 승인 후에 한다. 승인을 기다리는 동안 손을 놓지 말고 **B-2(자동 리뷰 확보)를 이어서 진행한다** — 리뷰는 승인과 무관하게 확보해야 하고, 먼저 돌려두면 승인이 떨어졌을 때 바로 머지할 수 있다.
 
@@ -169,9 +176,9 @@ PR 본문만으로는 "화면에서 어딜 봐야 하는지"를 알 수 없어 �
 그래서 자동 발동과 수동 트리거가 **같은 head에 두 번 돌 수 있다 — head가 그대로인 동안은 무해하다**(둘 다 지금 코드를 본 판정이다). 위험한 건 그 실행이 살아 있는 사이에 push해서 head가 바뀌는 경우다: 먼저 끝난 실행의 지적으로 head B를 만든 뒤, 느린 실행(head A를 본 것)이 새 `$SINCE` 이후에 끝나면 시각만 보고 head B의 판정으로 오인한다. **시각 경계로는 이걸 못 막는다** — 그래서 2)에서 판정을 head에 묶는다 (2026-07-26, #127. 원 지적은 PR #125 4라운드).
 
 ```bash
-PR=<PR 번호>
+PR=<PR 번호>; API=repos/padahkim/aws-reps
 SINCE=$(date -u +%Y-%m-%dT%H:%M:%SZ)   # 트리거 시각 — 이번 라운드가 응답했는지 보는 기준
-gh pr comment "$PR" --body "@codex review"
+gh api -X POST "$API"/issues/"$PR"/comments -f body="@codex review" --jq .html_url
 ```
 
 **2) 판정은 "지금 head를 실제로 본 실행"에서만 읽는다.** 시각(`$SINCE`)은 *응답이 왔는지*를 보는 데만 쓰고, *무엇에 대한 판정인지*는 head 대조로 정한다.
@@ -181,7 +188,8 @@ gh pr comment "$PR" --body "@codex review"
 ```bash
 CX='["chatgpt-codex-connector","chatgpt-codex-connector[bot]"]'   # 정확 일치 2종
 API=repos/padahkim/aws-reps
-HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)   # 지금 판정받아야 하는 커밋
+HEAD=$(gh api "$API"/pulls/"$PR" --jq .head.sha)   # 지금 판정받아야 하는 커밋 (REST — 아래 주의)
+[ -n "$HEAD" ] || exit 1                           # 빈 값을 head로 들고 가지 않는다
 
 # (a) 리뷰 객체 — 지적이 있으면 요약이 여기로 온다. commit_id = 그 실행이 실제로 본 head
 gh api --paginate "$API"/pulls/"$PR"/reviews | jq -s 'add' \
@@ -216,13 +224,15 @@ gh api --paginate "$API"/issues/"$PR"/reactions | jq -s 'add' \
     '[.[] | select((.user.login|IN($cx[])) and .created_at > $since) | .content]'
 ```
 
+**head는 REST로 읽고 빈 값을 거른다** (2026-07-27, #157). 이 절의 나머지 질의는 원래 REST였는데 head만 `gh pr view --json headRefOid`(GraphQL)였다. 2026-07-26 세션에서 GraphQL 예산이 소진되자 그 호출이 **오류가 아니라 빈 문자열**을 돌려줬고, 빈 head는 아래 모든 대조를 조용히 어긋나게 만든다 (B-3에서 착지가 멈췄다 — 가드는 정상 작동했지만 원인은 예산이었다). REST는 한도가 별개(5000요청/시간)이고, `[ -n "$HEAD" ]` 가드가 그래도 빈 값이 오면 즉시 멈춘다.
+
 **head 대조는 리뷰 객체의 `commit_id`로 한다 — 인라인 코멘트의 `commit_id`로는 안 된다.** GitHub은 아직 유효한 리뷰 코멘트의 `commit_id`를 새 head로 갱신하므로, 이미 고친 이전 라운드 지적이 현재 head 것으로 딸려온다 (PR #125 실측: 인라인 5건 중 `commit_id == head`가 4건 — 1라운드 지적 하나가 섞였다). 반면 **리뷰 객체의 `commit_id`는 갱신되지 않는다** (같은 PR 실측: 4개 리뷰가 `7ad8f54b`·`3e9f0158`·`8b33fe0b`·`f773675f`로 각 라운드 head를 그대로 유지). 그래서 인라인은 시각이 아니라 **`pull_request_review_id`로 리뷰 객체에 묶는다** — (b)가 그것이고, 라운드 경계 문제 자체가 사라진다 (PR #125 실측: 라운드별 2·3·3·3건으로 정확히 갈린다).
 
 - **지금 head를 본 리뷰가 여러 개면 전부 합산한다** (PR #129 Codex 지적). 자동 발동과 수동 트리거가 같은 head를 보면 리뷰 객체가 둘 생길 수 있다 — 하나만 골라 세면(예: `last`) 나머지 실행의 지적이 통째로 사라지고, 고른 쪽이 마침 0건이면 **지적을 남긴 채 클린으로 머지된다**. 클린은 `$RIDS`의 **모든** 리뷰가 0건일 때만이다 (그래서 (b)는 `IN($rids[])`로 합산한다).
 - **`RIDS`가 `[]`면 (b)의 `n`은 0이 되지만 그건 클린이 아니다** — "지금 head를 본 리뷰가 아직 없다"는 뜻이다. 0을 클린으로 읽는 건 이 게이트가 막으려는 사고 그 자체다.
 - **클린 판정도 head를 이름으로 적는다.** PR #121 실측: 클린 코멘트의 `Reviewed commit`이 `8bc09b6dcd`(= 그 PR을 develop에 머지한 커밋)이고 PR head는 `bb488ce7`이었다 — 리뷰가 머지 뒤에 돌았다는 뜻이고, 대조하면 "지금 head 판정 아님"으로 걸러진다. 선언만 있던 현행에서는 이게 클린으로 통과했다.
 - **맨몸 👍(본문 없는 리액션)은 판정으로 쓰지 않는다.** head를 담지 못하므로 어느 커밋에 대한 판정인지 증명할 수 없고, 묵은 실행의 👍가 보지도 않은 head를 통과시킨다 (PR #129 Codex 지적 — "PR 생성 후 push 여부"를 커밋 날짜로 추정해 예외를 두려 했으나, PR 생성 전에 만들어 둔 커밋을 나중에 push하면 그 추정이 틀린다). **1)의 수동 트리거는 항상 head를 적은 판정을 돌려주므로 이 규칙에 손실이 없다** — 실측: 지적 있으면 리뷰 객체(PR #120·#125·#129), 지적 없으면 `Reviewed commit`을 적은 클린 코멘트(PR #121, 수동 트리거 → 2분 41초). 맨몸 👍만 오는 건 트리거 없는 자동 발동뿐이다(PR #122). 그래도 head를 적은 판정이 안 오면 3)의 상한 처리로 사용자에게 묻는다 — 조용히 머지하지 않는다.
-- **계정은 정확 일치 2종으로 본다.** `startswith`는 공개 PR에서 `chatgpt-codex-connector-fake` 같은 사칭 계정도 통과시킨다 — 그 계정이 👍 하나만 달면 클린 경로가 뚫린다 (PR #125 Codex 지적). 2종을 두는 이유는 **같은 봇인데 API마다 표기가 다르기 때문**이다: REST는 `chatgpt-codex-connector[bot]`, GraphQL(`gh pr view --json comments`)은 `chatgpt-codex-connector`. 사람·다른 봇이 남긴 인라인 코멘트는 아래 "사용자 코멘트" 경로에서 따로 처리한다.
+- **계정은 정확 일치 2종으로 본다.** `startswith`는 공개 PR에서 `chatgpt-codex-connector-fake` 같은 사칭 계정도 통과시킨다 — 그 계정이 👍 하나만 달면 클린 경로가 뚫린다 (PR #125 Codex 지적). 2종을 두는 이유는 **같은 봇인데 API마다 표기가 다르기 때문**이다: REST는 `chatgpt-codex-connector[bot]`, GraphQL은 `chatgpt-codex-connector`. #157 이후 이 절의 질의는 전부 REST라 실제로 걸리는 건 `[bot]` 쪽이지만, 2종을 남겨 둔다 — 표기가 하나로 좁혀졌다고 믿었다가 다른 표기가 통과하는 쪽이 더 비싼 실수다. 사람·다른 봇이 남긴 인라인 코멘트는 아래 "사용자 코멘트" 경로에서 따로 처리한다.
 - **리액션은 둘 다 진행 신호로만 읽는다.** `eyes`(👀)는 "트리거를 접수하고 작업 중", `+1`(👍)은 "지적 없음"이라는 뜻이지만 **어느 커밋에 대한 것인지 말해주지 않는다**(위 항목). 👀을 클린으로 오인하면 리뷰가 끝나기도 전에 머지한다 — 이 게이트가 막으려는 바로 그 사고다. 리액션만 있으면 계속 기다린다.
 
 **3) 상한 10분.** 그래도 판정이 없으면 "**Codex 리뷰 미도착**"을 사용자에게 명시하고 **재시도할지 / 더 기다릴지**를 묻는다. 조용히 머지하지 않는다.
@@ -247,10 +257,12 @@ gh api --paginate "$API"/issues/"$PR"/reactions | jq -s 'add' \
 
 **단, 라운드 상한은 2회다** (2026-07-26 결정, #124). 라운드마다 새 지적이 나올 수 있어서(PR #125 실측: 1라운드 2건 → 2라운드 3건) 상한이 없으면 원리적으로 안 끝난다. 2라운드에도 새 지적이 남으면 **거기서 멈추고 남은 지적을 요약해 사용자에게 보고**한다 — 계속 반영할지, 거부하고 머지할지, 보류할지는 사용자가 정한다. 세션이 판단을 이어받지 않는다.
 
-사용자가 PR에 직접 남긴 요청도 같은 자리에서 처리한다 — **세 곳을 다 본다** (2026-07-26, #127. 현행은 `gh pr view --comments`= 이슈 코멘트만 봤는데, **인라인 리뷰 코멘트는 다른 엔드포인트에 있고** 그 엔드포인트를 쓰는 유일한 질의는 Codex 계정으로만 필터돼 있었다 — 사람이 인라인으로 남긴 요청이 세션에 한 번도 안 보인 채 머지될 수 있었다):
+사용자가 PR에 직접 남긴 요청도 같은 자리에서 처리한다 — **세 곳을 다 본다** (2026-07-26, #127. 그전에는 이슈 코멘트만 봤는데, **인라인 리뷰 코멘트는 다른 엔드포인트에 있고** 그 엔드포인트를 쓰는 유일한 질의는 Codex 계정으로만 필터돼 있었다 — 사람이 인라인으로 남긴 요청이 세션에 한 번도 안 보인 채 머지될 수 있었다):
 
 ```bash
-gh pr view "$PR" --comments   # (1) 이슈 코멘트 = PR 대화 탭
+# (1) 이슈 코멘트 = PR 대화 탭 (봇 제외 — Vercel·Codex는 위에서 이미 처리했다)
+gh api --paginate "$API"/issues/"$PR"/comments | jq -s 'add' \
+  | jq '[.[] | select(.user.type != "Bot") | {id, user:.user.login, at:.created_at, body}]'
 
 # (2) 인라인 리뷰 코멘트 — Codex 계정만 제외하고 전부 (Codex 것은 위에서 이미 처리했다)
 gh api --paginate "$API"/pulls/"$PR"/comments | jq -s 'add' \
@@ -279,7 +291,8 @@ gh api --paginate "$API"/pulls/"$PR"/reviews | jq -s 'add' \
 
 ```bash
 # 승인을 요청하기 전에 조회해서 보고에 적는다 ("머지 승인 요청 — head <SHA>")
-ASK_HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
+ASK_HEAD=$(gh api "$API"/pulls/"$PR" --jq .head.sha)
+[ -n "$ASK_HEAD" ] || exit 1   # 빈 값을 승인 대상으로 제시하지 않는다
 # ... 사용자 승인 도착 후 ...
 APPROVED_HEAD=$ASK_HEAD   # 승인 뒤에 다시 조회하지 않는다
 ```
@@ -289,7 +302,8 @@ APPROVED_HEAD=$ASK_HEAD   # 승인 뒤에 다시 조회하지 않는다
 머지 직전에 다시 대조한다 — 셸에서 한 번, 서버에서 한 번:
 
 ```bash
-NOW_HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
+NOW_HEAD=$(gh api "$API"/pulls/"$PR" --jq .head.sha)
+[ -n "$NOW_HEAD" ] || exit 1                   # 빈 값끼리는 서로 "일치"한다 — 대조 전에 먼저 막는다
 [ "$NOW_HEAD" = "$APPROVED_HEAD" ] || exit 1   # 승인 후 head가 움직였다 → 멈추고 재승인 요청
 [ "$NOW_HEAD" = "$HEAD" ] || exit 1            # B-2에서 판정받은 head와도 일치해야 한다
 
@@ -303,22 +317,33 @@ else
   [ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
 fi
 
-gh pr merge "$BR" --merge --delete-branch --match-head-commit "$APPROVED_HEAD"
+# 머지 — REST. `-f sha=` 는 `--match-head-commit` 과 **동등한 서버측 head 가드**다
+gh api -X PUT "$API"/pulls/"$PR"/merge \
+  -f sha="$APPROVED_HEAD" -f merge_method=merge || exit 1
+# 검산 — 머지가 실제로 됐을 때만 브랜치를 지운다 (보고에 쓸 머지 커밋도 여기서 얻는다)
+MERGED=$(gh api "$API"/pulls/"$PR" --jq '"\(.merged)|\(.merge_commit_sha)"')
+echo "머지 검산: $MERGED"
+[ "${MERGED%%|*}" = true ] || exit 1
+
+# REST 머지는 브랜치를 지우지 않는다 (gh pr merge --delete-branch 와 다른 점) → 원격을 직접 정리
+gh api -X DELETE "$API"/git/refs/heads/"$BR" 2>/dev/null || true
 
 git -C "$MAIN" fetch origin
 # 동기화 직전 재확인 + 사후 검산 — A-2와 같은 이유(다른 세션의 파킹으로 $MAIN이 develop을 놓았을 수 있다)
 [ "$(git -C "$MAIN" branch --show-current)" = "develop" ] || exit 1
 git -C "$MAIN" merge --ff-only origin/develop
 git -C "$MAIN" merge-base --is-ancestor origin/develop develop || exit 1   # 로컬 develop이 실제로 따라왔나
-git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 못 했으면 정리
+git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # 로컬 브랜치 정리 (REST 머지는 로컬을 안 건드린다)
 ```
 
-- **왜 다시 판별하는가 (2026-07-27, PR #146 Codex 라운드 2)**: 모드는 B-1에서 정해지는데 승인은 몇 분~몇 시간 뒤에 온다. 그사이 다른 워크트리가 develop을 잡으면 스냅샷이 낡는다. 순서를 바꾸지 않으면 **비가역인 `gh pr merge`가 먼저 실행되고 나서** `git switch develop`이 실패해서, 로컬 동기화·브랜치 정리·파킹·보드/이슈 갱신이 통째로 건너뛰어진다 — PR은 이미 머지된 채로. 그래서 **자리를 먼저 잡고 머지한다**. 부수 효과로 직접 모드에서는 `gh pr merge --delete-branch`의 로컬 단계도 안 깨진다(이미 develop에 있으므로).
+- **왜 다시 판별하는가 (2026-07-27, PR #146 Codex 라운드 2)**: 모드는 B-1에서 정해지는데 승인은 몇 분~몇 시간 뒤에 온다. 그사이 다른 워크트리가 develop을 잡으면 스냅샷이 낡는다. 순서를 바꾸지 않으면 **비가역인 머지 호출이 먼저 실행되고 나서** `git switch develop`이 실패해서, 로컬 동기화·브랜치 정리·파킹·보드/이슈 갱신이 통째로 건너뛰어진다 — PR은 이미 머지된 채로. 그래서 **자리를 먼저 잡고 머지한다**.
 - **로컬 동기화도 검산한다**: 재확인 뒤에도 같은 창이 남아, `merge --ff-only`가 detached HEAD에서 성공하면 `refs/heads/develop`은 낡은 채로 남는다. 다만 이 시점엔 서버 머지가 끝나 있어 **피해는 로컬 ref가 낡는 것뿐**이다 — 검산이 실패하면 보고하고, 다시 머지하려 들지 않는다.
-- `--match-head-commit`은 **서버측 검사**다 — GitHub이 head가 그 SHA일 때만 머지한다. 셸 대조와 머지 명령 사이의 틈(그 사이에 누가 push하는 경우)까지 닫고, 세션이 SHA를 잘못 들고 있으면 머지가 실패한다. 실패는 조용한 통과보다 낫다.
+- `-f sha=`는 **서버측 검사**다 — GitHub이 head가 그 SHA일 때만 머지한다(맞지 않으면 `409`). 셸 대조와 머지 명령 사이의 틈(그 사이에 누가 push하는 경우)까지 닫고, 세션이 SHA를 잘못 들고 있으면 머지가 실패한다. 실패는 조용한 통과보다 낫다. `gh pr merge --match-head-commit`과 **같은 보장**이며, 2026-07-26 세션에서 실동작을 확인했다.
+- **REST 머지가 실패하면 `gh pr merge`로 재시도하지 않는다** — 둘은 같은 서버 상태를 볼 뿐이라 결과가 달라질 이유가 없고, 재시도는 실패 원인을 가린다. `409`면 head가 움직인 것(재승인), `405`면 머지 불가 상태(충돌·보호 규칙)다 — 상태를 확인해 사용자에게 보고한다.
 - **승인 시점의 head를 기록하지 못한 채 세션이 넘어갔다면 승인은 없는 것으로 취급한다** — `APPROVED_HEAD`를 만들 수 없으면 다시 받는다. 이전 세션이 "승인받았다"고 남긴 말은 어느 커밋에 대한 승인인지 증명하지 못한다.
 - `$BR`이 세션 워크트리에 체크아웃돼 있으면 로컬 삭제가 거부된다 → A-3과 같이 `claude/*` 브랜치로 비켜준 뒤 삭제. (직접 모드는 위의 `git switch develop`으로 이미 비켜난 상태다.) 직접 모드면 마지막에 **파킹**한다 (모드 판별 절).
-- **`gh pr merge`가 로컬 단계에서 죽어도 서버 머지는 이미 끝나 있다** (위임 모드에서 3회 재발 — #130·#136·#142 착지). `--delete-branch`는 머지 뒤 로컬에서 base 브랜치로 옮기려 하는데, develop이 **다른 워크트리에 있으면** `fatal: 'develop' is already used by worktree at …`로 실패한다. 이때 실패한 것은 로컬 정리뿐이다 — `gh pr view "$PR" --json state,mergeCommit`으로 `MERGED`를 확인한 뒤, **로컬 브랜치 삭제와 `git push origin --delete "$BR"`(원격 브랜치)를 손으로 마저 한다**. 다시 머지하려 들지 않는다.
+- **REST 머지로 바꾸면서 사라진 사고 하나** (2026-07-27, #157): `gh pr merge --delete-branch`는 머지 뒤 **로컬에서** base 브랜치로 옮기려 하는데, develop이 다른 워크트리에 있으면 `fatal: 'develop' is already used by worktree at …`로 죽었다 — 서버 머지는 끝났는데 로컬 정리만 실패해서 위임 모드에서 3회 재발했다(#130·#136·#142). REST 머지는 **로컬을 아예 건드리지 않으므로** 이 실패 지점이 구조적으로 없어진다. 대신 원격·로컬 브랜치 삭제를 위 블록이 명시적으로 한다.
+- 그래도 머지 성공 여부가 불확실하면(네트워크 끊김 등) `gh api "$API"/pulls/"$PR" --jq .merged`로 확인한 뒤 남은 정리만 손으로 마저 한다. **다시 머지하려 들지 않는다.**
 
 ## 보드 갱신
 
@@ -329,52 +354,127 @@ git -C "$MAIN" branch -d "$BR" 2>/dev/null || true   # gh가 로컬 삭제를 �
 
 아래 블록은 **필드 하나를 목표값으로 맞추는 범용 절차**다 — `Status`(이 절)와 `Phase`(신규 등록 시, write-issue §3)가 같은 코드를 쓴다.
 
+**보드는 GraphQL 외길이다** (Projects v2에는 REST가 없다 — `/repos/…/projects`·`/users/…/projects` 모두 404). 그래서 절약 수단은 **질의를 좁히는 것 하나뿐**이고, 아래 블록은 보드 전체를 훑는 대신 **이슈 하나만 짚는 질의**를 쓴다 (#157).
+
 ```bash
 N=<이슈 번호>; FIELD=Status; TARGET=Done   # Status → "Done"·"In Progress"
                                           # Phase  → "Phase1. MVP-콘텐츠"…"Phase5. 릴리즈 후"·"상시·기타"
+OWNER=padahkim; REPO=aws-reps; PROJ=1
 
-# 보드 전체를 한 번 받아 재사용한다. --limit 은 항목 수보다 커야 하고, 잘렸는지는 추측하지 않고
-# totalCount 와 대조해 즉시 실패시킨다 (조용히 못 찾는 것이 이 절차의 사고 지점이었다 — #154)
-BOARD=$(gh project item-list 1 --owner "@me" --limit 500 --format json) || exit 1
-# 한 줄 "id|status" 로 받아 파라미터 확장으로 가른다 — heredoc+read 로 받으면 `|| exit 1` 이
-# 셸 문법이 아니라 heredoc 본문 글자로 먹혀서 종료 코드가 죽고 status 에 붙는다 (#154 실측)
-INFO=$(printf '%s' "$BOARD" | python3 -c "
+# 항목 id·현재값·프로젝트 id·필드 id·옵션 id 를 **한 질의(cost 1)** 로 받는다.
+# gh project item-list / field-list 는 각각 102점이라 쓰지 않는다 (아래 실측 표)
+# 항목을 프로젝트 **node id** 로 짚는다 — number 는 소유자별 스코프라 남의 프로젝트 #1과 겹친다
+Q='query($owner:String!,$repo:String!,$num:Int!,$field:String!,$proj:Int!){
+  repository(owner:$owner,name:$repo){ issue(number:$num){
+    projectItems(first:20){ totalCount
+      nodes{ id project{ id }
+             fieldValueByName(name:$field){ ... on ProjectV2ItemFieldSingleSelectValue{ name } } } } } }
+  viewer{ projectV2(number:$proj){ id
+    field(name:$field){ ... on ProjectV2SingleSelectField{ id options{ id name } } } } } }'
+
+board(){ gh api graphql -f query="$Q" \
+           -F owner="$OWNER" -F repo="$REPO" -F num="$N" -F field="$FIELD" -F proj="$PROJ"; }
+
+# 파서 = 게이트다. 잘림·빈 응답·형식 오류는 **즉시 실패**(exit 1)로 만들고, **예산 소진만
+# exit 3** 으로 구분한다 — 소진은 "보드를 건너뛰고 계속"이 정답이고 나머지는 fail-closed다.
+# gh 는 GraphQL 오류에도 응답 본문을 stdout 에 그대로 준다(실측) — 그래서 여기서 읽을 수 있다
+parse(){ python3 -c "
 import json,sys
-d = json.load(sys.stdin); items = d['items']
-if len(items) < d['totalCount']:
-    sys.exit(f\"보드 조회가 잘렸다: {len(items)}/{d['totalCount']} — --limit 을 올려라\")
-it = next((i for i in items if i['content'].get('number') == $N), None)
-print(f\"{it['id']}|{it.get('$FIELD'.lower()) or '-'}\" if it else '-|-')
-") || exit 1
-IT=${INFO%%|*}; CUR=${INFO#*|}
+try: p = json.load(sys.stdin)
+except Exception as e: sys.exit(f'보드 응답을 파싱할 수 없다: {e}')
+errs = p.get('errors') or []
+if errs:
+    msg = json.dumps(errs, ensure_ascii=False)
+    if any(e.get('type') == 'RATE_LIMITED' for e in errs) or 'rate limit' in msg.lower():
+        print('예산 소진: ' + msg, file=sys.stderr); sys.exit(3)
+    sys.exit('GraphQL 오류: ' + msg)
+d = p.get('data') or {}
+pj = (d.get('viewer') or {}).get('projectV2')
+if not pj: sys.exit('보드를 못 읽었다 (권한·응답 이상) — 빈 값을 결과로 쓰지 않는다')
+f = pj.get('field') or {}
+opt = next((o['id'] for o in f.get('options', []) if o['name'] == '$TARGET'), None)
+if not opt: sys.exit(\"필드 '$FIELD' 에 옵션 '$TARGET' 이 없다\")
+c = ((d.get('repository') or {}).get('issue') or {}).get('projectItems')
+if c is None: sys.exit('이슈 #$N 을 못 읽었다')
+if len(c['nodes']) < c['totalCount']:
+    sys.exit(f\"항목 조회가 잘렸다: {len(c['nodes'])}/{c['totalCount']} — first 를 올려라\")
+it = next((n for n in c['nodes'] if n['project']['id'] == pj['id']), None)
+print(f\"{it['id'] if it else '-'}|{((it or {}).get('fieldValueByName') or {}).get('name') or '-'}|{pj['id']}|{f['id']}|{opt}\")
+"; }
 
-if [ "$IT" = "-" ]; then                      # 보드에 없다 (조회 실패와는 다르다 — 위에서 걸러졌다)
-  echo "보드에 없음 → 추가한다"
-  IT=$(gh project item-add 1 --owner "@me" --url "https://github.com/padahkim/aws-reps/issues/$N" --format json \
-       | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || exit 1
-  CUR=-
-fi
+# mutation 실행기 — 읽기와 **같은 3분기**를 mutation에도 준다: 성공이면 stdout 그대로,
+# 예산 소진이면 3, 그 외 실패면 1. 읽기만 막아두면 "첫 질의가 마지막 점수를 쓰는" 창이 남는다
+# stderr 파일은 **프로세스별**이다 ($$) — 고정 경로면 병렬 착지 세션이 서로의 진단을 덮어써서
+# 소진을 일반 실패로 오분류한다 (= 머지 뒤 중단). 이 리포는 병렬 세션이 상수 조건이다
+mut(){ local out rc err="/tmp/land-mut.$$.err"
+  out=$("$@" 2>"$err"); rc=$?
+  if [ $rc -eq 0 ]; then rm -f "$err"; printf '%s' "$out"; return 0; fi
+  cat "$err" >&2
+  if grep -qiE 'rate limit|RATE_LIMITED' "$err"; then rm -f "$err"; return 3; fi
+  rm -f "$err"; return 1; }
 
-if [ "$CUR" = "$TARGET" ]; then
-  echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
-else
-  PJ=$(gh project view 1 --owner "@me" --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
-  FD=$(gh project field-list 1 --owner "@me" --format json | python3 -c "import json,sys;f=next(x for x in json.load(sys.stdin)['fields'] if x['name']=='$FIELD');print(f['id'],next(o['id'] for o in f['options'] if o['name']=='$TARGET'))")
-  gh project item-edit --id "$IT" --project-id "$PJ" --field-id "${FD% *}" --single-select-option-id "${FD#* }" || exit 1
-fi
+apply_board(){                          # 성공 0 / 실패 1. 예산 소진은 "미갱신"으로 보고하고 0
+  IFS='|' read -r IT CUR PJ FD OPT <<< "$1"
+  local OUT RC
 
-# 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다
-gh project item-list 1 --owner "@me" --limit 500 --format json | python3 -c "
-import json,sys
-s = next((i.get('$FIELD'.lower()) for i in json.load(sys.stdin)['items'] if i['content'].get('number') == $N), None)
-print(f'보드 확인: #$N $FIELD={s}')
-sys.exit(0 if s == '$TARGET' else '보드 갱신 실패 — 위 값이 목표와 다르다')"
+  if [ "$IT" = "-" ]; then              # 보드에 없다 (읽기 실패와는 다르다 — 파서가 걸렀다)
+    echo "보드에 없음 → 추가한다"
+    OUT=$(mut gh project item-add "$PROJ" --owner "@me" \
+            --url "https://github.com/$OWNER/$REPO/issues/$N" --format json); RC=$?
+    [ $RC -eq 3 ] && { echo "보드 미갱신 — GraphQL 예산 소진 (item-add)"; return 0; }
+    [ $RC -eq 0 ] || return 1
+    IT=$(printf '%s' "$OUT" | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])') || return 1
+    CUR=-
+  fi
+
+  if [ "$CUR" = "$TARGET" ]; then
+    echo "$FIELD 이미 $TARGET — 설정 생략 (Status면 내장 워크플로가 옮겨둔 것이다, 아래 참조)"
+  else
+    mut gh project item-edit --id "$IT" --project-id "$PJ" \
+      --field-id "$FD" --single-select-option-id "$OPT" >/dev/null; RC=$?
+    [ $RC -eq 3 ] && { echo "보드 미갱신 — GraphQL 예산 소진 (item-edit)"; return 0; }
+    [ $RC -eq 0 ] || return 1
+  fi
+
+  # 재조회로 확인한다 — 보고에 쓰는 건 "설정했다"가 아니라 관측한 값이다 (같은 질의, cost 1)
+  local INFO2 RC2; INFO2=$(board | parse); RC2=$?
+  [ $RC2 -eq 3 ] && { echo "보드 갱신 결과 미확인 — GraphQL 예산 소진"; return 0; }
+  [ $RC2 -eq 0 ] || return 1
+  IFS='|' read -r _ NOW _ _ _ <<< "$INFO2"
+  echo "보드 확인: #$N $FIELD=$NOW"
+  [ "$NOW" = "$TARGET" ] || { echo "보드 갱신 실패 — 위 값이 목표와 다르다"; return 1; }
+}
+
+INFO=$(board | parse); RC=$?            # 실패 판정은 반드시 여기서 — read 로 받은 뒤엔 종료 코드가 죽는다(#154)
+case $RC in
+  0) apply_board "$INFO" || exit 1 ;;
+  3) echo "보드 미갱신 — GraphQL 예산 소진 (착지의 나머지 단계는 그대로 계속한다)" ;;
+  *) exit 1 ;;                          # 잘림·빈 응답·형식 오류 = fail-closed
+esac
 ```
+
+**왜 이렇게 바꿨나 — 실측 (2026-07-27, #157)**. GraphQL 한도는 요청 수가 아니라 **점수**이고 점수는 반환 노드 수에 비례한다:
+
+| 호출 | 점수 |
+|---|---|
+| `gh project item-list 1 --limit 500` (보드 항목 91개) | **102** |
+| `gh project field-list 1` | **102** ← 이슈 본문이 놓쳤던 지점 |
+| `gh project view 1` | 2 |
+| 위 단일 항목 질의 (항목 + 필드 메타 동시) | **1** |
+
+옛 블록은 착지 1건에 `item-list`×2 + `field-list` + `view` + `item-edit` = **309점**(실측)을 썼다. 새 블록은 질의 2회 + 편집 1회 = **약 3점**이다. 시간당 5000점을 **모든 세션이 공유**하므로, 병렬 세션 3~4개 리듬에서 이 차이가 착지 가능 횟수를 정한다.
+
+- **"보드에 없음"의 근거가 무엇인가** (#154가 막은 구멍을 다시 열지 않기 위해). 옛 블록은 "보드 전체 목록에 없음 + `totalCount` 대조로 잘리지 않았음"으로 확정했다. 단일 항목 질의에는 "보드 전체"라는 개념이 없으므로 근거를 **이슈 쪽에서** 세운다 — ① 질의가 실제로 응답했다(`viewer.projectV2`가 null 아님 = 예산·권한 정상), ② 이 이슈의 `projectItems`가 잘리지 않았다(`nodes == totalCount`), ③ 그 안에 `project.number == 1`인 항목이 없다. 셋이 모두 참일 때만 "없음"이고, 하나라도 깨지면 파서가 죽는다. 즉 **잘림 감지는 사라진 게 아니라 "보드 전체"에서 "이 이슈의 소속 목록"으로 옮겨 갔다** — 이슈가 어느 프로젝트에도 안 붙었으면 `totalCount=0`·`nodes=[]`로 잘림 없이 "없음"이 확정된다.
+- **예산 소진은 멈출 이유가 아니다 — 그것만 `exit 3`으로 구분한다** (PR #158 Codex P1). 이 블록은 **비가역인 머지 뒤, 이슈 close-out·잔재 정리·main 전파 앞**에 있다. 그래서 소진 시 통째로 `exit 1`을 하면 **PR은 머지된 채로 남은 단계가 전부 건너뛰어진다** — 이 스킬이 #146에서 배운 사고와 같은 모양이고, 정작 주의 절이 명문화한 폴백("보드만 건너뛰고 계속")과 코드가 어긋나 있었다. 이제 소진은 "보드 미갱신"으로 보고하고 계속하며, **잘림·빈 응답·형식 오류는 그대로 fail-closed**다 (그건 보드 상태를 모른다는 뜻이므로 계속하면 안 된다).
+  - **mutation도 같은 3분기를 받는다** (PR #158 Codex 라운드 2). 읽기만 고치면 창이 남는다 — **첫 질의가 마지막 남은 점수를 쓰면** 뒤따르는 `item-add`·`item-edit`이 rate-limit으로 실패하고, 그 실패가 `exit 1`로 번져 같은 부분 착지 상태를 만든다. 그래서 `mut()` 실행기가 mutation의 stderr에서 소진을 알아보고 3을 돌려준다. 읽기든 쓰기든 **"보드를 못 만졌다"는 착지를 멈출 이유가 아니다** — 멈출 이유는 "보드 상태를 잘못 알 위험"뿐이다.
+  - 소진 판정은 읽기에서는 `errors[].type == "RATE_LIMITED"`(또는 메시지의 `rate limit`), mutation에서는 stderr 문자열로 한다. `gh api graphql`은 GraphQL 오류에도 **응답 본문을 stdout에 그대로 준다**(실측: exit 1 + 본문 출력) — 그래서 파서가 읽을 수 있다. 2026-07-26 사고에서 빈 값이 왔던 건 `gh pr view --json … --jq`가 오류를 삼켰기 때문이고, 원본 응답에는 `type`이 들어 있다.
+  - `data.viewer.projectV2` null 검사는 남아 있다 — 소진 외의 이유(권한·응답 이상)로 못 읽은 경우를 잡는다. 이 검사가 없으면 그 상태가 "보드에 없음"으로 읽혀 `item-add`가 중복 항목을 만든다.
+- **항목은 프로젝트 번호가 아니라 node id로 짚는다** (PR #158 Codex P2). 프로젝트 번호는 **소유자별 스코프**라, 이 이슈가 다른 사용자·조직의 프로젝트 #1에도 들어 있으면 `number == 1`이 그 항목을 고른다. 그러면 ① 그쪽 필드가 마침 목표값이면 설정과 검증이 **둘 다 거짓 성공**하고(우리 보드는 그대로), ② 아니면 다른 프로젝트의 항목 id에 우리 프로젝트의 필드 id를 넘겨 `item-edit`이 실패한다. 그래서 질의가 `project{ id }`를 받아 `viewer`의 프로젝트 id와 대조한다.
 
 - **보드에는 내장 워크플로가 이미 돌고 있다** (2026-07-27 실측, `ProjectV2.workflows` GraphQL 조회 — 전부 enabled): `Item closed`·`Item added to project`·`Pull request merged`·`Pull request linked to issue`·`Auto-add sub-issues to project`·`Auto-close issue`. 그래서 `closes #N`으로 닫히는 **표준 경로에서는 Done이 자동으로 붙는다** — 위 스크립트가 Done을 "설정"이 아니라 **"확인하고 다를 때만 설정"** 으로 바뀐 이유다. 반면 **`In Progress`는 자동화가 없으므로** 착수 시 세션이 반드시 설정해야 한다.
 - 순서 주의: **추가가 먼저, 상태 설정이 나중** — 보드에 없는 이슈를 상태부터 설정하려 하면 빈 id로 `item-edit`을 불러 GraphQL 오류로 죽는다(#154 실측). 위 스크립트는 "조회가 잘림"(즉시 실패)과 "보드에 없음"(추가)을 **구분**한다.
 - item-add로 새로 추가한 이슈는 **Phase 필드도 설정**한다 (CLAUDE.md Task management의 보드 규칙 — Milestones 대신 Phase 필드). Status는 `Item added to project` 워크플로가 `Todo`로 넣어 준다.
-- gh 차단 머신에서는 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션 시작 시 동기화한다.
+- gh 차단 머신에서는 생략하고 보고에 "보드 미갱신"을 명시한다 — 다음 gh 가능 세션 시작 시 동기화한다. **GraphQL 예산이 소진된 경우도 같은 처리**다 (보드에는 REST 대체 경로가 없다 — 주의 절 참조): 사유를 붙여 "보드 미갱신 — GraphQL 예산 소진"으로 보고하고, 착지의 나머지 단계는 REST로 그대로 완주한다.
 
 ## 이슈 close-out — 체크박스 갱신 (생략 불가)
 
@@ -384,11 +484,14 @@ sys.exit(0 if s == '$TARGET' else '보드 갱신 실패 — 위 값이 목표와
 - 미달성 항목은 빈 채로 두고 보고에 명시한다. 미달성분이 실작업이면 /write-issue로 파생 이슈를 만들어 본문에 `#N`으로 남긴다.
 
 ```bash
-N=<이슈 번호>
-gh issue view "$N" --json body -q .body > /tmp/issue-$N.md
+N=<이슈 번호>; API=repos/padahkim/aws-reps
+gh api "$API"/issues/"$N" --jq .body > /tmp/issue-$N.md
+[ -s /tmp/issue-$N.md ] || exit 1                     # 빈 본문으로 덮어쓰지 않는다
 # 달성 항목의 "- [ ]"를 "- [x]"로 편집한 뒤:
-gh issue edit "$N" --body-file /tmp/issue-$N.md
+gh api -X PATCH "$API"/issues/"$N" -F body=@/tmp/issue-$N.md
 ```
+
+- 조회·갱신 모두 **REST**다 (#157). 빈 파일 검사가 필요한 이유는 이 스킬이 배운 것과 같다: **읽기가 조용히 빈 값을 주면 그다음 쓰기가 본문을 지운다.**
 
 - PR 착지 대기(B-1까지) 상태에서는 하지 않는다 — 머지가 승인된 뒤(B-3)가 갱신 시점이다.
 - gh 차단 머신에서는 생략하되 보고에 "**체크박스 미갱신 — 웹에서 체크 필요**"와 달성 항목 목록을 명시한다.
@@ -484,5 +587,8 @@ develop 최신 해시, 경로(즉시/PR)와 머지 방식(ff/머지커밋), push
 
 ## 주의
 
+- **GraphQL 예산(5000점/시간)은 모든 세션이 공유하고, 소진되면 오류가 아니라 빈 값으로 온다** (2026-07-26 사고, #157). 그래서 착지 경로의 **읽기·대조·머지는 전부 REST**로 옮겼다 — 한도가 별개이고(REST 5000요청/시간) GraphQL 점수를 0점 쓴다. 잔량 확인: `gh api rate_limit --jq .resources.graphql`.
+- **남은 GraphQL 소비처는 보드와 몇몇 mutation뿐이다** — 보드 질의·`item-add`·`item-edit`(각 1~2점), `gh pr create`. 이것들은 절대량이 작아 그대로 둔다. 반면 `gh pr comment`(2점)는 REST POST로 바꿨는데, B-2는 **라운드마다 반복 호출**되는 자리라 상수 비용이 아니기 때문이다. 이 리포에서 문제가 된 건 언제나 **호출 수가 아니라 한 호출이 끌어오는 노드 수**였다(`item-list`·`field-list` 102점).
+- **예산 소진 시 폴백**: 착지 자체는 REST만으로 완주된다(head 조회·머지·브랜치 삭제·본문 갱신). 보드는 GraphQL 외길이라 대체 경로가 없으므로 **보드 갱신만 건너뛰고 보고에 "보드 미갱신 — GraphQL 예산 소진"을 명시**한다 (gh 차단 머신과 같은 처리). 다음 세션이 동기화한다 — 리셋은 매시간이다. 빈 값을 결과로 받아들여 진행하지 않는다.
 - gh는 git_guard 조건(홈 마커 + 개인 계정 활성)을 충족한 머신에서만 동작한다 — 차단되면 위의 gh-불가 fallback을 따른다. `push --force`·`branch -D`·`reset --hard`·`clean -f`는 어느 머신에서든 git_guard 훅이 차단한다.
 - git_guard는 **커밋 메시지 본문의 "gh <단어>" 문자열도 오탐 차단**한다 — 커밋 메시지에 gh를 단독 단어로 쓰지 말 것 ("gh-CLI" 등으로 표기).
