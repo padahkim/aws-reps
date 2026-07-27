@@ -137,6 +137,9 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
 
     // 파트: 전 섹션을 순서대로 빠짐·중복 없이 덮어야 한다 — 안 덮이는 섹션은 목차의
     // 어느 그룹에도 안 들어가 화면에서 조용히 사라진다. 그래서 커버리지는 빌드를 막는다.
+    // **파트 개수는 일부러 검사하지 않는다** (objectives 의 3~5 개와 다른 이유): 적정 개수는
+    // 챕터 크기에 달렸고(4섹션짜리 ch0-1 에 최소 4파트를 강제하면 파트당 1섹션이 된다),
+    // 개수가 어긋나도 화면은 정상이다. 여기서 막는 건 "화면이 조용히 틀어지는 것"뿐이다.
     if (chapterMeta.parts) {
       const parts = chapterMeta.parts;
       const indexOfNum = new Map(sections.map((s, i) => [s.num, i]));
