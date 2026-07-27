@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { getAllChapters, groupByPhase, sectionCount } from "@/lib/content";
+import {
+  chapterParts,
+  estimateChapter,
+  getAllChapters,
+  groupByPhase,
+  sectionCount,
+} from "@/lib/content";
 import { HomeProgress } from "./home-progress";
 
 export default function Home() {
@@ -42,6 +48,13 @@ export default function Home() {
             <ul style={{ listStyle: "none", display: "grid", gap: "0.5rem" }}>
               {entries.map((entry) => {
                 const meta = entry.data.chapterMeta;
+                // 예상 소요 (#173) — 챕터 페이지 오리엔테이션과 **같은 값**이어야 하므로 부르는
+                // 방식도 같다: parts 를 넘긴다. 안 넘기면 반올림 경로가 달라져(파트별 round5 합산
+                // vs 전체 한 번) 두 화면의 수치가 어긋난다. 산출 실패면 그 토막만 빠진다 —
+                // 틀린 수치보다 없는 편이 낫다 (ChapterOrientation 의 minutes 와 같은 규칙).
+                // objectives 게이트는 걸지 않는다: 소요는 MDX 분량에서 나오지 메타에서 나오지 않고,
+                // 목록에서 어떤 줄만 시간이 없으면 그게 결손으로 읽힌다.
+                const minutes = estimateChapter(entry, chapterParts(entry))?.total;
                 return (
                   <li key={meta.id}>
                     <Link href={`/chapters/${meta.id}`}>
@@ -49,6 +62,7 @@ export default function Home() {
                     </Link>{" "}
                     <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
                       {meta.domain} · 출제빈도 {meta.examWeight}/5
+                      {minutes !== undefined && ` · 약 ${minutes}분`}
                     </span>
                     {/* 읽음 진도 (이슈 #7 확정: 진도 바 + % 병기) */}
                     <div style={{ marginTop: 2 }}>
