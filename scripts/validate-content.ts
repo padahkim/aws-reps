@@ -112,6 +112,103 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
       }
     }
 
+    // ── 오리엔테이션 (v3.1, #161) — 없는 챕터는 적법 → 각 블록을 건너뛴다 ──
+    // 학습 목표: 규약이 3~5개로 못박혀 있다 (2개 이하는 지도가 안 되고, 6개 이상은
+    // 목차를 한 번 더 쓴 것이라 선행조직자 효과가 사라진다).
+    if (chapterMeta.objectives) {
+      const n = chapterMeta.objectives.length;
+      if (n < 3 || n > 5) {
+        problems.push({
+          chapterId: cid,
+          code: "OBJECTIVES_COUNT",
+          message: `objectives 가 ${n}개 — 3~5개여야 함 (규약 v3.1). 필요 없으면 필드를 생략하라`,
+        });
+      }
+      chapterMeta.objectives.forEach((o, i) => {
+        if (o.trim() === "") {
+          problems.push({
+            chapterId: cid,
+            code: "OBJECTIVE_EMPTY",
+            message: `objectives[${i}] 가 빈 문자열`,
+          });
+        }
+      });
+    }
+
+    // 파트: 전 섹션을 순서대로 빠짐·중복 없이 덮어야 한다 — 안 덮이는 섹션은 목차의
+    // 어느 그룹에도 안 들어가 화면에서 조용히 사라진다. 그래서 커버리지는 빌드를 막는다.
+    if (chapterMeta.parts) {
+      const parts = chapterMeta.parts;
+      const indexOfNum = new Map(sections.map((s, i) => [s.num, i]));
+
+      if (parts.length === 0) {
+        problems.push({
+          chapterId: cid,
+          code: "PARTS_EMPTY",
+          message: `parts 가 빈 배열 — 파트를 채우거나 필드를 생략하라`,
+        });
+      }
+
+      let resolvable = parts.length > 0;
+      parts.forEach((p, i) => {
+        if (p.title.trim() === "") {
+          problems.push({
+            chapterId: cid,
+            code: "PART_TITLE_EMPTY",
+            message: `parts[${i}]: title 이 비어 있음`,
+          });
+        }
+        for (const [field, num] of [["from", p.from], ["to", p.to]] as const) {
+          if (!indexOfNum.has(num)) {
+            resolvable = false;
+            problems.push({
+              chapterId: cid,
+              code: "PART_SECTION_MISSING",
+              message: `parts[${i}]: ${field} "${num}" 이 실존하지 않는 섹션 num`,
+            });
+          }
+        }
+      });
+
+      // 범위가 전부 실존할 때만 커버리지를 본다 — 못 푸는 num 이 섞이면 같은 사실을
+      // "커버 안 됨"으로 한 번 더 보고하게 된다.
+      if (resolvable) {
+        let expected = 0;   // 다음 파트가 시작해야 할 섹션 인덱스
+        parts.forEach((p, i) => {
+          const from = indexOfNum.get(p.from)!;
+          const to = indexOfNum.get(p.to)!;
+          if (to < from) {
+            problems.push({
+              chapterId: cid,
+              code: "PART_RANGE_REVERSED",
+              message: `parts[${i}] "${p.title}": from "${p.from}" 이 to "${p.to}" 보다 뒤 — 범위가 뒤집혔다`,
+            });
+            expected = -1;   // 이후 연속성 판정은 의미가 없다
+            return;
+          }
+          if (expected < 0) return;
+          if (from !== expected) {
+            problems.push({
+              chapterId: cid,
+              code: "PART_COVERAGE",
+              message:
+                from > expected
+                  ? `parts[${i}] "${p.title}": 섹션 "${sections[expected].num}" 부터 "${sections[from - 1].num}" 까지가 어느 파트에도 안 들어간다`
+                  : `parts[${i}] "${p.title}": from "${p.from}" 이 앞 파트와 겹친다 (앞 파트는 "${sections[expected - 1].num}" 에서 끝났다)`,
+            });
+          }
+          expected = to + 1;
+        });
+        if (expected >= 0 && expected !== sections.length) {
+          problems.push({
+            chapterId: cid,
+            code: "PART_COVERAGE",
+            message: `parts 가 마지막 섹션 "${sections[sections.length - 1].num}" 까지 덮지 않는다 (섹션 "${sections[expected].num}" 부터 남음)`,
+          });
+        }
+      }
+    }
+
     // ── prerequisites 는 실존 챕터 id 만 참조 ──────────────────────────
     for (const pre of chapterMeta.prerequisites) {
       if (!knownIds.has(pre)) {

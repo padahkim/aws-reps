@@ -55,13 +55,16 @@ if (SECTIONS.length !== sections.length) {
  * 인트로(첫 섹션 상단)·아웃트로(마지막 섹션 하단)·섹션 꼬리 슬롯 배치만 담당한다.
  * afterSection(인출 개념 카드)은 본문과 아웃트로 사이 — 이 챕터는 아직 session 데이터가 없어
  * 실제로는 비어 있지만, 슬롯은 규약이라 모든 body 가 같은 자리에 둔다.
+ * beforeBody(미리 보는 질문)는 <Sec> 의 첫 자식 — 섹션 헤더 바로 아래, 본문 앞이다 (v3.1 #161).
  */
 export default function Ch11Body({
   section,
   afterSection,
+  beforeBody,
 }: {
   section: number;
   afterSection?: ReactNode;
+  beforeBody?: ReactNode;
 }) {
   const S = SECTIONS[section];
   if (!S) throw new Error(`ch1-1: 섹션 인덱스 ${section} 범위 밖 (0..${SECTIONS.length - 1})`);
@@ -69,6 +72,7 @@ export default function Ch11Body({
     <>
       {section === 0 && <Intro />}
       <Sec {...sections[section]}>
+        {beforeBody}
         <S />
       </Sec>
       {afterSection}
