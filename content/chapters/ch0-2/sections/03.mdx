@@ -11,7 +11,7 @@ import { AuthFlowSvg, CardGrid, InfoCard, PointBox } from "../figs";
   <InfoCard title="① 인증 · AuthN — “너 누구야?”" items={[
     <>콘솔: 유저명 + 비밀번호 (+ MFA)</>,
     <>CLI/SDK: Access Key ID + Secret Access Key — 이 키로 요청마다 <b>SigV4 서명</b>을 만들어 보냅니다. <ChLink id="ch0-1">ch0-1</ChLink>에서 본 “모든 요청은 SigV4로 서명된다”의 서명 검증이 바로 이 인증 단계입니다</>,
-    <>롤: STS가 발급한 임시 자격증명 (SessionToken 포함)</>,
+    <>롤: STS가 발급한 임시 자격 증명 (SessionToken 포함)</>,
   ]} />
   <InfoCard tone="amber" title="② 인가 · AuthZ — “뭐 할 수 있어?”" items={[
     <>요청과 관련된 모든 정책을 수집</>,
@@ -20,11 +20,11 @@ import { AuthFlowSvg, CardGrid, InfoCard, PointBox } from "../figs";
   ]} />
 </CardGrid>
 
-<PointBox tone="blue" title="참고 — 서명 vs 베어러 토큰">AWS API의 인증은 “요청 서명” 방식이라, 발급받은 토큰을 헤더에 그대로 실어 보내는 <b>베어러 토큰(bearer token)</b> 방식 — Cognito 같은 서비스가 앱 사용자에게 발급하는 ID/액세스 토큰이 대표적 — 과 구분됩니다. 소지 자체가 증명인 베어러 토큰은 유출에 더 취약해 만료를 짧게 잡습니다.</PointBox>
+<PointBox tone="blue" title="참고 — 서명 vs 베어러 토큰">AWS API의 인증은 “요청 서명” 방식이라, 발급받은 토큰을 헤더에 그대로 실어 보내는 <b>베어러 토큰(bearer token)</b> 방식과 구분됩니다 — Cognito 같은 서비스가 앱 사용자에게 발급하는 ID/액세스 토큰이 대표적입니다. 소지 자체가 증명인 베어러 토큰은 유출에 더 취약해 만료를 짧게 잡습니다.</PointBox>
 
 <PointBox tone="red" title="흔한 오해 — 인증 성공 ≠ 인가 성공">유효한 액세스 키가 있어도(= 인증 성공) 연결된 정책이 없으면 아무것도 못 합니다(= 인가 실패). “로그인은 되는데 작업이 안 되는” 상황의 원인이 바로 이것입니다.</PointBox>
 
 <ExamPoint>
   <ExamLi>인증 = <b>누구인가</b>(비밀번호·액세스 키·MFA), 인가 = <b>무엇을 할 수 있나</b>(정책 평가) — 용어 구분 문제</ExamLi>
-  <ExamLi>인가 실패의 대표 증상은 <b>AccessDenied</b>, 자격증명·서명 문제는 <b>SignatureDoesNotMatch</b> 등 별도 에러 코드 — 단 AccessDenied만으로 인증 성공을 단정할 수는 없음(서명 없는 익명 요청도 받을 수 있는 에러)</ExamLi>
+  <ExamLi>인가 실패의 대표 증상은 <b>AccessDenied</b>, 자격 증명·서명 문제는 <b>SignatureDoesNotMatch</b> 등 별도 에러 코드 — 단 AccessDenied만으로 인증 성공을 단정할 수는 없음(서명 없는 익명 요청도 받을 수 있는 에러)</ExamLi>
 </ExamPoint>
