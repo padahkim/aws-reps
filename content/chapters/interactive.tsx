@@ -197,12 +197,15 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
         {cur.q}
       </div>
 
+      {/* 채움색은 amber(#E8830C)가 아니라 한 단계 어두운 amberText(#9A5B06)다 — 흰 글자 기준
+          2.73:1 로 AA 본문 기준(4.5:1)에 못 미쳤다(#149). 내려서 5.42:1. 글자를 어둡게 하는
+          대신 배경을 내린 건, 채움+흰 글자라는 '1차 동작' 신호를 유지하기 위해서다. */}
       {!open ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="widget-btn"
-          style={{ ...fillBtn(C.amber), padding: "10px 18px" }}
+          style={{ ...fillBtn(C.amberText), padding: "10px 18px" }}
         >
           답 확인하기
         </button>
