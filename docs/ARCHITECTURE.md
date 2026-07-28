@@ -179,7 +179,7 @@ flowchart TD
 
 ### 5-2. 문항(quiz)이 오는 두 경로
 
-`drills.ts`는 **손으로 쓰는 파일이 아니라 생성물**이다 — `scripts/import-drills.ts`가 별도 리포(`aws-cloud-drills`)의 JSON 문항을 규약 v3 `Question`으로 변환해 만든다. **손편집 금지**이고, 고칠 게 있으면 원본 리포에서 고쳐 재실행한다.
+`drills.ts`는 **손으로 쓰는 파일이 아니라 생성물**이다 — `scripts/import-drills.ts`가 리포 내 문항 원본 `content/drills-src/*.json`(#93에서 업스트림 `aws-cloud-drills`로부터 11과목 이관 — 이 리포가 정본, 업스트림은 동결)을 규약 v3 `Question`으로 변환해 만든다. **손편집 금지**이고, 고칠 게 있으면 `drills-src`의 JSON을 고쳐 재실행한다.
 
 `meta.ts`가 그 문항을 챕터 `quiz`로 삼는 방식은 두 가지이며 **둘 다 계약된 패턴**이다:
 
@@ -210,7 +210,7 @@ flowchart LR
     bodytsx --> reg
   end
 
-  drillsrc["aws-cloud-drills<br/>(별도 리포 JSON)"] -->|"import-drills.ts"| drills["drills.ts (생성물)"]
+  drillsrc["content/drills-src/*.json<br/>(문항 원본 — 리포 내 정본)"] -->|"import-drills.ts"| drills["drills.ts (생성물)"]
   drills -->|"전량 또는 slug 선별"| meta
 
   jsx -.->|"수동 변환 (진행 중 — 수치는 §5-4)"| meta

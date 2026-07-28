@@ -1,0 +1,734 @@
+[
+  {
+    "slug": "dynamodb-partition-key-hot-partition",
+    "chapterId": "dynamodb",
+    "title": "핫 파티션을 피하는 파티션 키 설계",
+    "question": "IoT 센서 데이터를 수집하는 DynamoDB 테이블이 파티션 키로 '수집 날짜(YYYY-MM-DD)'를 사용하고 있다. 쓰기가 항상 오늘 날짜 한 값에 몰리면서 쓰기 스로틀링이 발생한다. 근본적인 해결책은?",
+    "choices": [
+      "같은 키 설계를 유지하고 테이블의 쓰기 용량(WCU)만 크게 올린다.",
+      "파티션 키를 디바이스 ID처럼 값이 많고 접근이 고르게 분산되는 속성으로 바꾼 테이블을 설계한다.",
+      "모든 읽기를 강한 일관성(strongly consistent read)으로 전환한다.",
+      "날짜 속성을 로컬 보조 인덱스(LSI)로 옮긴다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "스루풋은 파티션 단위로 분산되므로, 카디널리티가 높고 접근이 고른 파티션 키만이 근본 해결책입니다.",
+    "explanation": [
+      "DynamoDB는 데이터와 처리량을 파티션 키 값 기준으로 여러 파티션에 분산한다. 키가 '오늘 날짜' 하나로 쏠리면 테이블 전체 용량이 아무리 커도 그 파티션 하나의 처리 한도에 막힌다 — 이것이 핫 파티션이다.",
+      "해결책은 쓰기가 자연스럽게 분산되는 키 설계다: 디바이스 ID처럼 카디널리티(고유 값 수)가 높고 시점별 접근이 고른 속성을 파티션 키로 쓰고, 시간 범위 조회가 필요하면 타임스탬프를 정렬 키로 둔다. 적응형 용량(adaptive capacity)이 쏠림을 일부 완화해 주지만, 단일 파티션의 물리적 한도를 넘게 해 주지는 않는다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "테이블 용량을 올려도 처리량은 파티션에 나뉘어 배분된다. 쓰기가 한 파티션에 몰리는 구조가 그대로면 스로틀링도 그대로다."
+      },
+      {
+        "choice": 2,
+        "note": "강한 일관성은 읽기의 일관성 수준 선택지일 뿐, 쓰기 스로틀링과 무관하다 (오히려 읽기 비용은 늘어난다)."
+      },
+      {
+        "choice": 3,
+        "note": "LSI는 기본 테이블과 파티션 키를 공유한다. 쏠린 파티션 키 문제를 옮겨 놓을 뿐 해결하지 못하고, 테이블 생성 시에만 만들 수 있다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "partition-key",
+      "hot-partition",
+      "throttling"
+    ],
+    "references": [
+      {
+        "title": "Best practices for designing and using partition keys effectively in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-conditional-write-duplicate-order",
+    "chapterId": "dynamodb",
+    "title": "중복 주문 생성을 막는 쓰기 방법",
+    "question": "주문 테이블(파티션 키: orderId)에 PutItem으로 주문을 저장한다. 네트워크 재시도 때문에 같은 orderId의 PutItem이 두 번 실행되면 기존 항목이 조용히 덮어써진다. 이미 존재하는 주문이면 쓰기가 실패하게 만드는 방법은?",
+    "choices": [
+      "PutItem 전에 강한 일관성 GetItem으로 존재 여부를 확인하고 없을 때만 쓴다.",
+      "PutItem 대신 BatchWriteItem을 사용한다.",
+      "DynamoDB Streams로 중복 항목을 감지해 사후에 삭제한다.",
+      "PutItem에 ConditionExpression으로 attribute_not_exists(orderId) 를 지정한다."
+    ],
+    "answers": [
+      3
+    ],
+    "answerSummary": "조건부 쓰기(attribute_not_exists)는 '없을 때만 쓰기'를 서버 측에서 원자적으로 보장합니다.",
+    "explanation": [
+      "ConditionExpression이 붙은 PutItem은 조건 평가와 쓰기를 DynamoDB가 원자적으로 처리한다. attribute_not_exists(orderId)는 같은 키의 항목이 이미 있으면 ConditionalCheckFailedException을 던지고 쓰기를 거부하므로, 재시도로 인한 중복 PutItem이 기존 주문을 덮어쓰는 일을 막는다.",
+      "이 패턴은 멱등한 생성(idempotent create)의 표준 구현이다. 같은 메커니즘(조건식 + 버전 속성)을 갱신에 적용하면 낙관적 잠금(optimistic locking)이 된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "읽기-확인-쓰기는 두 호출 사이에 다른 쓰기가 끼어들 수 있는 레이스 컨디션이 있다. 강한 일관성 읽기도 이 틈을 없애지 못한다."
+      },
+      {
+        "choice": 1,
+        "note": "BatchWriteItem은 여러 항목을 묶어 쓰는 API일 뿐이며, 조건식을 지원하지 않아 덮어쓰기를 막을 수 없다."
+      },
+      {
+        "choice": 2,
+        "note": "Streams 기반 사후 처리는 덮어쓰기가 이미 일어난 뒤의 대응이고, 원래 항목은 이미 유실된 상태다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "condition-expression",
+      "conditional-write",
+      "idempotency"
+    ],
+    "references": [
+      {
+        "title": "Using expressions in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.html"
+      },
+      {
+        "title": "Working with items and attributes in DynamoDB (Conditional writes)",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-gsi-for-new-query-pattern",
+    "chapterId": "dynamodb",
+    "title": "운영 중인 테이블에 새 쿼리 패턴 추가하기",
+    "question": "userId를 파티션 키로 쓰는 운영 중인 사용자 테이블이 있다. 새 기능에서 email 값으로도 사용자를 효율적으로 조회해야 한다. 테이블을 다시 만들지 않고 해결하는 방법은?",
+    "choices": [
+      "email을 파티션 키로 하는 글로벌 보조 인덱스(GSI)를 추가한다.",
+      "email을 정렬 키로 하는 로컬 보조 인덱스(LSI)를 추가한다.",
+      "Scan에 FilterExpression으로 email 조건을 걸어 조회한다.",
+      "테이블의 파티션 키를 email로 변경한다."
+    ],
+    "answers": [
+      0
+    ],
+    "answerSummary": "GSI는 기존 테이블에 언제든 추가할 수 있고, 기본 테이블과 다른 파티션 키로 새 조회 패턴을 만들어 줍니다.",
+    "explanation": [
+      "글로벌 보조 인덱스(GSI)는 기본 테이블과 완전히 다른 파티션 키(필요하면 정렬 키도)를 가질 수 있고, 운영 중인 테이블에 나중에 추가할 수 있다. email을 GSI의 파티션 키로 두면 Query로 효율적인 단건 조회가 가능하다.",
+      "GSI와 LSI의 구분은 단골 출제 포인트다: LSI는 파티션 키가 기본 테이블과 같아야 하고 테이블 생성 시에만 만들 수 있는 반면, GSI는 키 구성이 자유롭고 추가 시점 제약이 없다. '기존 테이블 + 새로운 키로 조회'가 보이면 GSI다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "LSI는 기본 테이블과 같은 파티션 키를 써야 하고 테이블 생성 시에만 추가할 수 있다 — 두 조건 모두 이 문제와 맞지 않는다."
+      },
+      {
+        "choice": 2,
+        "note": "Scan은 테이블 전체를 읽은 뒤 필터링하므로 데이터가 늘수록 느리고 비싸진다. 반복 조회 패턴의 해법이 아니다."
+      },
+      {
+        "choice": 3,
+        "note": "테이블의 기본 키는 생성 후 변경할 수 없다. 바꾸려면 새 테이블로의 마이그레이션이 필요해 '다시 만들지 않고'라는 조건에 어긋난다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "gsi",
+      "lsi",
+      "secondary-index"
+    ],
+    "references": [
+      {
+        "title": "Using Global Secondary Indexes in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html"
+      },
+      {
+        "title": "Local secondary indexes",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LSI.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-throughput-exceeded-mitigation",
+    "chapterId": "dynamodb",
+    "title": "ProvisionedThroughputExceededException 줄이기",
+    "question": "출시 직후라 트래픽 예측이 어려운 서비스의 DynamoDB 테이블(프로비저닝 모드)에서 피크 시간대마다 ProvisionedThroughputExceededException이 발생한다. 예외 발생을 줄이는 적절한 조치는? (2개를 고르세요)",
+    "choices": [
+      "AWS SDK의 지수 백오프 재시도가 동작하는지 확인하고 재시도 설정을 워크로드에 맞게 조정한다.",
+      "조회 성능을 높이기 위해 테이블 읽기를 병렬 Scan(parallel scan)으로 처리한다.",
+      "모든 읽기를 강한 일관성 읽기로 전환한다.",
+      "테이블을 온디맨드(on-demand) 용량 모드로 전환해 트래픽에 따라 용량이 자동 조절되게 한다."
+    ],
+    "answers": [
+      0,
+      3
+    ],
+    "answerSummary": "단기 스파이크는 SDK 지수 백오프로 흡수하고, 예측 불가한 트래픽은 온디맨드 모드로 받아냅니다.",
+    "explanation": [
+      "ProvisionedThroughputExceededException은 소비 용량이 프로비저닝된 용량을 초과할 때 발생한다. AWS SDK에는 지수 백오프 재시도가 내장되어 있어 순간적인 초과는 재시도 시점 분산으로 자연 흡수된다 — 먼저 재시도가 꺼져 있거나 너무 공격적이지 않은지 확인하고 조정하는 것이 1차 조치다.",
+      "트래픽 예측이 어려운 신규 서비스라면 용량 모드 자체를 온디맨드로 바꾸는 것이 적합하다. 온디맨드는 요청량에 따라 과금·확장되므로 용량 산정 없이 급증 트래픽을 수용한다. 패턴이 안정화되면 비용 최적화를 위해 프로비저닝 + Auto Scaling으로 돌아가는 선택지도 생긴다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "병렬 Scan은 더 많은 세그먼트를 동시에 읽어 용량을 오히려 더 빨리 소진한다 — 스로틀링을 줄이는 게 아니라 키운다."
+      },
+      {
+        "choice": 2,
+        "note": "강한 일관성 읽기는 최종 일관성 읽기의 2배 RCU를 소비하므로 초과 예외를 더 자주 발생시킨다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "throttling",
+      "on-demand",
+      "exponential-backoff"
+    ],
+    "references": [
+      {
+        "title": "Error handling with DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html"
+      },
+      {
+        "title": "DynamoDB throughput capacity",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-dax-microsecond-reads",
+    "chapterId": "dynamodb",
+    "title": "마이크로초 지연이 필요한 읽기 집중 워크로드",
+    "question": "상품 카탈로그를 제공하는 DynamoDB 테이블이 있다. 읽기가 압도적으로 많고 같은 인기 상품이 반복 조회되며, 비즈니스 요구로 읽기 지연을 밀리초에서 마이크로초 수준으로 낮춰야 한다. 애플리케이션 코드 변경은 최소화해야 한다. 가장 적절한 방법은?",
+    "choices": [
+      "테이블의 읽기 용량(RCU)을 대폭 상향한다.",
+      "DynamoDB Accelerator(DAX) 클러스터를 도입하고 클라이언트를 DAX 엔드포인트로 향하게 한다.",
+      "ElastiCache for Redis를 도입하고 애플리케이션에 캐시 조회·무효화 로직을 직접 구현한다.",
+      "자주 조회되는 속성으로 글로벌 보조 인덱스(GSI)를 추가한다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "DAX는 DynamoDB API와 호환되는 관리형 인메모리 캐시라, 코드 변경을 최소화하면서 읽기를 마이크로초로 낮춥니다.",
+    "explanation": [
+      "DAX는 DynamoDB 전용 관리형 인메모리 캐시로, 캐시 적중 시 마이크로초 수준의 읽기 지연을 제공한다. 핵심 차별점은 API 호환성이다 — DAX 클라이언트가 기존 DynamoDB 호출 인터페이스를 그대로 구현하므로, 엔드포인트를 바꾸는 수준의 최소 변경으로 도입할 수 있고 캐시 적중·미스 관리도 DAX가 처리한다.",
+      "시험에서는 'DynamoDB + 읽기 집중 + 마이크로초 + 코드 변경 최소화' 조합이 DAX의 시그니처 키워드다. 범용 캐시가 필요하거나 DynamoDB 외 데이터 소스도 캐싱해야 하면 그때 ElastiCache가 답이 된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "RCU를 올리면 스로틀링은 줄지만 읽기 지연은 여전히 한 자릿수 밀리초 수준이다 — 마이크로초 요구를 충족할 수 없다."
+      },
+      {
+        "choice": 2,
+        "note": "Redis로도 같은 지연 목표는 달성할 수 있지만, 캐시 키 설계·조회·무효화 로직을 직접 구현해야 해 '코드 변경 최소화' 조건에 어긋난다."
+      },
+      {
+        "choice": 3,
+        "note": "GSI는 다른 키로 조회하기 위한 수단이지 지연을 낮추는 수단이 아니다. GSI 읽기도 밀리초 수준이다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "dax",
+      "caching",
+      "performance"
+    ],
+    "references": [
+      {
+        "title": "In-memory acceleration with DynamoDB Accelerator (DAX)",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-ttl-auto-expire-sessions",
+    "chapterId": "dynamodb",
+    "title": "세션 항목을 자동으로 만료시키기",
+    "question": "사용자 세션을 DynamoDB에 저장하는데, 만료된 세션이 계속 쌓여 스토리지 비용이 늘고 있다. 추가 쓰기 용량을 거의 들이지 않고 만료된 항목을 자동으로 정리하고 싶다. 가장 적절한 방법은?",
+    "choices": [
+      "매일 Scan으로 만료된 항목을 찾아 BatchWriteItem으로 삭제하는 배치 작업을 운영한다.",
+      "CloudWatch Events 규칙으로 1시간마다 Lambda를 호출해 만료 항목을 DeleteItem 한다.",
+      "각 항목에 만료 시각(Unix epoch 초)을 담은 속성을 두고 그 속성을 TTL 속성으로 지정한다.",
+      "테이블에 짧은 보존 기간을 설정해 일정 시간이 지난 모든 항목이 삭제되게 한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "TTL은 항목별 만료 타임스탬프 속성을 기준으로, 쓰기 용량을 소비하지 않고 만료 항목을 자동 삭제합니다.",
+    "explanation": [
+      "DynamoDB의 Time to Live(TTL)는 항목마다 만료 시각을 담은 Number 타입 속성(Unix epoch 시간, 초 단위)을 지정하면, 만료된 항목을 백그라운드에서 자동 삭제한다. 이 삭제는 테이블의 쓰기 용량(WCU)을 소비하지 않으므로 비용 효율적이다.",
+      "주의할 점: 삭제는 만료 시각 직후가 아니라 보통 며칠 이내에 이뤄지며, 아직 삭제되지 않은 만료 항목은 Query·Scan 결과에 그대로 보인다. 만료 항목을 결과에서 즉시 제외하려면 FilterExpression으로 걸러야 한다.",
+      "테이블 자체에는 '보존 기간(retention)' 같은 글로벌 설정이 없다 — 만료는 항상 항목별 TTL 속성 값으로 결정된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "Scan + BatchWriteItem 배치는 동작은 하지만 읽기·쓰기 용량을 모두 소비하고 직접 운영해야 한다. TTL이 같은 일을 용량 소비 없이 관리형으로 처리한다."
+      },
+      {
+        "choice": 1,
+        "note": "Lambda 폴링 삭제도 가능하지만 호출·DeleteItem 쓰기 비용과 운영 부담이 든다. 단순 만료 정리는 TTL이 정석이다."
+      },
+      {
+        "choice": 3,
+        "note": "DynamoDB 테이블에는 '일정 시간 후 모든 항목 삭제' 같은 테이블 단위 보존 설정이 없다. 만료는 항목별 TTL 속성으로만 지정한다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "ttl",
+      "expiration",
+      "cost-optimization"
+    ],
+    "references": [
+      {
+        "title": "Using time to live (TTL) in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-lsi-strongly-consistent-read",
+    "chapterId": "dynamodb",
+    "title": "보조 인덱스에서 강한 일관성 읽기가 필요할 때",
+    "question": "테이블(파티션 키: customerId, 정렬 키: orderDate)에서 같은 customerId의 주문을 'status' 값으로도 정렬·조회해야 한다. 이 조회는 방금 쓴 결과까지 반드시 반영되는 강한 일관성 읽기가 요구된다. 어떤 인덱스를 만들어야 하는가?",
+    "choices": [
+      "어떤 보조 인덱스를 쓰든 강한 일관성 읽기가 가능하므로 GSI를 만든다.",
+      "customerId를 파티션 키, status를 정렬 키로 하는 로컬 보조 인덱스(LSI)를 만든다.",
+      "status를 파티션 키로 하는 글로벌 보조 인덱스(GSI)를 만든다.",
+      "보조 인덱스로는 강한 일관성을 얻을 수 없으므로 매번 기본 테이블을 Scan한다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "보조 인덱스 중 강한 일관성 읽기를 지원하는 것은 LSI뿐이고, LSI는 기본 테이블과 파티션 키를 공유합니다.",
+    "explanation": [
+      "DynamoDB에서 GSI와 스트림의 읽기는 항상 최종 일관성(eventually consistent)이다. 강한 일관성 읽기는 테이블과 LSI에서만 가능하다. 따라서 '보조 인덱스 + 강한 일관성' 요구가 보이면 답은 LSI다.",
+      "이 시나리오는 같은 파티션 키(customerId) 안에서 다른 정렬 키(status)로 조회하는 패턴이라 LSI의 제약(파티션 키를 기본 테이블과 공유)에도 잘 맞는다. LSI는 테이블 생성 시점에만 만들 수 있다는 점만 설계 단계에서 챙기면 된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "GSI 읽기는 항상 최종 일관성이다. '아무 보조 인덱스나 강한 일관성 가능'은 틀린 전제다."
+      },
+      {
+        "choice": 2,
+        "note": "GSI는 다른 파티션 키로 조회할 때 쓰지만, GSI 읽기는 강한 일관성을 지원하지 않아 요구사항을 충족하지 못한다."
+      },
+      {
+        "choice": 3,
+        "note": "Scan은 비효율적일 뿐 아니라 정렬 조회 요구도 충족하지 못한다. 강한 일관성 인덱스 조회라는 본질을 놓친 선택이다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "lsi",
+      "gsi",
+      "read-consistency"
+    ],
+    "references": [
+      {
+        "title": "DynamoDB read consistency",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html"
+      },
+      {
+        "title": "Local secondary indexes",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LSI.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-transaction-all-or-nothing",
+    "chapterId": "dynamodb",
+    "title": "여러 항목을 전부 성공 또는 전부 실패로 쓰기",
+    "question": "은행 앱에서 한 계좌의 잔액을 차감하면서 동시에 다른 계좌의 잔액을 더해야 한다. 두 쓰기 중 하나라도 실패하면 둘 다 적용되지 않아야 한다(부분 적용 절대 불가). 어떤 API가 적합한가?",
+    "choices": [
+      "두 UpdateItem을 순서대로 호출하고, 두 번째가 실패하면 첫 번째를 보상 트랜잭션으로 되돌린다.",
+      "두 PutRequest를 담은 BatchWriteItem을 호출한다.",
+      "두 UpdateItem 모두에 ConditionExpression을 붙여 호출한다.",
+      "두 UpdateItem 액션을 하나의 TransactWriteItems 호출로 묶는다."
+    ],
+    "answers": [
+      3
+    ],
+    "answerSummary": "TransactWriteItems는 여러 항목 쓰기를 all-or-nothing 원자 연산으로 묶어 부분 적용을 원천 차단합니다.",
+    "explanation": [
+      "TransactWriteItems는 최대 100개의 쓰기 액션(Put/Update/Delete/ConditionCheck)을 하나의 all-or-nothing 연산으로 묶는다. 전부 성공하거나 하나라도 실패하면 전부 적용되지 않으므로, 계좌 이체처럼 부분 적용이 허용되지 않는 시나리오의 정답이다.",
+      "BatchWriteItem과의 차이가 핵심 출제 포인트다: BatchWriteItem은 일부만 성공할 수 있는(원자적이지 않은) 연산이다. 반면 TransactWriteItems는 ACID를 보장한다. 두 액션이 같은 항목을 대상으로 하면 안 되고, 트랜잭션은 항목당 두 번의 내부 쓰기(준비+커밋)를 수행해 용량을 2배 소비한다는 점도 함께 기억한다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "수동 보상 트랜잭션은 보상 호출 자체가 실패하면 불일치가 남는다. DynamoDB가 원자성을 직접 보장하는 TransactWriteItems가 정석이다."
+      },
+      {
+        "choice": 1,
+        "note": "BatchWriteItem은 원자적이지 않아 일부 요청만 성공할 수 있고, UpdateItem(증감)도 지원하지 않는다 — 이체 요구를 충족하지 못한다."
+      },
+      {
+        "choice": 2,
+        "note": "조건식이 붙어도 두 UpdateItem은 별개의 호출이라 하나만 적용되는 부분 실패가 가능하다. 원자적 묶음이 아니다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "transactions",
+      "transact-write-items",
+      "atomicity"
+    ],
+    "references": [
+      {
+        "title": "Amazon DynamoDB Transactions: How it works",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-streams-lambda-trigger",
+    "chapterId": "dynamodb",
+    "title": "항목 변경에 반응해 후속 처리 실행하기",
+    "question": "주문 테이블에 새 주문이 추가되면 거의 실시간으로 환영 알림을 보내는 후속 처리를 붙이고 싶다. 애플리케이션이 매번 별도 알림 호출을 하지 않고, 테이블 변경 자체를 트리거로 삼는 가장 적절한 구성은?",
+    "choices": [
+      "테이블에 DynamoDB Streams를 켜고, 그 스트림을 이벤트 소스로 하는 Lambda 함수가 변경 레코드를 처리하게 한다.",
+      "애플리케이션을 1분마다 Scan 해서 새 주문을 찾아 알림을 보낸다.",
+      "GSI를 추가해 새 주문을 빠르게 조회한 뒤 알림을 보낸다.",
+      "테이블에 TTL을 켜서 새 항목 추가를 감지한다."
+    ],
+    "answers": [
+      0
+    ],
+    "answerSummary": "DynamoDB Streams + Lambda 트리거는 항목 변경을 거의 실시간으로 후속 코드로 흘려보내는 표준 패턴입니다.",
+    "explanation": [
+      "DynamoDB Streams는 테이블의 항목 수준 변경(생성/수정/삭제)을 시간 순서대로 캡처한다. 여기에 Lambda를 이벤트 소스 매핑으로 연결하면, 변경 레코드가 들어올 때마다 Lambda가 자동 호출되어 알림 발송 같은 후속 처리를 실행한다 — 애플리케이션 쪽 추가 호출이 필요 없다.",
+      "스트림 뷰 타입(KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES)으로 레코드에 담길 정보를 정한다. 알림에 주문 내용이 필요하면 NEW_IMAGE가 적절하다. 하나의 스트림에는 최대 2개의 Lambda를 붙이는 것이 권장된다(그 이상이면 읽기 스로틀링 위험)."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 1,
+        "note": "주기적 Scan은 지연이 크고 테이블 전체를 반복해서 읽어 비효율적이다 — '거의 실시간' 트리거가 아니다."
+      },
+      {
+        "choice": 2,
+        "note": "GSI는 다른 키로 '조회'하는 수단이지, 변경 이벤트를 트리거로 흘려보내는 메커니즘이 아니다."
+      },
+      {
+        "choice": 3,
+        "note": "TTL은 만료 항목을 삭제하는 기능이지 항목 추가를 감지하는 트리거가 아니다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "streams",
+      "lambda",
+      "event-driven"
+    ],
+    "references": [
+      {
+        "title": "Change data capture for DynamoDB Streams",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html"
+      },
+      {
+        "title": "DynamoDB Streams and AWS Lambda triggers",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.Lambda.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-optimistic-locking-version",
+    "chapterId": "dynamodb",
+    "title": "동시 수정에서 갱신 손실 막기 (낙관적 잠금)",
+    "question": "재고 항목을 여러 워커가 동시에 UpdateItem으로 수정한다. 한 워커가 읽은 뒤 갱신하는 사이 다른 워커가 같은 항목을 바꾸면, 나중 쓰기가 앞선 변경을 덮어쓰는 '갱신 손실(lost update)'이 발생한다. 코드 흐름을 크게 바꾸지 않고 이를 막는 표준 패턴은?",
+    "choices": [
+      "UpdateItem을 BatchWriteItem으로 바꾼다.",
+      "모든 읽기를 강한 일관성으로 바꾼다.",
+      "항목에 version 속성을 두고, UpdateItem에서 version이 읽은 값과 같을 때만(ConditionExpression) 쓰면서 version을 1 증가시킨다.",
+      "테이블에 TTL을 설정해 오래된 버전이 자동 만료되게 한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "버전 속성 + 조건부 쓰기(낙관적 잠금)는 '내가 읽은 그 버전일 때만 갱신'을 보장해 갱신 손실을 막습니다.",
+    "explanation": [
+      "낙관적 잠금(optimistic locking)은 항목에 version 같은 속성을 두고, 쓸 때 'version이 내가 읽은 값과 같다'는 조건식을 건다. 조건이 참이면 쓰기와 동시에 version을 증가시키고, 그 사이 다른 워커가 먼저 갱신해 version이 바뀌었으면 ConditionalCheckFailedException으로 거부된다 — 거부되면 다시 읽고 재시도하면 된다.",
+      "이것은 조건부 쓰기(conditional write)를 갱신에 응용한 형태로, 잠금을 들지 않으면서도 갱신 손실을 막는다. DynamoDB의 쓰기는 단일 항목 수준에서 원자적이므로 조건 평가와 쓰기 사이에 틈이 없다는 점이 핵심이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "BatchWriteItem은 묶음 쓰기일 뿐 조건식을 지원하지 않아 갱신 손실을 막지 못한다."
+      },
+      {
+        "choice": 1,
+        "note": "강한 일관성 읽기는 최신 값을 읽게 해 줄 뿐, 읽은 뒤 쓰기 사이의 동시 수정으로 인한 덮어쓰기는 막지 못한다."
+      },
+      {
+        "choice": 3,
+        "note": "TTL은 만료 삭제 기능이지 동시성 제어와 무관하다 — 갱신 손실 문제를 전혀 다루지 못한다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "optimistic-locking",
+      "conditional-write",
+      "concurrency"
+    ],
+    "references": [
+      {
+        "title": "Working with items and attributes in DynamoDB (Conditional writes)",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-consistent-read-rcu-cost",
+    "chapterId": "dynamodb",
+    "title": "강한 일관성 읽기와 RCU 비용",
+    "question": "프로비저닝 모드 테이블에서 GetItem을 모두 강한 일관성(ConsistentRead=true)으로 바꿨더니 읽기 스로틀링이 잦아졌다. 트래픽은 그대로인데 왜 그런가, 그리고 일반적으로 적합한 대응은?",
+    "choices": [
+      "강한 일관성 읽기는 항목을 두 번 읽어 네트워크 비용이 늘기 때문이다. SDK 재시도를 끈다.",
+      "강한 일관성 읽기는 최종 일관성 읽기보다 RCU를 약 2배 소비하기 때문이다. 최신 데이터가 꼭 필요한 호출만 강한 일관성으로 두고 나머지는 기본(최종 일관성)으로 되돌린다.",
+      "강한 일관성 읽기는 GSI를 거치기 때문이다. GSI를 삭제한다.",
+      "강한 일관성 읽기는 파티션을 더 많이 만들기 때문이다. 파티션 키를 단순화한다."
+    ],
+    "answers": [
+      1
+    ],
+    "answerSummary": "강한 일관성 읽기는 최종 일관성 대비 RCU를 약 2배 소비하므로, 필요한 호출에만 선택적으로 사용합니다.",
+    "explanation": [
+      "DynamoDB RCU 계산에서 4KB 항목 기준으로 최종 일관성 읽기는 0.5 RCU, 강한 일관성 읽기는 1 RCU를 소비한다 — 즉 강한 일관성 읽기는 약 2배 비싸다. 모든 GetItem을 강한 일관성으로 바꾸면 같은 트래픽에서도 RCU 소비가 2배가 되어 프로비저닝 한도를 더 자주 넘게 된다.",
+      "대응은 일관성 요구를 호출 단위로 따지는 것이다. 방금 쓴 값을 즉시 정확히 읽어야 하는 호출만 강한 일관성으로 두고, 약간의 지연 반영이 허용되는 대다수 읽기는 기본값(최종 일관성)으로 되돌리면 RCU 소비가 절반 수준으로 줄어든다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "비용 증가의 원인은 '두 번 읽기'가 아니라 RCU 단가 차이다. 게다가 재시도를 끄면 스로틀링이 곧장 오류로 노출돼 상황이 악화된다."
+      },
+      {
+        "choice": 2,
+        "note": "강한 일관성 읽기는 테이블·LSI에서 수행되며 GSI와 무관하다. 오히려 GSI는 강한 일관성을 지원하지 않는다."
+      },
+      {
+        "choice": 3,
+        "note": "읽기 일관성 수준은 파티션 수와 무관하다. 파티션 키 변경은 이 문제의 원인·해법이 아니다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "read-consistency",
+      "rcu",
+      "cost-optimization"
+    ],
+    "references": [
+      {
+        "title": "DynamoDB read consistency",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-scan-pagination-last-evaluated-key",
+    "chapterId": "dynamodb",
+    "title": "Scan 결과 페이지네이션 처리하기",
+    "question": "큰 테이블을 Scan 하는 코드가 첫 호출 결과만 처리하고 나머지 데이터를 놓치고 있다. 올바른 페이지네이션 처리에 대한 설명으로 옳은 것을 모두 고르세요. (2개를 고르세요)",
+    "choices": [
+      "한 번의 Scan 응답은 최대 1MB까지만 반환하므로, 큰 데이터는 여러 페이지로 나뉜다.",
+      "응답에 LastEvaluatedKey가 있으면 그 값을 다음 요청의 ExclusiveStartKey로 넘겨 다음 페이지를 읽는다.",
+      "응답에 LastEvaluatedKey가 없으면 데이터가 더 있다는 뜻이므로 계속 호출해야 한다.",
+      "FilterExpression을 쓰면 1MB 제한이 사라져 한 번에 전체를 받을 수 있다."
+    ],
+    "answers": [
+      0,
+      1
+    ],
+    "answerSummary": "Scan은 응답당 1MB로 제한되며, LastEvaluatedKey를 다음 요청의 ExclusiveStartKey로 넘겨 페이지를 이어 읽습니다.",
+    "explanation": [
+      "Scan(및 Query)은 한 응답에 최대 1MB의 데이터만 반환한다. 데이터가 더 있으면 응답에 LastEvaluatedKey가 포함되고, 이 값을 다음 Scan 요청의 ExclusiveStartKey로 넘겨 다음 페이지를 이어서 읽는다. 첫 호출 결과만 처리하면 나머지 페이지를 놓치게 된다.",
+      "종료 조건은 명확하다: 응답에 LastEvaluatedKey가 '없을 때'가 마지막 페이지라는 신호다. AWS SDK 다수는 이 저수준 페이지네이션을 자동 반복(paginator)으로 감싸 준다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 2,
+        "note": "반대다. LastEvaluatedKey가 '없을 때'가 마지막 페이지라는 신호이며, '있을 때' 더 읽어야 한다."
+      },
+      {
+        "choice": 3,
+        "note": "FilterExpression은 1MB를 읽은 뒤 결과를 거르는 것이라 1MB 제한과 소비 용량을 그대로 둔다 — 제한이 사라지지 않는다."
+      }
+    ],
+    "difficulty": "medium",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "scan",
+      "pagination",
+      "last-evaluated-key"
+    ],
+    "references": [
+      {
+        "title": "Scanning tables in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-batchgetitem-unprocessed-keys",
+    "chapterId": "dynamodb",
+    "title": "BatchGetItem의 UnprocessedKeys 처리",
+    "question": "BatchGetItem으로 100개 항목을 한 번에 조회하는데, 일부 항목이 가끔 응답에서 빠져 누락된 것처럼 보인다. 호출은 HTTP 200으로 성공한다. 원인과 올바른 처리는?",
+    "choices": [
+      "BatchGetItem이 100개를 초과하면 항상 실패하므로, 요청을 50개씩 쪼갠다.",
+      "누락 항목은 테이블에 존재하지 않는 것이므로, 애플리케이션에서 없는 것으로 처리한다.",
+      "응답 크기·처리량 한도 초과 등으로 일부가 처리되지 않으면 UnprocessedKeys에 담겨 오므로, 그 키들을 지수 백오프로 재시도한다.",
+      "강한 일관성 읽기로 바꾸면 BatchGetItem이 모든 항목을 한 번에 반드시 반환한다."
+    ],
+    "answers": [
+      2
+    ],
+    "answerSummary": "BatchGetItem은 한도 초과 시 일부를 UnprocessedKeys로 돌려주는 부분 결과 API이며, 그 키를 지수 백오프로 재시도해야 합니다.",
+    "explanation": [
+      "BatchGetItem은 응답 크기 한도(16MB) 초과, 테이블 프로비저닝 처리량 초과, 파티션당 1MB 초과, 내부 처리 실패 등으로 일부 항목을 처리하지 못할 수 있다. 이때 호출은 HTTP 200으로 성공하면서, 처리되지 못한 키를 UnprocessedKeys에 담아 돌려준다 — 이 값을 그대로 다음 BatchGetItem 요청에 넣어 재시도하면 된다.",
+      "재시도는 지수 백오프(exponential backoff)와 함께 해야 한다. 즉시 재시도하면 같은 스로틀링에 다시 막히기 쉽기 때문이다. 누락을 '항목 없음'으로 오해하면 데이터 유실처럼 보이는 버그가 된다. UnprocessedKeys 맵이 비어 있으면 모든 항목이 처리된 것이다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "100개는 BatchGetItem의 허용 상한이라 그 자체로 실패하지 않는다. 100개 '초과' 요청만 ValidationException이 된다 — 누락의 원인은 한도 초과로 인한 UnprocessedKeys다."
+      },
+      {
+        "choice": 1,
+        "note": "누락이 곧 '존재하지 않음'은 아니다. 한도 초과로 처리되지 못했을 수 있으므로 UnprocessedKeys를 재시도하지 않으면 데이터 유실로 이어진다."
+      },
+      {
+        "choice": 3,
+        "note": "강한 일관성 여부는 부분 결과 발생과 무관하다. ConsistentRead로 바꿔도 한도 초과 시 UnprocessedKeys는 여전히 생긴다 (오히려 RCU를 더 소비)."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 4,
+    "tags": [
+      "dynamodb",
+      "batch-get-item",
+      "unprocessed-keys",
+      "exponential-backoff"
+    ],
+    "references": [
+      {
+        "title": "BatchGetItem",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-large-item-s3-pointer",
+    "chapterId": "dynamodb",
+    "title": "400KB를 넘는 큰 속성 저장하기",
+    "question": "각 항목에 사용자가 업로드한 큰 첨부(수 MB)를 함께 저장하려다 보니 DynamoDB의 항목 크기 한도를 초과해 쓰기가 ValidationException으로 실패한다. 핵심 메타데이터는 DynamoDB에서 빠르게 조회하면서 큰 데이터도 다루려 한다. 적절한 방법을 모두 고르세요. (2개를 고르세요)",
+    "choices": [
+      "큰 첨부는 Amazon S3에 객체로 저장하고, DynamoDB 항목에는 그 객체 식별자(포인터)만 보관한다.",
+      "큰 속성을 GZIP 등으로 압축해 Binary 속성으로 저장하거나, 한 항목을 정렬 키로 여러 항목으로 쪼개 보관한다.",
+      "테이블의 항목 크기 한도를 콘솔에서 1MB로 상향한다.",
+      "큰 속성을 그대로 두고 BatchWriteItem으로 나눠 쓰면 한도를 우회할 수 있다."
+    ],
+    "answers": [
+      0,
+      1
+    ],
+    "answerSummary": "큰 데이터는 S3에 두고 포인터만 저장하거나, 압축/수직 분할로 400KB 항목 한도 안에 맞춥니다.",
+    "explanation": [
+      "DynamoDB 항목 크기 상한은 400KB이며 이를 넘기면 ValidationException으로 쓰기가 실패한다. 권장 패턴은 큰 객체를 Amazon S3에 저장하고 DynamoDB 항목에는 S3 객체 식별자(포인터)만 두는 것이다 — 메타데이터 조회는 DynamoDB에서 빠르게, 큰 데이터는 S3에서 가져온다.",
+      "대안으로, 큰 속성을 압축(GZIP/LZO)해 Binary 타입으로 저장하거나, 한 논리적 항목을 같은 파티션 키 + 다른 정렬 키의 여러 항목으로 수직 분할(vertical partitioning)해 각 항목을 한도 안에 맞출 수 있다.",
+      "주의: DynamoDB와 S3에 걸친 트랜잭션은 지원되지 않으므로, S3 포인터 패턴에서는 고아 객체 정리 등 실패 처리를 애플리케이션이 책임져야 한다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 2,
+        "note": "항목 크기 한도(400KB)는 고정값이며 콘솔에서 상향할 수 없다. '1MB로 변경'은 존재하지 않는 설정이다."
+      },
+      {
+        "choice": 3,
+        "note": "한도는 '항목당' 적용된다. BatchWriteItem으로 나눠 써도 개별 항목이 400KB를 넘으면 그대로 실패한다 — 우회가 아니다."
+      }
+    ],
+    "difficulty": "hard",
+    "domain": 1,
+    "tags": [
+      "dynamodb",
+      "item-size-limit",
+      "s3",
+      "data-modeling"
+    ],
+    "references": [
+      {
+        "title": "Best practices for storing large items and attributes in DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-use-s3-too.html"
+      }
+    ]
+  },
+  {
+    "slug": "dynamodb-partiql-sql-queries",
+    "chapterId": "dynamodb",
+    "title": "DynamoDB에 SQL 호환 쿼리 쓰기",
+    "question": "SQL에 익숙한 팀이 DynamoDB 테이블에 대해 SELECT/INSERT/UPDATE/DELETE 같은 SQL 호환 구문으로 데이터를 조작하고 싶어 한다. 별도 데이터 이전 없이 DynamoDB가 직접 제공하는 방법은?",
+    "choices": [
+      "테이블을 Amazon RDS로 옮겨 표준 SQL을 쓴다.",
+      "Amazon Athena로 DynamoDB 테이블에 직접 SQL을 실행한다.",
+      "DynamoDB 앞에 별도 변환 계층을 만들어 SQL을 DynamoDB API 호출로 바꾼다.",
+      "DynamoDB의 PartiQL을 사용해 SQL 호환 구문으로 항목을 select/insert/update/delete 한다."
+    ],
+    "answers": [
+      3
+    ],
+    "answerSummary": "PartiQL은 DynamoDB가 기본 제공하는 SQL 호환 쿼리 언어로, 콘솔·CLI·API에서 그대로 사용합니다.",
+    "explanation": [
+      "PartiQL은 DynamoDB가 직접 지원하는 SQL 호환 쿼리 언어로, SELECT·INSERT·UPDATE·DELETE 구문으로 항목을 다룰 수 있다. AWS Management Console, NoSQL Workbench, AWS CLI, DynamoDB API에서 그대로 사용하며 별도 데이터 이전이 필요 없다.",
+      "단, DynamoDB는 PartiQL의 '부분 집합'만 지원하며, PartiQL이라도 비효율적인 쿼리(전체 스캔성 SELECT)는 여전히 비싸다는 점은 일반 DynamoDB 모범 사례와 동일하게 적용된다."
+    ],
+    "wrongChoiceNotes": [
+      {
+        "choice": 0,
+        "note": "RDS로 이전은 '별도 데이터 이전 없이'라는 조건과 정면으로 어긋나고, DynamoDB가 제공하는 방법도 아니다."
+      },
+      {
+        "choice": 1,
+        "note": "Athena는 주로 S3 데이터를 쿼리하는 서비스로, 이 시나리오에서 DynamoDB가 '직접 제공하는' SQL 호환 방법은 PartiQL이다."
+      },
+      {
+        "choice": 2,
+        "note": "직접 변환 계층을 구현하는 것은 불필요한 자체 개발이다. DynamoDB가 PartiQL로 이미 SQL 호환 인터페이스를 제공한다."
+      }
+    ],
+    "difficulty": "easy",
+    "domain": 3,
+    "tags": [
+      "dynamodb",
+      "partiql",
+      "sql"
+    ],
+    "references": [
+      {
+        "title": "PartiQL - a SQL-compatible query language for Amazon DynamoDB",
+        "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html"
+      }
+    ]
+  }
+]
