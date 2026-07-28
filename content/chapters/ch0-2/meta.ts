@@ -31,7 +31,7 @@ export const chapterMeta: ChapterMeta = {
   objectives: [
     "영구 신원(유저)과 빌려 쓰는 신원(롤)을 구분하고, 권한이 정책 연결로만 생긴다는 것을 설명한다",
     "정책 JSON의 Effect·Action·Resource·Principal·Condition을 읽고 그 정책이 무엇을 허용하는지 말한다",
-    "명시적 Deny 우선과 SCP ∩ Boundary ∩ Identity 교집합으로 유효 권한을 판정한다",
+    "명시적 Deny 우선, 자격 증명 권한의 SCP ∩ Boundary 축소, 동일 계정 리소스 정책과의 합집합을 함께 놓고 접근 가부를 판정한다",
     "AWS 위에서 도는 코드의 인증을 액세스 키가 아니라 롤·STS 임시 자격 증명으로 설계한다",
     "자격 증명 보고서와 액세스 어드바이저를 용도로 구분해 계정 감사·미사용 권한 정리에 쓴다",
   ],
