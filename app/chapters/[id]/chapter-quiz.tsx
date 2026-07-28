@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
 
 /**
@@ -8,6 +8,12 @@ import type { Question } from "@/lib/content";
  * 단일 정답: 선택지 클릭 즉시 채점. 복수 정답: 토글 선택 후 채점 버튼.
  * 채점 후: 정답/오답 배너 + 선택지별 해설(choiceExplanations) + 해설 본문 + 공식 문서 링크.
  * 빈 quiz는 호출부(page.tsx)가 섹션 자체를 렌더하지 않는다.
+ *
+ * 세션 모드 (#59 — gated): 세션 마무리 페이지의 실전 스테이션이 같은 quiz 를 소비하되,
+ * 채점 후 해설(선택지별 why·본문·링크)을 "자기설명 체크포인트" 뒤로 미룬다 — 오답 선택지가
+ * 왜 틀렸는지 스스로 설명한 뒤에 열어야 학습 효과가 산다 (#54 선결정). 정답/오답 배너는
+ * 게이트 앞에 그대로 보인다 (입장은 이미 확정됐고, 미뤄지는 건 근거 해설이다).
+ * 문항 간 이동은 게이팅하지 않는다 — 정답 여부와 무관하게 자유.
  */
 
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 배경·글자색 쌍 고정으로 다크 모드에서도 읽힘.
@@ -34,11 +40,25 @@ function sameSet(a: number[], b: number[]): boolean {
   return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
 }
 
-function QuizItem({ index, question: q }: { index: number; question: Question }) {
+function QuizItem({
+  index,
+  question: q,
+  gated = false,
+  onExplainedChange,
+}: {
+  index: number;
+  question: Question;
+  gated?: boolean;
+  onExplainedChange?: (id: string, explained: boolean) => void;
+}) {
   const [selected, setSelected] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  // 자기설명 체크포인트 통과 여부 (#59) — 게이트 없는 기존 모드에서는 쓰이지 않는다
+  const [explained, setExplained] = useState(false);
   const multi = q.answer.length > 1;
   const correct = submitted && sameSet(selected, q.answer);
+  // 해설 공개 시점: 기존 모드 = 채점 즉시, 세션 모드 = 자기설명 체크포인트 통과 후
+  const showExplanations = gated ? explained : submitted;
 
   function pick(idx: number) {
     if (submitted) return;
@@ -52,9 +72,16 @@ function QuizItem({ index, question: q }: { index: number; question: Question })
     }
   }
 
+  function passCheckpoint() {
+    setExplained(true);
+    onExplainedChange?.(q.id, true);
+  }
+
   function reset() {
     setSelected([]);
     setSubmitted(false);
+    setExplained(false);
+    onExplainedChange?.(q.id, false);
   }
 
   return (
@@ -133,8 +160,8 @@ function QuizItem({ index, question: q }: { index: number; question: Question })
                 </span>
                 <span>{choice}</span>
               </button>
-              {/* 채점 후 선택지별 해설 */}
-              {submitted && q.choiceExplanations?.[idx] && (
+              {/* 채점 후 선택지별 해설 — 세션 모드에서는 자기설명 체크포인트 뒤 */}
+              {showExplanations && q.choiceExplanations?.[idx] && (
                 <p
                   style={{
                     margin: "0.25rem 0 0.35rem",
@@ -193,12 +220,59 @@ function QuizItem({ index, question: q }: { index: number; question: Question })
           >
             {correct ? "정답입니다" : `오답입니다 — 정답: ${q.answer.map((a) => String.fromCharCode(65 + a)).join(", ")}`}
           </div>
-          <div style={{ marginTop: "0.6rem", fontSize: "0.9rem" }}>
-            {q.explanation.split("\n\n").map((para, i) => (
-              <p key={i} style={{ margin: "0.5rem 0" }}>{para}</p>
-            ))}
-          </div>
-          {q.references && q.references.length > 0 && (
+          {/* 자기설명 체크포인트 (#59 세션 모드) — 해설을 열기 전에 스스로 설명하게 한다 */}
+          {gated && !explained && (
+            <div
+              style={{
+                marginTop: "0.7rem",
+                borderLeft: "3px solid var(--accent)",
+                borderRadius: "0 10px 10px 0",
+                background: PAL.amberSoft,
+                color: PAL.ink,
+                padding: "0.7rem 0.9rem",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  color: PAL.amberText,
+                }}
+              >
+                자기설명 체크포인트
+              </div>
+              <p style={{ margin: "0.4rem 0 0.6rem", fontSize: "0.87rem", lineHeight: 1.7 }}>
+                잠깐 — 해설을 열기 전에, 나머지 선택지가 <b>왜 틀렸는지</b> 각각 한 문장으로
+                설명해 보세요. 설명이 막히는 선택지가 오늘의 약점입니다.
+              </p>
+              <button
+                type="button"
+                onClick={passCheckpoint}
+                style={{
+                  font: "inherit",
+                  fontSize: "0.83rem",
+                  fontWeight: 700,
+                  padding: "0.4rem 1rem",
+                  borderRadius: 99,
+                  border: "none",
+                  background: "var(--accent)",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                설명했어요 — 해설 열기
+              </button>
+            </div>
+          )}
+          {showExplanations && (
+            <div style={{ marginTop: "0.6rem", fontSize: "0.9rem" }}>
+              {q.explanation.split("\n\n").map((para, i) => (
+                <p key={i} style={{ margin: "0.5rem 0" }}>{para}</p>
+              ))}
+            </div>
+          )}
+          {showExplanations && q.references && q.references.length > 0 && (
             <ul style={{ margin: "0.5rem 0 0 1.1rem", padding: 0, fontSize: "0.83rem" }}>
               {q.references.map((ref) => (
                 <li key={ref.url}>
@@ -230,15 +304,37 @@ function QuizItem({ index, question: q }: { index: number; question: Question })
   );
 }
 
-export default function ChapterQuiz({ quiz }: { quiz: Question[] }) {
+export default function ChapterQuiz({
+  quiz,
+  gated = false,
+  header,
+  onExplainedChange,
+}: {
+  quiz: Question[];
+  // ── 세션 모드 (#59) — 실전 스테이션이 이 컴포넌트를 재사용할 때만 쓴다 ──
+  gated?: boolean;                // 채점 후 해설을 자기설명 체크포인트 뒤로 미룬다
+  header?: ReactNode;             // 기본 헤더(챕터 퀴즈 h2+안내)를 통째로 교체하는 슬롯
+  onExplainedChange?: (id: string, explained: boolean) => void; // 진행률 레일용
+}) {
   return (
     <section style={{ marginTop: "3rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
-      <h2 style={{ fontSize: "1.25rem", fontWeight: 900 }}>챕터 퀴즈</h2>
-      <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 4 }}>
-        {quiz.length}문항 · 선택지를 고르면 즉시 채점됩니다. 복수 정답 문항은 모두 고른 뒤 채점하세요.
-      </p>
+      {header ?? (
+        <>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 900 }}>챕터 퀴즈</h2>
+          <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: 4 }}>
+            {quiz.length}문항 · 선택지를 고르면 즉시 채점됩니다. 복수 정답 문항은 모두 고른 뒤
+            채점하세요.
+          </p>
+        </>
+      )}
       {quiz.map((q, i) => (
-        <QuizItem key={q.id} index={i} question={q} />
+        <QuizItem
+          key={q.id}
+          index={i}
+          question={q}
+          gated={gated}
+          onExplainedChange={onExplainedChange}
+        />
       ))}
     </section>
   );

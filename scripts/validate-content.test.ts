@@ -50,6 +50,11 @@ function concept(over: Partial<SessionConcept> = {}): SessionConcept {
   return { id: "c1", section: "01", q: "질문?", a: "답", ...over };
 }
 
+/** 도식 노드 — role·name 쌍 (#59). 테스트에서는 이름 하나로 둘 다 채운다. */
+function dnode(name: string) {
+  return { role: `${name} 역할`, name };
+}
+
 /** 세션 기본값 — 개념 카드 1장, 도식·혼합 없음 (ch0-1 모양). */
 function sess(over: Partial<SessionData> = {}): SessionData {
   return { concepts: [concept()], mixed: [], ...over };
@@ -190,20 +195,25 @@ expectCaught(
 );
 expectCaught(
   "diagram edges 개수 불일치 (nodes-1 아님)",
-  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x"] } }))],
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: [dnode("a"), dnode("b"), dnode("c")], edges: ["x"] } }))],
   "SESSION_DIAGRAM_EDGES"
 );
 expectCaught(
   "diagram nodes 1개 (체인 불성립)",
-  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: ["a"], edges: [] } }))],
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: [dnode("a")], edges: [] } }))],
   "SESSION_DIAGRAM_TOO_SHORT"
 );
 
 // 세션 값 비어있음 (#77)
 expectCaught(
   "diagram prompt 공백",
-  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "  ", nodes: ["a", "b"], edges: ["x"] } }))],
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "  ", nodes: [dnode("a"), dnode("b")], edges: ["x"] } }))],
   "SESSION_DIAGRAM_PROMPT_EMPTY"
+);
+expectCaught(
+  "diagram node role 공백 (#59 — role·name 쌍)",
+  [ch(meta("1-1"), [], [section()], sess({ diagram: { prompt: "p", nodes: [{ role: "  ", name: "a" }, dnode("b")], edges: ["x"] } }))],
+  "SESSION_DIAGRAM_NODE_EMPTY"
 );
 expectCaught(
   "mixed scenario 공백",
@@ -367,7 +377,7 @@ expectClean("정상 session(why 질문+모범답)", [
 expectClean("정상 session(도식·혼합 포함)", [
   ch(meta("1-1"), [], [section()], {
     concepts: [concept()],
-    diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x", "y"] },
+    diagram: { prompt: "p", nodes: [dnode("a"), dnode("b"), dnode("c")], edges: ["x", "y"] },
     mixed: [{ id: "m1", scenario: "s", service: "svc", why: "w", contrast: "c" }],
   }),
 ]);

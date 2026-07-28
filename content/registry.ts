@@ -32,7 +32,7 @@ export interface ChapterEntry {
 import { chapterMeta as ch01Meta, quiz as ch01Quiz, sections as ch01Sections, selfQuiz as ch01SelfQuiz, session as ch01Session } from "./chapters/ch0-1/meta.ts";
 import { chapterMeta as ch02Meta, quiz as ch02Quiz, sections as ch02Sections, session as ch02Session, selfQuiz as ch02SelfQuiz } from "./chapters/ch0-2/meta.ts";
 import { chapterMeta as ch11Meta, quiz as ch11Quiz, sections as ch11Sections, selfQuiz as ch11SelfQuiz, session as ch11Session } from "./chapters/ch1-1/meta.ts";
-import { chapterMeta as ch12Meta, quiz as ch12Quiz, sections as ch12Sections, selfQuiz as ch12SelfQuiz } from "./chapters/ch1-2/meta.ts";
+import { chapterMeta as ch12Meta, quiz as ch12Quiz, sections as ch12Sections, selfQuiz as ch12SelfQuiz, session as ch12Session } from "./chapters/ch1-2/meta.ts";
 
 export const registry: ChapterEntry[] = [
   {
@@ -51,7 +51,7 @@ export const registry: ChapterEntry[] = [
     loadIntro: () => import("./chapters/ch1-1/intro.mdx"),
   },
   {
-    data: { chapterMeta: ch12Meta, quiz: ch12Quiz, sections: ch12Sections, selfQuiz: ch12SelfQuiz },
+    data: { chapterMeta: ch12Meta, quiz: ch12Quiz, sections: ch12Sections, session: ch12Session, selfQuiz: ch12SelfQuiz },
     loadBody: () => import("./chapters/ch1-2/body"),
     loadIntro: () => import("./chapters/ch1-2/intro.mdx"),
   },

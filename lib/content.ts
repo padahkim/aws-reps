@@ -3,7 +3,7 @@
  * 타입 정본은 content/schema.ts — 여기서는 re-export만 하고 평행 타입을 만들지 않는다.
  */
 import { registry, type ChapterEntry } from "@/content/registry";
-import type { SelfQuizEntry, SessionConcept } from "@/content/schema";
+import type { SelfQuizEntry, SessionConcept, SessionMixedItem } from "@/content/schema";
 
 export type {
   ChapterMeta,
@@ -16,6 +16,7 @@ export type {
   SessionData,
   SessionConcept,
   SessionDiagram,
+  SessionDiagramNode,
   SessionMixedItem,
 } from "@/content/schema";
 export type { ChapterEntry };
@@ -37,9 +38,43 @@ export function getChapter(id: string): ChapterEntry | undefined {
   return registry.find((entry) => entry.data.chapterMeta.id === id);
 }
 
-/** 섹션 페이지 총수 = 본문 섹션 + (quiz 있으면) 챕터 퀴즈 1 (규약 v2 — 퀴즈는 마지막 섹션). */
+/**
+ * 섹션 페이지 총수 = 본문 섹션 + 마무리 페이지 1 (있는 경우).
+ * 마무리 페이지 규칙 (#59): session 이 있는 챕터는 마지막 페이지가 세션 마무리 페이지
+ * (도식·실전·혼합 — 실전이 quiz 를 그대로 소비한다), session 없는 챕터는 기존 챕터 퀴즈
+ * 페이지 (quiz 있을 때만) — 점진 이행이라 두 형태가 공존한다.
+ */
 export function sectionCount(entry: ChapterEntry): number {
-  return entry.data.sections.length + (entry.data.quiz.length > 0 ? 1 : 0);
+  const { sections, quiz, session } = entry.data;
+  return sections.length + (session !== undefined || quiz.length > 0 ? 1 : 0);
+}
+
+/** 마지막 페이지가 세션 마무리 페이지인가 (#59 — sectionCount 의 규칙과 같은 판별). */
+export function hasSessionFinale(entry: ChapterEntry): boolean {
+  return entry.data.session !== undefined;
+}
+
+/** 혼합 누적 풀의 항목 — id 는 챕터-로컬이라 풀에서는 챕터 id 를 합성한 key 를 쓴다. */
+export interface MixedPoolItem extends SessionMixedItem {
+  key: string;                    // "ch1-2:m1" — 풀 전역 유일 (React key·중복 방지)
+}
+
+/**
+ * 혼합 스테이션의 누적 풀 (#54 결정 → #59): 자기 mixed + registry 순서상 "앞" 챕터들의
+ * session.mixed 합산. 뒤 챕터를 미리 끌어오지 않는 이유 — 아직 안 배운 서비스와의 대조는
+ * 인출이 아니라 첫 노출이 된다. 셔플·샘플은 여기서 하지 않는다 (SSG 결정성 — 클라이언트 몫).
+ * 풀이 비면 빈 배열 — 호출부가 스테이션 자체를 렌더하지 않는다 (ch0-1).
+ */
+export function mixedPool(entry: ChapterEntry): MixedPoolItem[] {
+  const idx = registry.findIndex((e) => e.data.chapterMeta.id === entry.data.chapterMeta.id);
+  if (idx < 0) return [];
+  return registry.slice(0, idx + 1).flatMap(
+    (e) =>
+      e.data.session?.mixed.map((m) => ({
+        ...m,
+        key: `${e.data.chapterMeta.id}:${m.id}`,
+      })) ?? []
+  );
 }
 
 /**

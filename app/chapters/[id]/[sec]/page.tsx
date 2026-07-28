@@ -5,11 +5,14 @@ import {
   conceptsForSection,
   getAllChapters,
   getChapter,
+  hasSessionFinale,
+  mixedPool,
   partForSection,
   sectionCount,
   selfQuizForSection,
 } from "@/lib/content";
 import ChapterQuiz from "../chapter-quiz";
+import ChapterSession from "../chapter-session";
 import MarkRead from "./mark-read";
 import { PreviewQuestions } from "./preview-questions";
 import SectionConcepts from "./section-concepts";
@@ -36,22 +39,28 @@ export default async function SectionPage({
   const entry = getChapter(id);
   if (!entry) notFound();
 
-  const { chapterMeta: meta, sections, quiz } = entry.data;
+  const { chapterMeta: meta, sections, quiz, session } = entry.data;
   const total = sectionCount(entry);
   const n = Number(sec);
   if (!Number.isInteger(n) || n < 1 || n > total) notFound();
 
-  const isQuiz = quiz.length > 0 && n === total;
+  // 마무리 페이지 (#59): session 있는 챕터 = 세션 페이지, 없는 챕터 = 기존 챕터 퀴즈 페이지.
+  // n > sections.length 가 "본문 섹션이 아니다"의 판별 — sectionCount 와 같은 규칙이다.
+  const isSession = hasSessionFinale(entry) && n > sections.length;
+  const isQuiz = !isSession && quiz.length > 0 && n === total && n > sections.length;
   const Body = (await entry.loadBody()).default;
+
+  // 마무리 페이지(세션/퀴즈)에는 본문 섹션 장치가 없다 — 아래 분기들의 공통 판별
+  const isFinal = isSession || isQuiz;
 
   // 개념 인출 카드 — 본문 섹션 페이지에만, 그 섹션(num)에 매핑된 카드가 있을 때만.
   // body 의 afterSection 슬롯으로 넘겨 본문과 아웃트로 "사이"에 놓는다 (규약 v3 섹션 규약).
-  const concepts = isQuiz ? [] : conceptsForSection(entry, sections[n - 1].num);
+  const concepts = isFinal ? [] : conceptsForSection(entry, sections[n - 1].num);
 
   // 섹션 셀프 퀴즈 — 인출 카드 "위"에 자기채점 덱 (#105 결정, #98의 아래 배치를 뒤집음:
   // 짧은 판정형으로 핵심 사실 숙지를 먼저 확인하고 서술형 인출 연습으로 넘어가는
   // 쉬운 것→어려운 것 순서. 카드 = 서술·정교화, 셀프 퀴즈 = 판정형 — 층 분리는 유지).
-  const selfQuizItems = isQuiz ? [] : selfQuizForSection(entry, sections[n - 1].num);
+  const selfQuizItems = isFinal ? [] : selfQuizForSection(entry, sections[n - 1].num);
   const afterSection =
     concepts.length > 0 || selfQuizItems.length > 0 ? (
       <>
@@ -67,12 +76,13 @@ export default async function SectionPage({
       <PreviewQuestions questions={selfQuizItems.map((item) => item.q)} />
     ) : undefined;
 
-  // 파트 컨텍스트 (규약 v3.1) — 지금 어느 묶음의 어디쯤인지. parts 없는 챕터·퀴즈 섹션은 undefined
-  const part = isQuiz ? undefined : partForSection(entry, n);
+  // 파트 컨텍스트 (규약 v3.1) — 지금 어느 묶음의 어디쯤인지. parts 없는 챕터·마무리 페이지는 undefined
+  const part = isFinal ? undefined : partForSection(entry, n);
 
   // 이전/다음 링크 라벨 — k는 1-based 섹션 번호
+  const finaleLabel = hasSessionFinale(entry) ? "마무리 세션" : "챕터 퀴즈";
   const label = (k: number) =>
-    k > sections.length ? "챕터 퀴즈" : `${sections[k - 1].num} ${sections[k - 1].title}`;
+    k > sections.length ? finaleLabel : `${sections[k - 1].num} ${sections[k - 1].title}`;
 
   return (
     <article>
@@ -113,7 +123,9 @@ export default async function SectionPage({
         </p>
       )}
 
-      {isQuiz ? (
+      {isSession ? (
+        <ChapterSession diagram={session?.diagram} quiz={quiz} pool={mixedPool(entry)} />
+      ) : isQuiz ? (
         <ChapterQuiz quiz={quiz} />
       ) : (
         <Body section={n - 1} afterSection={afterSection} beforeBody={beforeBody} />

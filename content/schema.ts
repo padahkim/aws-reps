@@ -137,9 +137,15 @@
  *     카드가 0개인 섹션(ch0-1 의 00 동기 서문 등)은 카드 영역 자체를 렌더하지 않는다
  *   • 게이팅은 카드 내부만 — 기본은 질문만 보이고 탭해야 답+why 가 열린다. 섹션 이동은 막지
  *     않는다. 카드 열림 상태는 v1 비저장(useState) — 세션은 한 자리 완주 설계
- *   • diagram·mixed 는 마지막 세션 페이지용(#59 범위). 여기서는 타입만 확정해 둔다 —
+ *   • diagram·mixed 는 마지막 세션 페이지용 (v2 = #59에서 렌더 구현) —
  *     diagram? 은 선형 체인 모델이 안 맞는 챕터(ch0-1 개념도)를 위해 optional, mixed 는
  *     빈 배열이 적법하다(교차 대조 대상이 없는 첫 챕터)
+ *   • 세션 마무리 페이지 (v2 = #59): session 이 있는 챕터는 마지막 페이지가 기존 챕터 퀴즈
+ *     페이지 대신 세션 페이지(도식 재현 → 실전 → 혼합 복습)가 된다. 실전 스테이션이
+ *     quiz: Question[] 를 그대로 소비한다(자산 보존) — 답 선택 → 자기설명 체크포인트 →
+ *     해설 순서 강제, 문항 간 이동은 자유. 혼합 스테이션은 자기 mixed + registry 순서상
+ *     앞 챕터들의 mixed 풀을 합산해 클라이언트에서만 셔플·샘플한다(SSG 결정성).
+ *     스테이션은 데이터가 있는 것만 렌더 — 전부 비면 실전만 남는 것도 적법하다.
  *
  * 본문 네거티브 규정 (PREWORK §1-D-3 — 위반 시 앱 셸과 충돌. S3 원본이 딱 위반):
  *   ✗ 자체 내비게이션/사이드바/페이저     ✗ 전역 셀렉터 스타일(<style>, body/table…)
@@ -233,13 +239,21 @@ export interface SessionConcept {
 }
 
 /**
- * 도식 재현 — 노드를 순서대로 이어 흐름을 복원한다 (#59 범위).
+ * 도식 재현 — 노드를 순서대로 이어 흐름을 복원한다 (#59에서 렌더 구현).
  * 선형 체인 모델: edges[i] = nodes[i] → nodes[i+1] 사이의 라벨. 그래서 edges 는 nodes 보다 정확히 1 짧다.
  * 이 모델이 안 맞는 챕터(중첩·수렴·스펙트럼 도식)는 diagram 을 생략한다 — #54 결정 4.
+ * 노드가 role·name 쌍인 이유: 인출 UX 가 "역할만 보고 이름을 떠올린 뒤 탭해서 확인"이라
+ * (#54 선결정, 원형은 dva-chapter-template.jsx FlowDiagram) 큐(role)와 정답(name)이 분리돼야
+ * 한다. v1 은 string[] 로 자리만 잡아 뒀고 사용 챕터가 없어 #59 에서 무이행 확장했다.
  */
+export interface SessionDiagramNode {
+  role: string;                   // 인출 큐 — 이 노드가 흐름에서 맡는 역할 한 줄 (항상 보임)
+  name: string;                   // 인출 대상 — 서비스/구성요소 이름 (탭해야 열림)
+}
+
 export interface SessionDiagram {
   prompt: string;                 // "무엇을 그려 보라"는 지시문
-  nodes: string[];                // 최소 2개
+  nodes: SessionDiagramNode[];    // 최소 2개
   edges: string[];                // 정확히 nodes.length - 1 개
 }
 
