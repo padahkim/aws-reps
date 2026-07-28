@@ -18,6 +18,8 @@ import type { ChapterMeta, SectionMeta } from "../../schema";
  * 마치면 무엇을 할 수 있는가"이고, parts 는 섹션 20개를 6묶음으로 끊어 중간 완결감을 준다.
  * 파트 경계는 학습 흐름 기준: 호출 방식(01~04)이 이 챕터의 심장이라 맨 앞에 통째로 두고,
  * 시험에서 같이 묶여 나오는 것끼리(성능·동시성·스토리지 등) 이웃하게 했다.
+ * #163 소급 때 재검토: 커버리지·경계는 그대로 두고 두 번째 파트 제목만 고쳤다 —
+ * 05~08에는 §08 환경 변수가 들어 있어 "이벤트 처리와 권한"이 그 섹션을 덮지 못했다.
  */
 export const chapterMeta: ChapterMeta = {
   id: "ch1-2",
@@ -35,7 +37,7 @@ export const chapterMeta: ChapterMeta = {
   ],
   parts: [
     { title: "서버리스와 호출 3유형", from: "01", to: "04" },
-    { title: "이벤트 처리와 권한", from: "05", to: "08" },
+    { title: "이벤트 · 권한 · 설정", from: "05", to: "08" },
     { title: "관측 · 엣지 · 네트워크", from: "09", to: "11" },
     { title: "성능 · 동시성 · 스토리지", from: "12", to: "14" },
     { title: "배포와 버전 관리", from: "15", to: "18" },
