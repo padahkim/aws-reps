@@ -360,6 +360,39 @@ export function WarnBox({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * '더 알아보기' 접기 (#162) — 시험 비직결 심화를 접어 본문과 층을 나눈다 (본문 = 시험 직결,
+ * 심화 = Fold — 분량 예산 규약은 schema.ts "섹션 분량 예산"). 상태 없는 네이티브 <details>라
+ * JS 없이 동작하고, 검증기의 분량 계산은 <Fold …>…</Fold> 블록을 예산에서 제외한다.
+ */
+export function Fold({ topic, children }: { topic: string; children: ReactNode }) {
+  return (
+    <details
+      style={{
+        background: C.blueSoft,
+        color: C.ink, // 배경·글자색 쌍 고정 — 다크 모드에서 상속 글자색(밝음)이 밝은 배경에 묻힌다
+        border: `1px solid ${C.line}`,
+        borderRadius: 12,
+        margin: "1.25rem 0",
+        padding: "0 1.15rem",
+      }}
+    >
+      <summary
+        style={{
+          cursor: "pointer",
+          fontWeight: 700,
+          fontSize: "0.9rem",
+          color: C.blue,
+          padding: "0.75rem 0",
+        }}
+      >
+        더 알아보기 — {topic}
+      </summary>
+      <div style={{ padding: "0.1rem 0 0.85rem", fontSize: "0.93rem" }}>{children}</div>
+    </details>
+  );
+}
+
 /** 챕터 말미 자기평가 체크리스트 — 잉크 배경 패널. */
 export function Checklist({
   title,

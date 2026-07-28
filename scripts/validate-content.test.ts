@@ -5,7 +5,7 @@
  * 실행: `npm run validate:test`. 하나라도 어긋나면 종료 코드 1.
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
-import { validateChapters, type Problem } from "./validate-content.ts";
+import { sectionBudgetBytes, validateChapters, type Problem } from "./validate-content.ts";
 import type {
   ChapterData,
   ChapterMeta,
@@ -406,6 +406,32 @@ expectClean("정상 챕터(복수정답·prereq·choiceExpl·다중 섹션)", [
     [section(), section({ num: "02", title: "t2" })]
   ),
 ]);
+
+console.log("\n── 섹션 분량 예산 헬퍼 (#162 — sectionBudgetBytes) ──");
+
+/** 순수 헬퍼 반환값 확인. */
+function expectBytes(label: string, source: string, expected: number) {
+  const got = sectionBudgetBytes(source);
+  if (got === expected) {
+    console.log(`  ✓ ${label} → ${got}B`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: ${expected}B 기대했으나 ${got}B`);
+  }
+}
+
+// Fold 없음 — 소스 그대로 (한글은 UTF-8 3바이트)
+expectBytes("Fold 없음", "ab한", 5);
+// Fold 블록은 여는 태그·속성·내용째 제외
+expectBytes("Fold 블록 제외", '앞 <Fold topic="심화 — 주제">접힌 한글 내용</Fold> 뒤', Buffer.byteLength("앞  뒤", "utf8"));
+// Fold 여러 개 — 비탐욕 매칭이라 사이의 본문은 남는다
+expectBytes(
+  "Fold 2개 사이 본문 유지",
+  '<Fold topic="a">x</Fold>본문<Fold topic="b">y</Fold>',
+  Buffer.byteLength("본문", "utf8")
+);
+// 닫히지 않은 Fold — 매칭 실패 시 제외 없이 전량 계산 (규약 위반이지만 계수기는 죽지 않는다)
+expectBytes('닫히지 않은 Fold 는 전량 계산', "<Fold topic=\"a\">x", Buffer.byteLength("<Fold topic=\"a\">x", "utf8"));
 
 console.log("");
 if (failures === 0) {
