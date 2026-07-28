@@ -19,7 +19,13 @@ import type { ChapterEntry } from "@/content/registry";
 const PROSE_CPM = 250;        // 한국어 기술 산문 정독 — 표·코드가 섞여 일반 독서(600자/분)보다 느리다
 const SELF_QUIZ_MIN = 0.5;    // 셀프 퀴즈 1문항: 떠올리고 답 열어 대조
 const CONCEPT_MIN = 1;        // 인출 개념 카드 1장: 덮고 떠올리기 + why
-const QUIZ_MIN = 1;           // 챕터 퀴즈 1문항: 선택지 판단 + 해설
+const QUIZ_MIN = 1;           // 챕터 퀴즈 1문항: 선택지 판단 + 해설 (세션 실전 스테이션도 동일)
+const DIAGRAM_NODE_MIN = 0.5; // 도식 노드 1개: 역할 보고 이름 떠올려 탭 (#59 세션 페이지)
+const MIXED_MIN = 1;          // 혼합 복습 1장: 상황 판단 + 대조 읽기 (#59 세션 페이지)
+// 혼합 스테이션이 실제로 내는 카드 수 상한 — app/chapters/[id]/chapter-session.tsx 의
+// MIXED_SAMPLE 과 짝이다 (앱은 content/lib 값을 클라이언트로 못 끌어와 상수를 복제한다 —
+// 팔레트 복제와 같은 계층 경계의 결과).
+const MIXED_SAMPLE = 8;
 
 /** 5분 단위 반올림 — 37분 같은 숫자는 없는 정밀도를 주장한다. floor 는 표시 하한. */
 function round5(minutes: number, floor = 5): number {
@@ -133,9 +139,10 @@ export interface SectionRange {
 }
 
 export interface ChapterEstimate {
-  total: number;     // 챕터 전체. **parts 합 + quiz + intro 와 정확히 일치한다** (아래 참조)
+  total: number;     // 챕터 전체. **parts 합 + finale + intro 와 정확히 일치한다** (아래 참조)
   parts: number[];   // 넘겨받은 파트 순서와 1:1. 파트가 없으면 빈 배열
-  quiz: number;      // 챕터 퀴즈 — 어느 파트에도 안 속한다. quiz 가 없으면 0
+  finale: number;    // 마무리 페이지(챕터 퀴즈 또는 세션 — #59: 실전 + 도식 + 혼합 샘플) —
+                     // 어느 파트에도 안 속한다. 마무리 페이지가 없으면 0
   intro: number;     // 목차 페이지의 챕터 인트로 (v3.2 #174) — 어느 파트에도 안 속한다
 }
 
@@ -151,7 +158,11 @@ export interface ChapterEstimate {
  */
 export function estimateChapter(
   entry: ChapterEntry,
-  parts: readonly SectionRange[] = []
+  parts: readonly SectionRange[] = [],
+  // 혼합 누적 풀 크기 (#59) — lib/content.ts 의 mixedPool(entry).length 를 호출부가 넘긴다.
+  // 여기서 직접 계산하지 않는 이유: 이 모듈은 순환 import 를 피해 lib/content 를 보지 않는다
+  // (ResolvedPart 를 구조로만 받는 것과 같은 이유).
+  mixedPoolSize = 0
 ): ChapterEstimate | undefined {
   const { quiz, session, selfQuiz } = entry.data;
   const chars = sectionChars(entry);
@@ -166,8 +177,14 @@ export function estimateChapter(
   );
   const sum = (from: number, to: number) => raw.slice(from, to).reduce((a, b) => a + b, 0);
 
-  // 퀴즈는 반올림하지 않는다 — 문항당 1분이라 이미 정수이고, 5분으로 올리면 없는 시간이 생긴다
-  const quizMinutes = quiz.length * QUIZ_MIN;
+  // 마무리 페이지는 5분 반올림하지 않는다 — 올리면 없는 시간이 생긴다 (문항당 1분 등 소단위 합).
+  // 세션 페이지(#59)는 실전(quiz) 외에 도식 노드·혼합 샘플도 돈다 — 표시 카드 수는 풀과
+  // 샘플 상한 중 작은 쪽이다 (PR #184 Codex P2: 퀴즈만 세면 세션 스테이션 몫이 통째로 빠진다).
+  const finaleMinutes = Math.round(
+    quiz.length * QUIZ_MIN +
+      (session?.diagram?.nodes.length ?? 0) * DIAGRAM_NODE_MIN +
+      Math.min(MIXED_SAMPLE, mixedPoolSize) * MIXED_MIN
+  );
   // 인트로도 반올림하지 않는다 — 문단 한둘짜리라 5분으로 올리면 대부분 없는 시간이 생긴다.
   // 다만 0분으로 사라지지도 않게 올림한다 (읽는 글이 있는데 0분이라고 적을 수는 없다).
   const introRaw = (chars.get(INTRO_KEY) ?? 0) / PROSE_CPM;
@@ -175,8 +192,8 @@ export function estimateChapter(
   const partMinutes = parts.map((p) => round5(sum(p.fromSec - 1, p.toSec)));
   const total =
     partMinutes.length > 0
-      ? partMinutes.reduce((a, b) => a + b, 0) + quizMinutes + introMinutes
-      : round5(sum(0, raw.length) + quizMinutes + introMinutes);
+      ? partMinutes.reduce((a, b) => a + b, 0) + finaleMinutes + introMinutes
+      : round5(sum(0, raw.length) + finaleMinutes + introMinutes);
 
-  return { total, parts: partMinutes, quiz: quizMinutes, intro: introMinutes };
+  return { total, parts: partMinutes, finale: finaleMinutes, intro: introMinutes };
 }

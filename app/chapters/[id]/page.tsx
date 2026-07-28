@@ -44,7 +44,8 @@ export default async function ChapterPage({
   }));
   // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
   const parts = chapterParts(entry);
-  const estimate = estimateChapter(entry, parts);
+  const pool = mixedPool(entry);
+  const estimate = estimateChapter(entry, parts, pool.length);
   // 챕터 인트로 (규약 v3.2, #174) — 예전에는 첫 섹션 페이지 상단이었는데, #161 의 파트
   // 컨텍스트가 그 위에 붙으면서 "파트 1 — …" 밑에 챕터 전체 소개가 오는 범주 오류가 됐다.
   // 여기가 "이 챕터가 무엇이고 지금 잡을 만한가"를 판단하는 화면이라 인트로의 제자리다.
@@ -59,7 +60,7 @@ export default async function ChapterPage({
     ? [
         entry.data.session?.diagram ? "도식 재현" : null,
         quiz.length > 0 ? `실전 ${quiz.length}문항` : null,
-        mixedPool(entry).length > 0 ? "혼합 복습" : null,
+        pool.length > 0 ? "혼합 복습" : null,
       ].filter(Boolean)
     : [];
   const quizItem: TocItem | undefined =
@@ -70,7 +71,7 @@ export default async function ChapterPage({
           title: finale ? "마무리 세션" : "챕터 퀴즈",
           sub: [
             finale ? `${stationNames.join(" · ")} — 전 섹션 종합` : `${quiz.length}문항 · 전 섹션 종합`,
-            parts.length > 0 && estimate ? `약 ${estimate.quiz}분` : null,
+            parts.length > 0 && estimate ? `약 ${estimate.finale}분` : null,
           ]
             .filter(Boolean)
             .join(" · "),

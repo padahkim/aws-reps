@@ -237,11 +237,21 @@ function DiagramStation({
                     </text>
                   </>
                 )}
+                {/* SVG 안이라 native button 을 못 쓴다 — tabIndex + Enter/Space 로 버튼 시맨틱을
+                    채운다 (PR #184 Codex P2: "모두 공개"는 노드별 인출 과제의 대체가 아니다) */}
                 <g
                   onClick={() => onToggle(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onToggle(i);
+                    }
+                  }}
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                   role="button"
                   aria-expanded={open}
+                  aria-label={`${node.role} — ${open ? `답: ${node.name}` : "탭해서 이름 인출"}`}
                 >
                   <rect
                     x={10}

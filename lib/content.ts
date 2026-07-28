@@ -45,13 +45,23 @@ export function getChapter(id: string): ChapterEntry | undefined {
  * 페이지 (quiz 있을 때만) — 점진 이행이라 두 형태가 공존한다.
  */
 export function sectionCount(entry: ChapterEntry): number {
-  const { sections, quiz, session } = entry.data;
-  return sections.length + (session !== undefined || quiz.length > 0 ? 1 : 0);
+  return (
+    entry.data.sections.length +
+    (hasSessionFinale(entry) || entry.data.quiz.length > 0 ? 1 : 0)
+  );
 }
 
-/** 마지막 페이지가 세션 마무리 페이지인가 (#59 — sectionCount 의 규칙과 같은 판별). */
+/**
+ * 마지막 페이지가 세션 마무리 페이지인가 (#59 — sectionCount 의 규칙과 같은 판별).
+ * session 의 존재만이 아니라 **렌더 가능한 스테이션이 하나라도 있는지**를 본다 (PR #184
+ * Codex P2) — 검증기는 빈 session(concepts·mixed 다 빈 배열)도 적법으로 받으므로, 존재만
+ * 보면 스테이션 0개짜리 빈 마무리 페이지가 생긴다. 그 경우 기존 퀴즈 페이지 규칙으로
+ * 넘어간다 (quiz 도 비면 마무리 페이지 자체가 없다).
+ */
 export function hasSessionFinale(entry: ChapterEntry): boolean {
-  return entry.data.session !== undefined;
+  const { quiz, session } = entry.data;
+  if (session === undefined) return false;
+  return session.diagram !== undefined || quiz.length > 0 || mixedPool(entry).length > 0;
 }
 
 /** 혼합 누적 풀의 항목 — id 는 챕터-로컬이라 풀에서는 챕터 id 를 합성한 key 를 쓴다. */
