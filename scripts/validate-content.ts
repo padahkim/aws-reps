@@ -345,12 +345,27 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
         answerSeen.add(a);
       }
 
-      // choiceExplanations 는 있으면 choices 와 길이 일치
-      if (q.choiceExplanations !== undefined && q.choiceExplanations.length !== q.choices.length) {
-        problems.push({
-          chapterId: cid,
-          code: "CHOICE_EXPL_LENGTH",
-          message: `${qref}: choiceExplanations 길이 ${q.choiceExplanations.length} ≠ choices 길이 ${q.choices.length}`,
+      // choiceExplanations 는 있으면 choices 와 길이 일치 (필드 자체는 optional)
+      if (q.choiceExplanations !== undefined) {
+        if (q.choiceExplanations.length !== q.choices.length) {
+          problems.push({
+            chapterId: cid,
+            code: "CHOICE_EXPL_LENGTH",
+            message: `${qref}: choiceExplanations 길이 ${q.choiceExplanations.length} ≠ choices 길이 ${q.choices.length}`,
+          });
+        }
+
+        // 개별 항목 비어있음 — 화면에서 두 갈래로 샌다 (chapter-quiz.tsx):
+        // ""는 falsy 라 해설 블록이 통째로 사라져 "해설 없는 문항"과 구별되지 않고,
+        // "  "는 truthy 라 빈 해설 박스가 렌더된다. 인덱스를 적어 어느 선택지인지 짚는다.
+        q.choiceExplanations.forEach((e, ci) => {
+          if (e.trim() === "") {
+            problems.push({
+              chapterId: cid,
+              code: "CHOICE_EXPL_EMPTY",
+              message: `${qref}: choiceExplanations[${ci}] 가 비어 있음`,
+            });
+          }
         });
       }
     });
