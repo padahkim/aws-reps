@@ -347,7 +347,7 @@ export function PolicySvg() {
         IAM 사용자/역할
       </text>
       <text x="95" y="72" textAnchor="middle" fontSize="10" fill={C.inkSoft}>
-        IAM 정책 (자격증명 기반)
+        IAM 정책 (자격 증명 기반)
       </text>
       <rect x="20" y="130" width="150" height="56" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="1.5" />
       <text x="95" y="154" textAnchor="middle" fontSize="12" fontWeight="700" fill={C.ink}>
