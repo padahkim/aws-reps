@@ -129,6 +129,18 @@ expectCaught("scenario 공백", [ch(meta("1-1"), [question({ scenario: "   " })]
 expectCaught("explanation 공백", [ch(meta("1-1"), [question({ explanation: "" })])], "EXPLANATION_EMPTY");
 expectCaught("choices 항목 빈 문자열", [ch(meta("1-1"), [question({ choices: ["a", "", "c", "d"] })])], "CHOICE_EMPTY");
 
+// choiceExplanations 항목 비어있음 (#145) — 길이는 맞는데 칸이 빈 경우
+expectCaught(
+  "choiceExpl 항목 빈 문자열",
+  [ch(meta("1-1"), [question({ choiceExplanations: ["w", "", "y", "z"] })])],
+  "CHOICE_EXPL_EMPTY"
+);
+expectCaught(
+  "choiceExpl 항목 공백만",
+  [ch(meta("1-1"), [question({ choiceExplanations: ["w", "x", "   ", "z"] })])],
+  "CHOICE_EXPL_EMPTY"
+);
+
 // 섹션 규약 (v2)
 expectCaught("sections 빈 배열", [ch(meta("1-1"), [], [])], "SECTIONS_EMPTY");
 expectCaught("섹션 title 공백", [ch(meta("1-1"), [], [section({ title: "  " })])], "SECTION_TITLE_EMPTY");
@@ -393,6 +405,11 @@ expectClean("정상 오리엔테이션(objectives 3개·파트 연속 커버)", 
 expectClean("정상 오리엔테이션(objectives 5개·파트 없음)", [
   ch(meta("1-1", [], { objectives: [...OBJECTIVES, "…을 비교한다", "…을 판단한다"] }), [], sectionsUpTo(3)),
 ]);
+
+// choiceExplanations 는 optional (schema.ts) — 필드 자체를 생략한 문항은 적법하다.
+// 있을 때 네 칸이 다 차 있으면 역시 적법 (#145 가 잡는 건 "있는데 빈 칸"뿐).
+expectClean("choiceExpl 생략", [ch(meta("1-1"), [question()])]);
+expectClean("choiceExpl 네 칸 모두 채움", [ch(meta("1-1"), [question({ choiceExplanations: ["w", "x", "y", "z"] })])]);
 
 // 완전한 정상 챕터 — 복수정답 + choiceExplanations 일치 + 실존 prereq + 다중 섹션
 expectClean("정상 챕터(복수정답·prereq·choiceExpl·다중 섹션)", [
