@@ -1,6 +1,8 @@
-import { ExamLi, ExamPoint, Note, SubTitle, Table, WarnBox } from "../../ui";
+import { ExamLi, ExamPoint, Fold, SubTitle, Table, WarnBox } from "../../ui";
 
-<b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 핵심 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>(그 밖에 Amazon MSK·자체 관리 Kafka도 ESM 소스지만 DVA 출제는 이 3가지에 집중). 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
+<b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 핵심 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>. 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
+
+<Fold topic="DVA 밖 ESM 소스 (MSK·자체 관리 Kafka)">ESM 소스는 위 3가지 외에 <b>Amazon MSK</b>(AWS 관리형 Kafka)와 자체 관리 Kafka 클러스터도 있습니다. 동작 원리(폴러가 읽어 동기 호출)는 같지만 DVA 출제는 앞의 3가지에 집중되므로, "이런 소스도 ESM 계열"이라는 것만 알아 두면 됩니다.</Fold>
 
 <SubTitle>유형 ① 스트림 (Kinesis & DynamoDB Streams)</SubTitle>
 
@@ -44,7 +46,7 @@ import { ExamLi, ExamPoint, Note, SubTitle, Table, WarnBox } from "../../ui";
   ]}
 />
 
-<Note>SQS Standard의 “분당 60개 추가·최대 1,000”은 구버전 규칙 — 현행 공식 문서는 5 시작·+300/분·최대 1,250이다.</Note>
+<Fold topic="구버전 자료의 SQS 스케일링 수치">오래된 블로그·문제집에는 SQS Standard 스케일링이 "분당 60개 추가·최대 1,000 동시 호출"로 나옵니다 — 구버전 규칙입니다. 현행 공식 문서 기준은 위 표의 <b>5 시작 · +300/분 · 최대 1,250</b>이고, 시험도 현행 기준을 따릅니다.</Fold>
 
 <ExamPoint>
   <ExamLi>구분법: <b>S3·SNS·EventBridge = 비동기(푸시)</b> vs <b>Kinesis·DDB Streams·SQS = ESM(폴링·동기)</b> — 이 구분 자체가 최다 빈출.</ExamLi>
