@@ -21,6 +21,11 @@ export interface ChapterEntry {
   loadBody: () => Promise<{
     default: ComponentType<{ section: number; afterSection?: ReactNode; beforeBody?: ReactNode }>;
   }>;
+  // 챕터 인트로 (v3.2 #174) — 목차 페이지가 렌더한다. body 가 아니라 별도 통로인 이유:
+  // 인트로는 이제 섹션 페이지에 없어서 body 가 실어 나를 자리가 없고, app/ 은 content/ 를
+  // 직접 import 하지 않는다는 원칙은 그대로 지켜야 하기 때문이다.
+  // 인트로가 없는 챕터는 적법 — 그 경우 목차 페이지가 이 블록을 통째로 생략한다.
+  loadIntro?: () => Promise<{ default: ComponentType }>;
 }
 
 // .ts 확장자 명시: 검증기가 이 파일을 Node 네이티브 TS(strip-types)로 직접 로드하기 때문.
@@ -33,17 +38,21 @@ export const registry: ChapterEntry[] = [
   {
     data: { chapterMeta: ch01Meta, quiz: ch01Quiz, sections: ch01Sections, session: ch01Session, selfQuiz: ch01SelfQuiz },
     loadBody: () => import("./chapters/ch0-1/body"),
+    loadIntro: () => import("./chapters/ch0-1/intro.mdx"),
   },
   {
     data: { chapterMeta: ch02Meta, quiz: ch02Quiz, sections: ch02Sections, session: ch02Session, selfQuiz: ch02SelfQuiz },
     loadBody: () => import("./chapters/ch0-2/body"),
+    loadIntro: () => import("./chapters/ch0-2/intro.mdx"),
   },
   {
     data: { chapterMeta: ch11Meta, quiz: ch11Quiz, sections: ch11Sections, session: ch11Session, selfQuiz: ch11SelfQuiz },
     loadBody: () => import("./chapters/ch1-1/body"),
+    loadIntro: () => import("./chapters/ch1-1/intro.mdx"),
   },
   {
     data: { chapterMeta: ch12Meta, quiz: ch12Quiz, sections: ch12Sections, selfQuiz: ch12SelfQuiz },
     loadBody: () => import("./chapters/ch1-2/body"),
+    loadIntro: () => import("./chapters/ch1-2/intro.mdx"),
   },
 ];

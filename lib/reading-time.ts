@@ -82,7 +82,8 @@ function proseChars(src: string): number {
 /**
  * 섹션별 본문 글자 수 (num → 글자). 챕터 디렉터리나 sections/ 가 없으면 undefined —
  * 그러면 호출부가 소요 표시를 통째로 생략한다 (틀린 수치보다 없는 편이 낫다).
- * intro·outro 는 각각 첫 섹션·마지막 섹션 페이지에 얹혀 렌더되므로 그 섹션에 합산한다.
+ * outro 는 마지막 섹션 페이지에 얹혀 렌더되므로 그 섹션에 합산하고, intro 는 v3.2 부터
+ * 목차 페이지 몫이라 INTRO_KEY 로 따로 담는다 (어느 섹션에도 안 들어간다).
  */
 function sectionChars(entry: ChapterEntry): Map<string, number> | undefined {
   const { chapterMeta, sections } = entry.data;
@@ -104,12 +105,26 @@ function readSectionChars(entry: ChapterEntry): Map<string, number> | undefined 
     chars.set(s.num, read(join(sectionsDir, `${s.num}.mdx`)));
   }
 
-  const first = sections[0].num;
+  // 아웃트로는 마지막 섹션 페이지 하단에 있으니 그 섹션에 합산한다. **인트로는 합산하지
+  // 않는다** — v3.2(#174)부터 목차 페이지에 있어서 어느 섹션에서도 읽히지 않는다. 첫 섹션에
+  // 계속 얹으면 파트 1 의 "약 N분"이 그 파트 페이지에 없는 글을 세게 된다 (INTRO 키로 따로 담아
+  // estimateChapter 가 챕터 단위 항으로 쓴다).
   const last = sections[sections.length - 1].num;
-  chars.set(first, (chars.get(first) ?? 0) + read(join(dir, "intro.mdx")));
   chars.set(last, (chars.get(last) ?? 0) + read(join(dir, "outro.mdx")));
+
+  // 인트로를 세는 조건은 **파일 존재가 아니라 loadIntro 유무**다 (PR #176 Codex 지적).
+  // loadIntro 는 optional 이라 "intro.mdx 는 남긴 채 등록만 뺀" 상태가 적법한데, 그때 화면은
+  // 인트로를 안 그리면서 총 소요에는 그 분량이 남는다 — 학습자가 볼 수 없는 글의 시간이다.
+  // 렌더를 정하는 근거와 세는 근거를 같은 것으로 묶어 그 어긋남을 없앤다.
+  chars.set(INTRO_KEY, entry.loadIntro ? read(join(dir, "intro.mdx")) : 0);
   return chars;
 }
+
+/**
+ * 인트로 글자 수를 담는 키. 섹션 num 과 충돌하지 않아야 한다 — num 은 "01".."NN" 이므로
+ * 콜론이 들어간 이 키는 어떤 챕터에서도 섹션과 겹치지 않는다.
+ */
+const INTRO_KEY = "chapter:intro";
 
 /** 파트 범위 — lib/content.ts 의 ResolvedPart 를 받되, 순환 import 를 피해 구조로만 받는다. */
 export interface SectionRange {
@@ -118,18 +133,21 @@ export interface SectionRange {
 }
 
 export interface ChapterEstimate {
-  total: number;     // 챕터 전체. **parts 합 + quiz 와 정확히 일치한다** (아래 참조)
+  total: number;     // 챕터 전체. **parts 합 + quiz + intro 와 정확히 일치한다** (아래 참조)
   parts: number[];   // 넘겨받은 파트 순서와 1:1. 파트가 없으면 빈 배열
   quiz: number;      // 챕터 퀴즈 — 어느 파트에도 안 속한다. quiz 가 없으면 0
+  intro: number;     // 목차 페이지의 챕터 인트로 (v3.2 #174) — 어느 파트에도 안 속한다
 }
 
 /**
- * 챕터를 처음부터 끝까지 (본문 정독 + 셀프 퀴즈 + 인출 카드 + 챕터 퀴즈) 도는 데 걸리는
- * 대략의 분. 본문 mdx 를 못 찾으면 undefined.
+ * 챕터를 처음부터 끝까지 (인트로 + 본문 정독 + 셀프 퀴즈 + 인출 카드 + 챕터 퀴즈) 도는 데
+ * 걸리는 대략의 분. 본문 mdx 를 못 찾으면 undefined.
  *
  * **총합은 파트별 값의 합으로 정의한다** — 화면에 파트마다 "약 N분"이 뜨는데 각각을 5분
  * 단위로 반올림하면 그 합이 따로 반올림한 총합과 어긋난다. 학습자가 더해 볼 수 있는
  * 숫자들이므로, 어긋나는 쪽이 아니라 총합을 합으로 맞추는 쪽을 택했다.
+ * 인트로·퀴즈는 어느 파트에도 안 속하므로 그 합에 각각 더해진다 (v3.2 — 인트로가 섹션에서
+ * 목차 페이지로 빠지면서 파트 밖 항이 하나 늘었다).
  */
 export function estimateChapter(
   entry: ChapterEntry,
@@ -150,11 +168,15 @@ export function estimateChapter(
 
   // 퀴즈는 반올림하지 않는다 — 문항당 1분이라 이미 정수이고, 5분으로 올리면 없는 시간이 생긴다
   const quizMinutes = quiz.length * QUIZ_MIN;
+  // 인트로도 반올림하지 않는다 — 문단 한둘짜리라 5분으로 올리면 대부분 없는 시간이 생긴다.
+  // 다만 0분으로 사라지지도 않게 올림한다 (읽는 글이 있는데 0분이라고 적을 수는 없다).
+  const introRaw = (chars.get(INTRO_KEY) ?? 0) / PROSE_CPM;
+  const introMinutes = introRaw > 0 ? Math.max(1, Math.round(introRaw)) : 0;
   const partMinutes = parts.map((p) => round5(sum(p.fromSec - 1, p.toSec)));
   const total =
     partMinutes.length > 0
-      ? partMinutes.reduce((a, b) => a + b, 0) + quizMinutes
-      : round5(sum(0, raw.length) + quizMinutes);
+      ? partMinutes.reduce((a, b) => a + b, 0) + quizMinutes + introMinutes
+      : round5(sum(0, raw.length) + quizMinutes + introMinutes);
 
-  return { total, parts: partMinutes, quiz: quizMinutes };
+  return { total, parts: partMinutes, quiz: quizMinutes, intro: introMinutes };
 }
