@@ -29,18 +29,18 @@ export const chapterMeta: ChapterMeta = {
   examWeight: 5,
   prerequisites: ["ch0-1"],
   objectives: [
-    "영구 신원(유저)과 빌려 쓰는 신원(롤)을 구분하고, 권한이 정책 연결로만 생긴다는 것을 설명한다",
+    "영구 신원(유저)과 빌려 쓰는 신원(역할)을 구분하고, 권한이 정책 연결로만 생긴다는 것을 설명한다",
     "정책 JSON의 Effect·Action·Resource·Principal·Condition을 읽고 그 정책이 무엇을 허용하는지 말한다",
     "명시적 Deny 우선, 자격 증명 권한의 SCP ∩ Boundary 축소, 동일 계정 리소스 정책과의 합집합을 함께 놓고 접근 가부를 판정한다",
-    "AWS 위에서 도는 코드의 인증을 액세스 키가 아니라 롤·STS 임시 자격 증명으로 설계한다",
+    "AWS 위에서 도는 코드의 인증을 액세스 키가 아니라 역할·STS 임시 자격 증명으로 설계한다",
     "자격 증명 보고서와 액세스 어드바이저를 용도로 구분해 계정 감사·미사용 권한 정리에 쓴다",
   ],
   // 파트 경계는 "무엇을 다 배워야 다음이 열리는가" 기준 — 주체를 알아야(01~03) 정책을 읽고
-  // (04~06), 정책을 알아야 롤·STS로 실제 인증을 설계한다(07~08). 09~10은 운영·복습이라 뒤로.
+  // (04~06), 정책을 알아야 역할·STS로 실제 인증을 설계한다(07~08). 09~10은 운영·복습이라 뒤로.
   parts: [
     { title: "IAM의 뼈대와 인증", from: "01", to: "03" },
     { title: "정책 문법과 유효 권한", from: "04", to: "06" },
-    { title: "롤 · STS · 자격 증명 다루기", from: "07", to: "08" },
+    { title: "역할 · STS · 자격 증명 다루기", from: "07", to: "08" },
     { title: "보안 운영과 시험 총정리", from: "09", to: "10" },
   ],
 };
@@ -53,7 +53,7 @@ export const chapterMeta: ChapterMeta = {
 //   iam-roles-anywhere-on-premises — Roles Anywhere 본문 미등장
 //   iam-cognito-user-pool-vs-identity-pool — 본문은 Cognito를 페더레이션 IdP 예시로만 언급
 const CHAPTER_SCOPE = new Set([
-  "iam-ec2-role-instead-of-access-keys", // §07 "코드에는 키 대신 롤"
+  "iam-ec2-role-instead-of-access-keys", // §07 "코드에는 키 대신 역할"
   "iam-cross-account-assume-role", // §07 교차 계정 AssumeRole
   "iam-permissions-boundary-effective-permissions", // §05 권한 경계 교집합
   "iam-lambda-least-privilege-dynamodb", // §04·§09 최소 권한
@@ -86,12 +86,12 @@ export { selfQuiz } from "./selfquiz.ts";
  */
 export const sections: SectionMeta[] = [
   { num: "01", title: "IAM 개요 — AWS의 관문", sub: "글로벌·무료·기본은 전부 거부", freq: "mid", freqLabel: "빈출 ★★☆ · 모든 서비스 문제의 배경" },
-  { num: "02", title: "핵심 구성요소", sub: "Root·유저·그룹·롤·정책 — 주체와 권한", freq: "hi", freqLabel: "빈출 ★★★ · 그룹 규칙이 함정 재료" },
+  { num: "02", title: "핵심 구성요소", sub: "Root·유저·그룹·역할·정책 — 주체와 권한", freq: "hi", freqLabel: "빈출 ★★★ · 그룹 규칙이 함정 재료" },
   { num: "03", title: "인증 vs 인가", sub: "“너 누구야?” 다음에 “뭐 할 수 있어?”", freq: "mid", freqLabel: "빈출 ★★☆ · 용어 구분 문제" },
   { num: "04", title: "정책 JSON 해부", sub: "Effect·Action·Resource·Principal·Condition + 정책 변수", freq: "hi", freqLabel: "최빈출 ★★★ · 정책 판독 문제의 재료" },
   { num: "05", title: "정책 유형과 유효 권한", sub: "Identity/Resource/Boundary/SCP — 교집합", freq: "hi", freqLabel: "빈출 ★★★ · Boundary 그룹 불가 함정" },
   { num: "06", title: "정책 평가 로직", sub: "명시적 Deny > Allow > 암묵적 Deny — 시뮬레이터로 확인", freq: "hi", freqLabel: "최빈출 ★★★ · DVA 최다 출제 지점" },
-  { num: "07", title: "롤 & STS", sub: "빌려 쓰는 신원, 임시 자격 증명, iam:PassRole", freq: "hi", freqLabel: "최빈출 ★★★ · 키 대신 롤 + PassRole" },
+  { num: "07", title: "역할 & STS", sub: "빌려 쓰는 신원, 임시 자격 증명, iam:PassRole", freq: "hi", freqLabel: "최빈출 ★★★ · 키 대신 역할 + PassRole" },
   { num: "08", title: "접근 방법과 자격 증명", sub: "콘솔·CLI·SDK, 액세스 키, 비밀번호 정책·MFA", freq: "mid", freqLabel: "빈출 ★★☆ · 도구·자격 증명 매칭" },
   { num: "09", title: "보안 도구·모범 사례·공동 책임", sub: "Credential Report vs Access Advisor가 핵심", freq: "mid", freqLabel: "빈출 ★★☆ · 도구 스왑 함정" },
   { num: "10", title: "DVA 시험 핵심 정리", sub: "한 장 요약 + 시험 직전 체크", freq: "hi", freqLabel: "총정리 · 시험 직전 복습용" },

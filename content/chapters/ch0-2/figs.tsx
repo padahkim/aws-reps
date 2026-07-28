@@ -229,7 +229,7 @@ export function OverviewGateSvg() {
   );
 }
 
-/** 유저·그룹·롤·정책 관계도 — iam_guide DiagComponents 이식(#75, 기존 자작 IamStructureSvg 대체). */
+/** 유저·그룹·역할·정책 관계도 — iam_guide DiagComponents 이식(#75, 기존 자작 IamStructureSvg 대체). */
 export function ComponentsSvg() {
   return (
     <svg viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
@@ -268,7 +268,7 @@ export function ComponentsSvg() {
       <path d="M362 128 h96 M362 145 h96 M362 162 h70" stroke={C.amber} strokeWidth={2} strokeLinecap="round" opacity={0.7} />
       <text x={410} y={183} fontSize={10.5} fontWeight={900} fill={C.amberText} textAnchor="middle" fontFamily={MONO}>Policy (권한)</text>
 
-      {/* 롤 */}
+      {/* 역할 */}
       <rect x={520} y={40} width={250} height={130} rx={12} fill={C.redSoft} stroke={C.red} strokeWidth={2} />
       <text x={535} y={64} fontSize={12.5} fontWeight={900} fill={C.red} fontFamily={MONO}>🎭 ROLE (임시 권한)</text>
       <g transform="translate(540,80)">
@@ -279,12 +279,12 @@ export function ComponentsSvg() {
       <text x={595} y={114} fontSize={10.5} fill={C.ink} fontFamily={MONO}>일시적으로 위임</text>
       <text x={535} y={152} fontSize={9.5} fill={C.inkSoft} fontFamily={MONO}>EC2 · Lambda · 교차계정 · 페더레이션</text>
 
-      {/* 롤에도 정책 연결 */}
+      {/* 역할에도 정책 연결 */}
       <path d="M520 150 C 500 150, 490 155, 479 155" stroke={C.amber} strokeWidth={2} fill="none" markerEnd="url(#arrow-comp-amber)" />
 
-      {/* 롤을 맡는 주체(Trust) */}
+      {/* 역할을 맡는 주체(Trust) */}
       <rect x={520} y={210} width={250} height={120} rx={12} fill="#FFF" stroke={C.red} strokeWidth={1.5} strokeDasharray="5 4" />
-      <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>롤을 맡는 주체 (Trust)</text>
+      <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>역할을 맡는 주체 (Trust)</text>
       {[
         ["EC2 / Lambda", 262],
         ["다른 AWS 계정의 유저", 287],
@@ -462,7 +462,7 @@ export function PolicyTypesSvg() {
       <text x={455} y={70} fontSize={13} fontWeight={900} fill={C.ink}>유효 권한 = 세 경계의 교집합</text>
       {[
         [C.red, "SCP", "Organizations가 계정 전체에 거는 최대치.", "여기 없으면 무슨 정책이든 불가."],
-        [C.amberText, "Permission Boundary", "유저·롤 개인의 권한 상한선.", "그룹에는 못 건다 (함정 포인트)."],
+        [C.amberText, "Permission Boundary", "유저·역할 개인의 권한 상한선.", "그룹에는 못 건다 (함정 포인트)."],
         [C.blue, "Identity Policy", "실제로 부여한 허용 권한.", ""],
         [C.teal, "유효 권한", "모든 경계 안에서 겹치는 부분만", "실제로 허용된다."],
       ].map(([col, t, d1, d2], i) => (
@@ -538,7 +538,7 @@ export function StsSequenceSvg() {
         </g>
       ))}
       <line x1={110} y1={98} x2={378} y2={98} stroke={C.amber} strokeWidth={2} markerEnd="url(#arrow-sts)" />
-      <text x={244} y={90} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle">① AssumeRole 요청 (롤 ARN)</text>
+      <text x={244} y={90} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle">① AssumeRole 요청 (역할 ARN)</text>
 
       <line x1={385} y1={152} x2={117} y2={152} stroke={C.amber} strokeWidth={2} markerEnd="url(#arrow-sts)" />
       <text x={244} y={144} fontSize={11} fontWeight={700} fill={C.amberText} textAnchor="middle">② 임시 자격 증명 발급</text>
@@ -586,7 +586,7 @@ export function EvalEngine() {
     { id: "start", label: "요청 도착", sub: "기본값 = 암묵적 거부" },
     { id: "deny", label: "명시적 Deny 있음?", sub: "어디든 Deny 하나라도 있으면 끝" },
     { id: "scp", label: "SCP가 허용?", sub: "조직 계정일 때 최대 한계" },
-    { id: "pb", label: "Permission Boundary 통과?", sub: "유저·롤 권한 상한" },
+    { id: "pb", label: "Permission Boundary 통과?", sub: "유저·역할 권한 상한" },
     { id: "allow", label: "명시적 Allow 있음?", sub: "Identity(자격 증명 기반) 정책" },
   ];
 
@@ -880,7 +880,7 @@ export function PolicyRequestTester() {
             기반(버킷) 정책이 되는데, 그러면 Principal 이 필수라 아래 JSON 은 AWS 가 거부하는
             형태가 된다 — 위 ExamPoint 가 가르치는 포인트와도 정면으로 어긋난다 (PR #151 Codex 지적). */}
         <b style={{ color: C.blue }}>이런 상황입니다.</b> 여러분은 <b>IAM 유저</b>이고, 아래{" "}
-        <b>정책 한 장</b>이 그 유저에게 붙어 있습니다 — 사람·롤에 붙이는{" "}
+        <b>정책 한 장</b>이 그 유저에게 붙어 있습니다 — 사람·역할에 붙이는{" "}
         <b>자격 증명 기반 정책</b>이라 “누가”에 해당하는 <Code>Principal</Code>이 없습니다(주체가 곧
         이 정책을 달고 있는 나). 정책은 <b>무엇을 · 어디에 · 어떤 조건에서</b> 할 수 있는지 적어둔
         규칙 목록이고, 요청이 들어올 때마다 AWS가 이걸 읽어 <b>허용/거부</b>를 정합니다. 여기서는{" "}
@@ -1138,9 +1138,9 @@ export function PolicyRequestTester() {
               요청" 시나리오에서 요청 패널(MFA: 없음)과 정면으로 어긋난다 (PR #151 Codex 지적).
               고정된 것은 자격 증명 타입(IAM 유저)이고, MFA 유무는 시나리오가 정한다. */}
           <p style={{ fontSize: "0.74rem", color: C.inkSoft, lineHeight: 1.55, margin: "6px 0 0", opacity: 0.9 }}>
-            전제: 요청자는 <b>IAM 유저</b>(롤 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
+            전제: 요청자는 <b>IAM 유저</b>(역할 세션이 아님)이고, 사무실 요청은 회사 NAT를 거쳐 공인
             IP로 나갑니다. <span style={{ fontFamily: MONO }}>aws:MultiFactorAuthPresent</span>는
-            자격 증명에 MFA 맥락이 실려 있을 때만 참이라 롤 세션에서는 다르게 동작할 수 있고,{" "}
+            자격 증명에 MFA 맥락이 실려 있을 때만 참이라 역할 세션에서는 다르게 동작할 수 있고,{" "}
             <span style={{ fontFamily: MONO }}>aws:SourceIp</span>는 AWS가 관찰하는 공인 주소입니다.
           </p>
         </div>

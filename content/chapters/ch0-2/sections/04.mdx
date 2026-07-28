@@ -10,7 +10,7 @@ import { CardGrid, InfoCard, PointBox, PolicyAnatomy, PolicyRequestTester } from
   <InfoCard tone="teal" title="Effect" sub="필수"><Code>Allow</Code> 또는 <Code>Deny</Code>. <b>Deny는 언제나 Allow보다 우선</b>합니다.</InfoCard>
   <InfoCard tone="amber" title="Action" sub="필수"><Code>service:Operation</Code> 형식. <Code>s3:GetObject</Code>, <Code>dynamodb:PutItem</Code> 등. 와일드카드 <Code>{"*"}</Code> 사용 가능 (<Code>{"s3:*"}</Code>).</InfoCard>
   <InfoCard tone="red" title="Resource" sub="필수">대상 리소스의 <b>ARN</b>. 버킷(<Code>:::my-bucket</Code>)과 객체(<Code>:::my-bucket/*</Code>)는 다른 ARN임에 주의.</InfoCard>
-  <InfoCard title="Principal" sub="리소스 기반 정책에서">이 정책이 적용될 계정/유저/롤 — “누가”. 자격 증명 기반 정책에는 없습니다(주체가 곧 연결 대상).</InfoCard>
+  <InfoCard title="Principal" sub="리소스 기반 정책에서">이 정책이 적용될 계정/유저/역할 — “누가”. 자격 증명 기반 정책에는 없습니다(주체가 곧 연결 대상).</InfoCard>
   <InfoCard tone="teal" title="Condition" sub="선택">정책이 발효되는 조건 (IP, 시간, MFA 여부, 태그 등). 아래 “조건부 허용의 재료” 참고.</InfoCard>
 </CardGrid>
 

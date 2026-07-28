@@ -128,8 +128,8 @@ export function ApiConvergeSvg() {
       </defs>
 
       {client(30, "🖥 관리 콘솔", "브라우저 GUI", "로그인: ID/비밀번호 (+MFA)")}
-      {client(280, "⌨️ CLI", <tspan fontFamily={MONO}>aws s3 ls</tspan>, "인증: 액세스 키 / 롤")}
-      {client(530, "📦 SDK", "Python(boto3), JS, Java…", "인증: 액세스 키 / 롤")}
+      {client(280, "⌨️ CLI", <tspan fontFamily={MONO}>aws s3 ls</tspan>, "인증: 액세스 키 / 역할")}
+      {client(530, "📦 SDK", "Python(boto3), JS, Java…", "인증: 액세스 키 / 역할")}
 
       <line x1={130} y1={120} x2={330} y2={196} stroke={C.blue} strokeWidth={2.5} markerEnd="url(#arrow-api)" />
       <line x1={380} y1={120} x2={380} y2={196} stroke={C.blue} strokeWidth={2.5} markerEnd="url(#arrow-api)" />
@@ -140,7 +140,7 @@ export function ApiConvergeSvg() {
         🔏 요청 서명 (SigV4)
       </text>
       <text x={380} y={252} fontSize={12} fill={C.inkSoft} textAnchor="middle">
-        자격증명으로 요청에 서명 → &ldquo;누가 보냈는지&rdquo;를 증명 (도구가 자동 처리)
+        자격 증명으로 요청에 서명 → &ldquo;누가 보냈는지&rdquo;를 증명 (도구가 자동 처리)
       </text>
 
       <line x1={380} y1={272} x2={380} y2={308} stroke={C.blue} strokeWidth={2.5} markerEnd="url(#arrow-api)" />
@@ -278,17 +278,17 @@ export function ManagedSpectrumSvg() {
   );
 }
 
-/* ============ 인터랙티브: 자격증명 체인 리졸버 (#72 신규) ============ */
+/* ============ 인터랙티브: 자격 증명 체인 리졸버 (#72 신규) ============ */
 
 /**
- * 자격증명 체인 리졸버 — "같은 코드·두 환경"(내 노트북 vs EC2) 프리셋 위에서 자격증명
+ * 자격 증명 체인 리졸버 — "같은 코드·두 환경"(내 노트북 vs EC2) 프리셋 위에서 자격 증명
  * 소스 4개를 켜고 끄면, SDK 가 실제로 쓰는 소스를 first-hit(위에서부터 먼저 발견된 것)으로
  * 판정한다. EvalEngine(ch0-2)의 first-true-wins 상태기계와 같은 구조.
  *
  * 사실 근거 (#72 코멘트 기록 대상): §02 본문 체인 순서(코드 파라미터 → 환경변수 →
- * 설정 파일 → IAM 롤)와 "구체적인 지정이 기본값을 이깁니다". EC2에 환경변수가 있으면
- * 롤보다 우선하는 엣지케이스 포함 — "EC2 = 항상 롤" 오개념 방지. 실제 SDK 체인에는
- * 웹 아이덴티티·ECS 컨테이너 자격증명 등 중간 단계가 더 있다 (하단에 명시).
+ * 설정 파일 → IAM 역할)와 "구체적인 지정이 기본값을 이깁니다". EC2에 환경변수가 있으면
+ * 역할보다 우선하는 엣지케이스 포함 — "EC2 = 항상 역할" 오개념 방지. 실제 SDK 체인에는
+ * 웹 아이덴티티·ECS 컨테이너 자격 증명 등 중간 단계가 더 있다 (하단에 명시).
  */
 export function CredentialChainResolver() {
   const [env, setEnv] = useState<"laptop" | "ec2">("laptop");
@@ -296,7 +296,7 @@ export function CredentialChainResolver() {
 
   const switchEnv = (e: "laptop" | "ec2") => {
     setEnv(e);
-    // 환경 전환 시 그 환경의 전형적 기본 상태로 — 노트북=설정 파일, EC2=롤
+    // 환경 전환 시 그 환경의 전형적 기본 상태로 — 노트북=설정 파일, EC2=역할
     setSrc(
       e === "laptop"
         ? { code: false, envvar: false, config: true, role: false }
@@ -313,8 +313,8 @@ export function CredentialChainResolver() {
     {
       key: "role",
       num: "④",
-      label: "붙어 있는 IAM 롤",
-      sub: roleAvailable ? "EC2 인스턴스 프로파일" : "이 환경엔 없음 — 롤은 EC2·Lambda 같은 AWS 실행 환경에 붙는다",
+      label: "붙어 있는 IAM 역할",
+      sub: roleAvailable ? "EC2 인스턴스 프로파일" : "이 환경엔 없음 — 역할은 EC2·Lambda 같은 AWS 실행 환경에 붙는다",
       available: roleAvailable,
     },
   ];
@@ -332,8 +332,8 @@ export function CredentialChainResolver() {
       title: "환경변수 사용",
       safe: false,
       body: envMasksRole
-        ? "환경변수가 롤보다 앞 순서라, 롤이 붙어 있어도 환경변수의 키가 쓰입니다 — \"EC2면 항상 롤\"이 아닙니다. 롤을 쓰게 하려면 환경변수를 지워야 합니다."
-        : "설정 파일·롤보다 앞 순서 — 컨테이너·CI 환경에서 흔하지만, 영구 키라면 유출 리스크는 남습니다.",
+        ? "환경변수가 역할보다 앞 순서라, 역할이 붙어 있어도 환경변수의 키가 쓰입니다 — \"EC2면 항상 역할\"이 아닙니다. 역할을 쓰게 하려면 환경변수를 지워야 합니다."
+        : "설정 파일·역할보다 앞 순서 — 컨테이너·CI 환경에서 흔하지만, 영구 키라면 유출 리스크는 남습니다.",
     },
     config: {
       title: "설정 파일 사용",
@@ -341,14 +341,14 @@ export function CredentialChainResolver() {
       body: "내 노트북의 표준 경로 — aws configure가 저장한 영구 액세스 키로 서명합니다. 키 관리 책임이 내게 남습니다.",
     },
     role: {
-      title: "IAM 롤 사용",
+      title: "IAM 역할 사용",
       safe: true,
-      body: "앞 순서 소스가 전부 없어서 롤까지 내려왔습니다 — 저장된 영구 키가 아예 없고 만료되는 임시 자격증명을 자동으로 받아 씁니다. 시험의 \"가장 안전한 방법\" 정답 (ch0-2 롤).",
+      body: "앞 순서 소스가 전부 없어서 역할까지 내려왔습니다 — 저장된 영구 키가 아예 없고 만료되는 임시 자격 증명을 자동으로 받아 씁니다. 시험의 \"가장 안전한 방법\" 정답 (ch0-2 역할).",
     },
   };
 
   return (
-    <SimFrame title="자격증명 체인 리졸버 — 같은 코드, 두 환경" icon="🔑">
+    <SimFrame title="자격 증명 체인 리졸버 — 같은 코드, 두 환경" icon="🔑">
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         {(
           [
@@ -375,7 +375,7 @@ export function CredentialChainResolver() {
         ))}
       </div>
       <p style={{ fontSize: "0.8rem", color: C.inkSoft, lineHeight: 1.6, margin: "0 0 12px" }}>
-        같은 코드가 환경에 따라 다른 자격증명으로 인증됩니다 — SDK는 아래 순서로 탐색해{" "}
+        같은 코드가 환경에 따라 다른 자격 증명으로 인증됩니다 — SDK는 아래 순서로 탐색해{" "}
         <b style={{ color: C.ink }}>처음 발견한 소스</b>를 씁니다.
       </p>
 
@@ -455,7 +455,7 @@ export function CredentialChainResolver() {
                 border: `1.5px solid ${C.red}`,
               }}
             >
-              <div style={{ fontFamily: MONO, fontSize: "1rem", fontWeight: 900, color: C.red }}>✖ 자격증명 없음</div>
+              <div style={{ fontFamily: MONO, fontSize: "1rem", fontWeight: 900, color: C.red }}>✖ 자격 증명 없음</div>
               <div style={{ fontSize: "0.82rem", marginTop: 6, lineHeight: 1.65, color: C.ink }}>
                 체인 끝까지 아무 소스도 없음 — SDK는 요청을 서명하지 못하고 에러를 냅니다.
               </div>
@@ -463,8 +463,8 @@ export function CredentialChainResolver() {
           )}
 
           <p style={{ fontSize: "0.76rem", color: C.inkSoft, lineHeight: 1.6, margin: "10px 0 0" }}>
-            노트북에선 설정 파일이, EC2에선 롤이 이기는 게 전형 — 그래서 <b>같은 코드</b>가 두 환경에서
-            다르게 인증됩니다. 실제 SDK 체인에는 웹 아이덴티티 토큰·ECS 컨테이너 자격증명 등 중간
+            노트북에선 설정 파일이, EC2에선 역할이 이기는 게 전형 — 그래서 <b>같은 코드</b>가 두 환경에서
+            다르게 인증됩니다. 실제 SDK 체인에는 웹 아이덴티티 토큰·ECS 컨테이너 자격 증명 등 중간
             단계가 더 있습니다 — 시험 감각은 이 4개의 순서면 충분합니다.
           </p>
         </div>

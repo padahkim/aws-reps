@@ -7,13 +7,13 @@ import { AccentRow, PointBox } from "../figs";
 
 <AccentRow color={C.red} term="01 평가 규칙">명시적 Deny &gt; 명시적 Allow &gt; 암묵적 Deny(기본값). Deny는 절대 못 이긴다.</AccentRow>
 <AccentRow color={C.red} term="02 유효 권한">SCP ∩ Permission Boundary ∩ Identity Policy — 교집합. Boundary/SCP는 권한을 “부여”하지 않고 “상한”만 설정.</AccentRow>
-<AccentRow color={C.blue} term="03 유저 vs 롤">유저 = 실제 사람 1명과 매핑되는 영구 신원(비밀번호·액세스 키 보유), 롤 = 임시로 맡는 신원(자동 순환). EC2·Lambda 등 서비스와 교차 계정에 부여.</AccentRow>
+<AccentRow color={C.blue} term="03 유저 vs 역할">유저 = 실제 사람 1명과 매핑되는 영구 신원(비밀번호·액세스 키 보유), 역할 = 임시로 맡는 신원(자동 순환). EC2·Lambda 등 서비스와 교차 계정에 부여.</AccentRow>
 <AccentRow color={C.blue} term="04 그룹">유저만 포함(중첩 불가), 권한 일괄 관리.</AccentRow>
 <AccentRow color={C.amberText} term="05 정책">권한을 정의한 JSON — Effect·Action·Resource(+Principal·Condition), 연결해야 효력. 정책 변수 <Code>{"${aws:username}"}</Code> 하나로 사용자별 동적 정책 처리.</AccentRow>
-<AccentRow color={C.amberText} term="06 접근 오류 1순위">EC2/Lambda가 AWS 호출 실패 → 거의 항상 롤/실행 역할 문제. 키 하드코딩 대신 롤을 붙였는지 확인.</AccentRow>
+<AccentRow color={C.amberText} term="06 접근 오류 1순위">EC2/Lambda가 AWS 호출 실패 → 거의 항상 역할(인스턴스 프로파일·실행 역할) 문제. 키 하드코딩 대신 역할을 붙였는지 확인.</AccentRow>
 <AccentRow color={C.teal} term="07 교차 계정">Resource-based 정책(Principal) 또는 AssumeRole — 키를 공유하지 않는다. 동일 계정 = 합집합, 교차 계정 = 둘 다 Allow.</AccentRow>
 <AccentRow color={C.amberText} term="08 STS">임시 자격 증명 발급소 — AssumeRole 계열 3종 + GetSessionToken. 반환값엔 SessionToken·만료 시간.</AccentRow>
-<AccentRow color={C.red} term="09 PassRole">서비스에 롤을 지정하는 작업자에게 <Code>iam:PassRole</Code> 필요 — 전달 후 못 쓰면 신뢰 정책 Principal 확인.</AccentRow>
+<AccentRow color={C.red} term="09 PassRole">서비스에 역할을 지정하는 작업자에게 <Code>iam:PassRole</Code> 필요 — 전달 후 못 쓰면 신뢰 정책 Principal 확인.</AccentRow>
 <AccentRow color={C.blue} term="10 액세스 키">CLI/SDK용 자격 증명 — 공유·하드코딩 금지, 정기 순환. Secret은 생성 시 한 번만 표시.</AccentRow>
 <AccentRow color={C.teal} term="11 감사 도구">자격 증명 보고서(계정 전체 CSV) vs 액세스 어드바이저(유저별 최근 사용) — 스왑 함정 주의.</AccentRow>
 <AccentRow color={C.blue} term="12 글로벌·ARN">IAM은 리전 무관·무료. ARN은 <Code>arn:aws:service:region:account:resource</Code> — S3는 region/account 비움.</AccentRow>
@@ -23,12 +23,12 @@ import { AccentRow, PointBox } from "../figs";
 
 - IAM은 **글로벌 서비스**다 (리전 없음, 무료)
 - **명시적 Deny는 어떤 Allow도 이긴다** — “Allow *인데 왜 막히지?” = 어딘가의 Deny
-- EC2/Lambda가 AWS를 호출한다 → 무조건 **롤**, 액세스 키 하드코딩은 오답
-- 롤을 서비스에 지정하려면 작업자에게 <Code>iam:PassRole</Code> 필요 — 전달 후 못 쓰면 **신뢰 정책 Principal** 확인
+- EC2/Lambda가 AWS를 호출한다 → 무조건 **역할**, 액세스 키 하드코딩은 오답
+- 역할을 서비스에 지정하려면 작업자에게 <Code>iam:PassRole</Code> 필요 — 전달 후 못 쓰면 **신뢰 정책 Principal** 확인
 - **동일 계정** = 자격 증명 정책 ∪ 리소스 정책(합집합) / **교차 계정** = 둘 다 Allow
-- 권한 경계는 **유저·롤에만**(그룹 불가), 유효 권한은 **교집합**
+- 권한 경계는 **유저·역할에만**(그룹 불가), 유효 권한은 **교집합**
 - 인라인 정책은 주체와 함께 삭제, 고객 관리형은 재사용·버전 관리
 
-<PointBox tone="blue" title="한 문장 요약">IAM = 인증(누구) + 인가(무엇). 권한은 JSON 정책으로 정의하고 유저·그룹·롤에 연결하며, 겹칠 땐 <b>Deny 우선</b>으로 판정한다. 앱/서비스에는 키 대신 <b>롤</b>을 준다.</PointBox>
+<PointBox tone="blue" title="한 문장 요약">IAM = 인증(누구) + 인가(무엇). 권한은 JSON 정책으로 정의하고 유저·그룹·역할에 연결하며, 겹칠 땐 <b>Deny 우선</b>으로 판정한다. 앱/서비스에는 키 대신 <b>역할</b>을 준다.</PointBox>
 
 <Note>빈출도 표기는 DVA-C02의 일반적 출제 경향 기반 학습 우선순위 지표이며, 실제 시험 구성은 회차마다 다를 수 있습니다.</Note>
