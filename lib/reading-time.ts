@@ -82,7 +82,8 @@ function proseChars(src: string): number {
 /**
  * 섹션별 본문 글자 수 (num → 글자). 챕터 디렉터리나 sections/ 가 없으면 undefined —
  * 그러면 호출부가 소요 표시를 통째로 생략한다 (틀린 수치보다 없는 편이 낫다).
- * intro·outro 는 각각 첫 섹션·마지막 섹션 페이지에 얹혀 렌더되므로 그 섹션에 합산한다.
+ * outro 는 마지막 섹션 페이지에 얹혀 렌더되므로 그 섹션에 합산하고, intro 는 v3.2 부터
+ * 목차 페이지 몫이라 INTRO_KEY 로 따로 담는다 (어느 섹션에도 안 들어간다).
  */
 function sectionChars(entry: ChapterEntry): Map<string, number> | undefined {
   const { chapterMeta, sections } = entry.data;
@@ -110,7 +111,12 @@ function readSectionChars(entry: ChapterEntry): Map<string, number> | undefined 
   // estimateChapter 가 챕터 단위 항으로 쓴다).
   const last = sections[sections.length - 1].num;
   chars.set(last, (chars.get(last) ?? 0) + read(join(dir, "outro.mdx")));
-  chars.set(INTRO_KEY, read(join(dir, "intro.mdx")));
+
+  // 인트로를 세는 조건은 **파일 존재가 아니라 loadIntro 유무**다 (PR #176 Codex 지적).
+  // loadIntro 는 optional 이라 "intro.mdx 는 남긴 채 등록만 뺀" 상태가 적법한데, 그때 화면은
+  // 인트로를 안 그리면서 총 소요에는 그 분량이 남는다 — 학습자가 볼 수 없는 글의 시간이다.
+  // 렌더를 정하는 근거와 세는 근거를 같은 것으로 묶어 그 어긋남을 없앤다.
+  chars.set(INTRO_KEY, entry.loadIntro ? read(join(dir, "intro.mdx")) : 0);
   return chars;
 }
 
