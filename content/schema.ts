@@ -9,6 +9,12 @@
  * v3.1 (#148 spike → #161): 챕터 오리엔테이션 — ChapterMeta 에 objectives·parts 를 더하고
  *   섹션 본문 앞 슬롯(beforeBody)을 연다. 아래 "챕터 오리엔테이션 규약" 참조. 전부 optional·
  *   가산이라 v3 챕터는 그대로 유효하다 (기존 4챕터 메타 소급은 #163).
+ * v3.2 (#174): 챕터 인트로가 첫 섹션 페이지 상단 → **목차 페이지**로 옮겨진다. v3.1 이
+ *   섹션 페이지에 파트 컨텍스트("파트 1 — …")를 붙이면서 그 밑에 챕터 전체 소개가 오는
+ *   범주 오류가 생겼고, 인트로는 원래 "이 챕터를 지금 잡을 만한가"의 판단 재료라 목차
+ *   페이지가 제자리다. body 는 더 이상 인트로를 싣지 않고, registry 의 loadIntro? 가
+ *   앱↔인트로 통로다. 인트로 분량은 파트가 아니라 챕터 단위 항으로 센다
+ *   (lib/reading-time.ts 의 ChapterEstimate.intro).
  *
  * 파일 구조 (v3 — 전 챕터 적용 완료):
  *   content/chapters/{id}/meta.ts        — chapterMeta + quiz + sections (+ session) (순수 데이터, "use client" 금지)
@@ -17,8 +23,9 @@
  *   content/chapters/{id}/selfquiz.ts    — 섹션 셀프 퀴즈 문항 (#98). meta.ts 가 re-export.
  *                                          없는 챕터 적법 (ChapterData.selfQuiz? optional)
  *   content/chapters/{id}/body.tsx       — "use client" shim: <Sec {...sections[i]}> 래핑·
- *                                          섹션 수 assert·인트로/아웃트로 배치만 (본문 내용 금지)
- *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (첫 섹션 페이지 상단. 없으면 생략)
+ *                                          섹션 수 assert·아웃트로 배치만 (본문 내용 금지)
+ *   content/chapters/{id}/intro.mdx      — 챕터 인트로 (목차 페이지. v3.2 이전엔 첫 섹션 상단.
+ *                                          없으면 생략 — registry 의 loadIntro? 가 optional)
  *   content/chapters/{id}/sections/NN.mdx — 섹션 본문 (Sec 래핑 없이 내용만). NN = meta.sections[i].num
  *   content/chapters/{id}/outro.mdx      — 말미 체크리스트 (마지막 섹션 페이지 하단. 없으면 생략)
  *   content/chapters/{id}/figs.tsx       — 그 챕터에서만 쓰는 도식 SVG·인터랙티브 (mdx가 import)
@@ -47,7 +54,8 @@
  *     (body.tsx 클라이언트 경계 안이라 무해 — ch0-2·ch1-2 전례).
  *
  * 챕터 인트로 원칙 (#90 — 2026-07-23 사용자 피드백 규칙화):
- *   • intro.mdx 는 본문(정의·비교표) 진입 전에 서비스의 이미지를 먼저 그리게 한다 —
+ *   • intro.mdx 는 본문(정의·비교표) 진입 전에 서비스의 이미지를 먼저 그리게 한다 (v3.2부터
+ *     그 자리는 목차 페이지다 — 섹션에 들어가기 전에 읽힌다) —
  *     문단 1~2개로 ① 실무에서 어디에·왜 쓰이는지 ② DVA 시험 비중 ③ 강점
  *     ④ 주의점(함정) 을 소개한다.
  *   • 챕터 성격에 따른 변형 허용 — 서비스 챕터는 ①~④ 전부, 기초·문법 챕터(ch0류)는
@@ -73,16 +81,16 @@
  *   • 본문 섹션 헤더는 반드시 <Sec {...sections[i]}> 로 meta 를 스프레드한다 — 헤더 중복 정의 금지
  *   • body 는 모듈 평가 시점에 내부 섹션 수 ≠ meta.sections.length 면 throw 한다
  *     — output: "export" 프리렌더가 모든 섹션 페이지를 렌더하므로 불일치는 빌드 실패로 드러난다
- *   • 챕터 인트로는 첫 섹션 페이지 상단, 말미 체크리스트는 마지막 섹션 페이지 하단에 렌더
+ *   • 말미 체크리스트는 마지막 섹션 페이지 하단에 렌더 (인트로는 v3.2에서 목차 페이지로 이동)
  *   • quiz 가 비어있지 않으면 앱이 "챕터 퀴즈"를 마지막 섹션 페이지(N+1)로 덧붙인다
  *   • body 의 default export 는 optional prop afterSection: ReactNode 을 받아 그 섹션 본문과
  *     아웃트로 "사이"에 렌더한다 — 섹션 꼬리 슬롯. 인출 개념 카드가 이 자리에 들어간다
  *     (아웃트로는 챕터 마무리라 섹션 단위 인출보다 뒤에 와야 한다). 페이지가 슬롯의 내용을
- *     만들고 body 는 위치만 정한다 — 인트로/아웃트로 배치를 body 가 갖는 v3 원칙 그대로
+ *     만들고 body 는 위치만 정한다 — 아웃트로 배치를 body 가 갖는 v3 원칙 그대로
  *   • body 의 default export 는 optional prop beforeBody: ReactNode 도 받아 <Sec> 의 "첫
  *     자식"으로 렌더한다 (v3.1) — 섹션 헤더 바로 아래, 본문 앞. "미리 보는 질문"이 이 자리다.
  *     헤더 위(= <Sec> 밖)가 아니라 안인 이유: 예고 질문은 그 섹션에 속한 장치라 헤더와 붙어야
- *     하고, 첫 섹션 페이지에서 챕터 인트로보다 뒤에 와야 한다
+ *     한다 (v3.2 이전엔 첫 섹션 페이지의 챕터 인트로보다 뒤라는 제약이 함께 있었다)
  *
  * 챕터 오리엔테이션 규약 (v3.1 — #148 spike 채택안 1·3·4 → #161):
  *   문제였던 것: 같은 모양의 섹션 18~20개가 연속돼 "다 읽어야 하는 백과사전"으로 읽힌다.

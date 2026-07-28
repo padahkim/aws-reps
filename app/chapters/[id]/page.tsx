@@ -38,6 +38,10 @@ export default async function ChapterPage({
   // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
   const parts = chapterParts(entry);
   const estimate = estimateChapter(entry, parts);
+  // 챕터 인트로 (규약 v3.2, #174) — 예전에는 첫 섹션 페이지 상단이었는데, #161 의 파트
+  // 컨텍스트가 그 위에 붙으면서 "파트 1 — …" 밑에 챕터 전체 소개가 오는 범주 오류가 됐다.
+  // 여기가 "이 챕터가 무엇이고 지금 잡을 만한가"를 판단하는 화면이라 인트로의 제자리다.
+  const Intro = entry.loadIntro ? (await entry.loadIntro()).default : undefined;
 
   // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다). 어느 파트에도 속하지 않으므로
   // 파트 그룹들 뒤에 라벨 없는 묶음으로 붙는다 — 그룹 헤더가 없어 소요는 이 줄의 sub 에 적는다.
@@ -100,6 +104,12 @@ export default async function ChapterPage({
           )}
         </p>
       </header>
+      {/* 인트로 → 오리엔테이션 → 목차 순: "무엇인가" → "마치면 무엇을 할 수 있나" → "어떻게 구성되나" */}
+      {Intro && (
+        <section aria-label="챕터 소개" style={{ marginBottom: "1.5rem" }}>
+          <Intro />
+        </section>
+      )}
       {/* 오리엔테이션은 objectives 가 있는 챕터에만 (규약 v3.1 — 점진 적용, 소급은 #163) */}
       {meta.objectives && (
         <ChapterOrientation
