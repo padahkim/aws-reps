@@ -17,8 +17,9 @@ export interface ChapterEntry {
   data: ChapterData;
   // default = 섹션 렌더러 (규약 v2): section 인덱스(0-based) 하나만 렌더한다.
   // afterSection = 섹션 꼬리 슬롯 — 본문과 아웃트로 사이. 인출 개념 카드가 들어간다 (#58).
+  // beforeBody   = 섹션 머리 슬롯 — <Sec> 헤더 바로 아래. 미리 보는 질문이 들어간다 (v3.1 #161).
   loadBody: () => Promise<{
-    default: ComponentType<{ section: number; afterSection?: ReactNode }>;
+    default: ComponentType<{ section: number; afterSection?: ReactNode; beforeBody?: ReactNode }>;
   }>;
 }
 

@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SelfQuiz, conceptsForSection, getAllChapters, getChapter, sectionCount, selfQuizForSection } from "@/lib/content";
+import {
+  SelfQuiz,
+  conceptsForSection,
+  getAllChapters,
+  getChapter,
+  partForSection,
+  sectionCount,
+  selfQuizForSection,
+} from "@/lib/content";
 import ChapterQuiz from "../chapter-quiz";
 import MarkRead from "./mark-read";
+import { PreviewQuestions } from "./preview-questions";
 import SectionConcepts from "./section-concepts";
 
 // 미등록 param 거부 — 상위 [id]/page.tsx와 같은 정책 (output: "export" 정적 라우트).
@@ -51,6 +60,16 @@ export default async function SectionPage({
       </>
     ) : undefined;
 
+  // 미리 보는 질문 (규약 v3.1) — 같은 셀프 퀴즈의 "질문만" 섹션 머리로 올린다. 응답은 안 받는다:
+  // 위 selfQuizItems 가 하단에서 그대로 응답·채점을 담당하고, 여기는 예고 목록일 뿐이다.
+  const beforeBody =
+    selfQuizItems.length > 0 ? (
+      <PreviewQuestions questions={selfQuizItems.map((item) => item.q)} />
+    ) : undefined;
+
+  // 파트 컨텍스트 (규약 v3.1) — 지금 어느 묶음의 어디쯤인지. parts 없는 챕터·퀴즈 섹션은 undefined
+  const part = isQuiz ? undefined : partForSection(entry, n);
+
   // 이전/다음 링크 라벨 — k는 1-based 섹션 번호
   const label = (k: number) =>
     k > sections.length ? "챕터 퀴즈" : `${sections[k - 1].num} ${sections[k - 1].title}`;
@@ -80,10 +99,24 @@ export default async function SectionPage({
         </span>
       </nav>
 
+      {part && (
+        <p
+          style={{
+            fontSize: "0.82rem",
+            fontWeight: 700,
+            color: "var(--muted)",
+            paddingLeft: "0.7rem",
+            borderLeft: "3px solid var(--border)",
+          }}
+        >
+          파트 {part.index} — {part.title}
+        </p>
+      )}
+
       {isQuiz ? (
         <ChapterQuiz quiz={quiz} />
       ) : (
-        <Body section={n - 1} afterSection={afterSection} />
+        <Body section={n - 1} afterSection={afterSection} beforeBody={beforeBody} />
       )}
       <MarkRead chapterId={id} sec={n} />
 

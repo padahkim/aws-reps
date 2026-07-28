@@ -8,6 +8,7 @@
 import { validateChapters, type Problem } from "./validate-content.ts";
 import type {
   ChapterData,
+  ChapterMeta,
   Question,
   SectionMeta,
   SelfQuizEntry,
@@ -17,9 +18,16 @@ import type {
 
 let failures = 0;
 
-function meta(id: string, prerequisites: string[] = []) {
-  return { id, phase: "P", title: `T-${id}`, domain: "foundation", examWeight: 1 as const, prerequisites };
+function meta(id: string, prerequisites: string[] = [], over: Partial<ChapterMeta> = {}): ChapterMeta {
+  return { id, phase: "P", title: `T-${id}`, domain: "foundation", examWeight: 1 as const, prerequisites, ...over };
 }
+
+/** 오리엔테이션 픽스처용 — num "01".."0N" 섹션 N개 (#161 파트 커버리지 검사). */
+function sectionsUpTo(n: number): SectionMeta[] {
+  return Array.from({ length: n }, (_, i) => section({ num: String(i + 1).padStart(2, "0"), title: `t${i + 1}` }));
+}
+
+const OBJECTIVES = ["…을 구분한다", "…을 고른다", "…을 설명한다"];
 
 function question(over: Partial<Question> = {}): Question {
   return {
@@ -216,6 +224,75 @@ expectCaught(
   "SESSION_MIXED_EMPTY"
 );
 
+// ── 오리엔테이션 (v3.1, #161) ─────────────────────────────────────────
+expectCaught(
+  "objectives 2개 (하한 미달)",
+  [ch(meta("1-1", [], { objectives: ["a", "b"] }))],
+  "OBJECTIVES_COUNT"
+);
+expectCaught(
+  "objectives 6개 (상한 초과)",
+  [ch(meta("1-1", [], { objectives: ["a", "b", "c", "d", "e", "f"] }))],
+  "OBJECTIVES_COUNT"
+);
+expectCaught(
+  "objectives 항목 공백",
+  [ch(meta("1-1", [], { objectives: ["a", "  ", "c"] }))],
+  "OBJECTIVE_EMPTY"
+);
+expectCaught(
+  "parts 빈 배열",
+  [ch(meta("1-1", [], { parts: [] }))],
+  "PARTS_EMPTY"
+);
+expectCaught(
+  "파트 title 공백",
+  [ch(meta("1-1", [], { parts: [{ title: " ", from: "01", to: "01" }] }))],
+  "PART_TITLE_EMPTY"
+);
+expectCaught(
+  "파트 from 이 미존재 섹션",
+  [ch(meta("1-1", [], { parts: [{ title: "p", from: "09", to: "01" }] }), [], sectionsUpTo(2))],
+  "PART_SECTION_MISSING"
+);
+expectCaught(
+  "파트 범위 뒤집힘",
+  [ch(meta("1-1", [], { parts: [{ title: "p", from: "02", to: "01" }] }), [], sectionsUpTo(2))],
+  "PART_RANGE_REVERSED"
+);
+expectCaught(
+  "파트 사이에 빠진 섹션",
+  [
+    ch(
+      meta("1-1", [], { parts: [{ title: "p1", from: "01", to: "01" }, { title: "p2", from: "03", to: "04" }] }),
+      [],
+      sectionsUpTo(4)
+    ),
+  ],
+  "PART_COVERAGE"
+);
+expectCaught(
+  "파트 범위 겹침",
+  [
+    ch(
+      meta("1-1", [], { parts: [{ title: "p1", from: "01", to: "03" }, { title: "p2", from: "03", to: "04" }] }),
+      [],
+      sectionsUpTo(4)
+    ),
+  ],
+  "PART_COVERAGE"
+);
+expectCaught(
+  "파트가 첫 섹션부터 시작하지 않음",
+  [ch(meta("1-1", [], { parts: [{ title: "p", from: "02", to: "03" }] }), [], sectionsUpTo(3))],
+  "PART_COVERAGE"
+);
+expectCaught(
+  "파트가 마지막 섹션까지 덮지 않음",
+  [ch(meta("1-1", [], { parts: [{ title: "p", from: "01", to: "02" }] }), [], sectionsUpTo(4))],
+  "PART_COVERAGE"
+);
+
 // 셀프 퀴즈 yn (#150 — 판정형 표시는 "예"|"아니오"만. TS 밖 데이터 유입 대비 런타임 검사)
 expectCaught(
   "selfQuiz yn 허용 밖 값",
@@ -293,6 +370,28 @@ expectClean("정상 session(도식·혼합 포함)", [
     diagram: { prompt: "p", nodes: ["a", "b", "c"], edges: ["x", "y"] },
     mixed: [{ id: "m1", scenario: "s", service: "svc", why: "w", contrast: "c" }],
   }),
+]);
+
+// 오리엔테이션 없음 = 점진 적용 중 (v3.1 필드는 전부 optional)
+expectClean("오리엔테이션 없음", [ch(meta("1-1"), [], sectionsUpTo(4))]);
+
+// objectives 3개·5개 (경계값) + 전 섹션을 덮는 파트 3개 (한 섹션짜리 파트 포함)
+expectClean("정상 오리엔테이션(objectives 3개·파트 연속 커버)", [
+  ch(
+    meta("1-1", [], {
+      objectives: OBJECTIVES,
+      parts: [
+        { title: "p1", from: "01", to: "02" },
+        { title: "p2", from: "03", to: "03" },
+        { title: "p3", from: "04", to: "05" },
+      ],
+    }),
+    [],
+    sectionsUpTo(5)
+  ),
+]);
+expectClean("정상 오리엔테이션(objectives 5개·파트 없음)", [
+  ch(meta("1-1", [], { objectives: [...OBJECTIVES, "…을 비교한다", "…을 판단한다"] }), [], sectionsUpTo(3)),
 ]);
 
 // 완전한 정상 챕터 — 복수정답 + choiceExplanations 일치 + 실존 prereq + 다중 섹션

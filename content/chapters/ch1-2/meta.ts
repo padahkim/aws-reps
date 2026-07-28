@@ -13,6 +13,12 @@ import type { ChapterMeta, SectionMeta } from "../../schema";
  * ./drills.ts를 re-export (이슈 #6. lambda-dva-study 변환분 10문항은 drills 15문항으로 교체 —
  * 주제 중복 방지. 기존 문항은 git 이력에 잔존).
  */
+/**
+ * 오리엔테이션 (규약 v3.1, #161 파일럿) — objectives 는 섹션 제목 요약이 아니라 "이 챕터를
+ * 마치면 무엇을 할 수 있는가"이고, parts 는 섹션 20개를 6묶음으로 끊어 중간 완결감을 준다.
+ * 파트 경계는 학습 흐름 기준: 호출 방식(01~04)이 이 챕터의 심장이라 맨 앞에 통째로 두고,
+ * 시험에서 같이 묶여 나오는 것끼리(성능·동시성·스토리지 등) 이웃하게 했다.
+ */
 export const chapterMeta: ChapterMeta = {
   id: "ch1-2",
   phase: "1단계 · 서버리스 핵심",
@@ -20,6 +26,21 @@ export const chapterMeta: ChapterMeta = {
   domain: "Development",
   examWeight: 5,
   prerequisites: ["ch0-1", "ch0-2", "ch1-1"],
+  objectives: [
+    "동기·비동기·이벤트 소스 매핑 — 세 가지 호출 방식과 각각의 오류 처리를 구분한다",
+    "실행 역할(나가는 권한)과 리소스 기반 정책(들어오는 권한)을 상황에 맞게 고른다",
+    "메모리·타임아웃·동시성 설정이 성능과 콜드 스타트에 어떻게 작용하는지 설명한다",
+    "버전·별칭·CodeDeploy 전환을 조합해 무중단 배포 시나리오를 세운다",
+    "15분·10GB·1,769MB·zip 50MB 같은 한도 수치를 시험장에서 바로 떠올린다",
+  ],
+  parts: [
+    { title: "서버리스와 호출 3유형", from: "01", to: "04" },
+    { title: "이벤트 처리와 권한", from: "05", to: "08" },
+    { title: "관측 · 엣지 · 네트워크", from: "09", to: "11" },
+    { title: "성능 · 동시성 · 스토리지", from: "12", to: "14" },
+    { title: "배포와 버전 관리", from: "15", to: "18" },
+    { title: "보충과 한도 총정리", from: "19", to: "20" },
+  ],
 };
 
 export { quiz } from "./drills.ts";
