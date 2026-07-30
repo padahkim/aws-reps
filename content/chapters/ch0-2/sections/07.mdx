@@ -51,9 +51,9 @@ EC2 인스턴스 안의 코드가 S3에 접근해야 한다면? 액세스 키를
 
 EC2를 시작하며 역할을 붙이거나 Lambda·CodePipeline에 역할을 지정하려면, 그 작업을 수행하는 주체에게 <Code>iam:PassRole</Code> 권한이 필요합니다 (역할 확인용 <Code>iam:GetRole</Code>이 함께 쓰이기도 합니다). <Code>PassRole</Code>이라는 이름의 API·CLI 명령은 따로 없습니다 — 역할을 지정하는 다른 호출(<Code>ec2:RunInstances</Code> 등)에 얹혀서 IAM이 함께 검사하는 **액션**입니다.
 
-<SubTitle>전달을 왜 따로 검사하나 — 권한 상승 차단</SubTitle>
+<SubTitle>역할 전달을 왜 따로 검사하나 — 권한 상승 차단</SubTitle>
 
-인턴에게 EC2를 띄울 권한만 줬다고 해 봅시다. 붙일 역할까지 인턴이 마음대로 고를 수 있다면, <Code>AdministratorAccess</Code>가 달린 역할을 지정해 인스턴스를 띄운 뒤 그 안에서 메타데이터로 흘러나오는 임시 자격 증명을 꺼내 계정 전체를 다룰 수 있습니다. 시작 권한 하나가 관리자 권한으로 부풀어 오르는 이런 사다리가 §05에서 본 **권한 상승**(privilege escalation)이고, <Code>iam:PassRole</Code>은 그 첫 칸을 끊는 검사입니다.
+EC2를 시작할 권한만 받은 유저를 생각해 봅시다. 어떤 역할을 붙일지까지 마음대로 고를 수 있다면, 이 유저는 <Code>AdministratorAccess</Code>가 붙은 역할을 지정해 인스턴스를 만들고, 그 안에서 메타데이터로 제공되는 임시 자격 증명을 꺼내 관리자 권한으로 계정을 다룰 수 있습니다. 시작 권한 하나가 관리자 권한으로 올라서는 이 문제가 §05 Permission Boundary가 막으려던 **권한 상승**(privilege escalation)이고, <Code>iam:PassRole</Code>은 이 경로를 막으려고 “역할을 건네주는 행위”에 따로 붙여 둔 권한입니다.
 
 <CodeBlock>{`{\n  "Statement": [\n    { "Effect": "Allow", "Action": "ec2:RunInstances", "Resource": "*" },\n    {\n      "Effect": "Allow", "Action": "iam:PassRole",\n      "Resource": "arn:aws:iam::123456789012:role/S3AccessRole"\n    }\n  ]\n}`}</CodeBlock>
 
