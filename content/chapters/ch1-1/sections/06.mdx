@@ -54,6 +54,8 @@ import { StorageClassDecisionTree } from "../figs";
 
 <Note>* 복원 후 기준. 가용성 수치보다 “검색 시간·최소 보관 기간·단일 AZ 여부”가 시험 포인트입니다.</Note>
 
+표의 **최소 기간**은 “그 전에는 못 지운다”가 아니라 “그 전에 지워도 그 기간만큼은 요금을 낸다”는 뜻입니다 — Standard-IA에 하루만 두고 지운 객체에도 30일치 저장료가 붙습니다. 값은 클래스별로 딱 대응하는 게 아니라 **성격의 층을 따라 계단처럼** 늘어납니다: IA 계열은 30일, Glacier 계열은 90일, Deep Archive만 180일 — 같은 층 안에서는 더 싼 쪽도 값이 같습니다(One Zone-IA도 30일, Flexible Retrieval도 90일). 아카이브 성격이 짙어질수록 “오래 둘 데이터”만 받겠다는 조건이 세지는 셈입니다.
+
 <StorageClassDecisionTree />
 
 <ExamPoint>
