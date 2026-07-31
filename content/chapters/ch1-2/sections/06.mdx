@@ -1,11 +1,11 @@
 import { ExamLi, ExamPoint, Table } from "../../ui";
 
-<b>Destinations</b>는 호출 결과를 다른 서비스로 보냅니다. ① <b>비동기 호출</b>: 성공/실패 각각에 <b>SQS · SNS · Lambda · EventBridge</b>(4종) 지정 ② <b>이벤트 소스 매핑</b>: 처리 불가로 폐기된 배치를 SQS/SNS로.
+<b>Destinations</b>는 호출 결과를 다른 서비스로 보냅니다. ① <b>비동기 호출</b>: 성공/실패 각각에 <b>SQS · SNS · Lambda · EventBridge</b>(4종) 지정 ② <b>이벤트 소스 매핑(스트림 소스 — Kinesis·DDB Streams)</b>: 처리 불가로 폐기된 배치를 SQS/SNS로. SQS ESM에는 못 붙인다 — 실패분은 소스 큐의 DLQ(redrive)가 받는다(§04).
 
 <Table
   head={["항목", "DLQ", "Destinations"]}
   rows={[
-    ["적용 범위", "비동기 호출의 '실패'만", "비동기 성공+실패 모두 + ESM 폐기 배치"],
+    ["적용 범위", "비동기 호출의 '실패'만", "비동기 성공+실패 모두 + 스트림 ESM 폐기 배치"],
     ["대상", "SQS · SNS (2종)", "SQS · SNS · Lambda · EventBridge (4종)"],
     ["전송 정보", "이벤트 본문 위주", "호출 컨텍스트·응답 등 더 풍부"],
     [

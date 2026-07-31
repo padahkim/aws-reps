@@ -5,7 +5,7 @@ import { PermissionSvg } from "../figs";
   <PermissionSvg />
 </Fig>
 
-함수에는 <b>반드시 하나의 IAM 실행 역할</b>을 연결합니다. <b>이벤트 소스 매핑</b>을 쓰는 경우 폴링 주체가 Lambda이므로 <b>소스를 읽는 권한도 실행 역할</b>에 있어야 합니다. 반대로 S3 이벤트 알림처럼 서비스가 함수를 <b>직접 호출(푸시)</b>하는 경우는 <b>리소스 기반 정책</b>이 필요합니다. 동일 계정에서는 IAM 정책 또는 리소스 정책 중 하나만 허용해도 호출 가능합니다.
+함수에는 <b>반드시 하나의 IAM 실행 역할</b>을 연결합니다. <b>이벤트 소스 매핑</b>을 쓰는 경우 폴링 주체가 Lambda이므로 <b>소스를 읽는 권한도 실행 역할</b>에 있어야 합니다. 반대로 S3 이벤트 알림처럼 서비스가 함수를 <b>직접 호출(푸시)</b>하는 경우는 <b>리소스 기반 정책</b>이 필요합니다. 02에서 본 동기 호출자들(<b>API Gateway·ALB</b>)도 같은 원리로 리소스 기반 정책 쪽입니다 — 콘솔에서 통합을 연결할 때 자동으로 추가되는 호출 허용 권한이 바로 이것입니다. 동일 계정에서는 IAM 정책 또는 리소스 정책 중 하나만 허용해도 호출 가능합니다.
 
 자주 쓰는 관리형 정책: `AWSLambdaBasicExecutionRole`(CloudWatch Logs), `AWSLambdaKinesisExecutionRole`, `AWSLambdaDynamoDBExecutionRole`, `AWSLambdaSQSQueueExecutionRole`, `AWSLambdaVPCAccessExecutionRole`, `AWSXRayDaemonWriteAccess`.
 

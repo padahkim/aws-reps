@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { chapterParts, estimateChapter, getAllChapters, getChapter } from "@/lib/content";
+import {
+  chapterParts,
+  estimateChapter,
+  getAllChapters,
+  getChapter,
+  hasSessionFinale,
+  mixedPool,
+} from "@/lib/content";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
@@ -37,24 +44,34 @@ export default async function ChapterPage({
   }));
   // 파트 그룹핑 (규약 v3.1) — parts 가 없는 챕터는 라벨 없는 묶음 하나 = 예전 평평한 목차.
   const parts = chapterParts(entry);
-  const estimate = estimateChapter(entry, parts);
+  const pool = mixedPool(entry);
+  const estimate = estimateChapter(entry, parts, pool.length);
   // 챕터 인트로 (규약 v3.2, #174) — 예전에는 첫 섹션 페이지 상단이었는데, #161 의 파트
   // 컨텍스트가 그 위에 붙으면서 "파트 1 — …" 밑에 챕터 전체 소개가 오는 범주 오류가 됐다.
   // 여기가 "이 챕터가 무엇이고 지금 잡을 만한가"를 판단하는 화면이라 인트로의 제자리다.
   const Intro = entry.loadIntro ? (await entry.loadIntro()).default : undefined;
 
-  // 퀴즈는 마지막 섹션 (규약 v2 — 빈 quiz면 섹션 자체가 없다). 어느 파트에도 속하지 않으므로
+  // 마무리 페이지는 마지막 섹션 (규약 v2 → #59). 어느 파트에도 속하지 않으므로
   // 파트 그룹들 뒤에 라벨 없는 묶음으로 붙는다 — 그룹 헤더가 없어 소요는 이 줄의 sub 에 적는다.
   // 그래야 화면의 "파트별 분"을 다 더하면 오리엔테이션의 총합이 나온다 (estimateChapter 참조).
+  // session 있는 챕터는 세션 페이지 (#59) — 존재하는 스테이션 이름을 sub 에 나열한다.
+  const finale = hasSessionFinale(entry);
+  const stationNames = finale
+    ? [
+        entry.data.session?.diagram ? "도식 재현" : null,
+        quiz.length > 0 ? `실전 ${quiz.length}문항` : null,
+        pool.length > 0 ? "혼합 복습" : null,
+      ].filter(Boolean)
+    : [];
   const quizItem: TocItem | undefined =
-    quiz.length > 0
+    finale || quiz.length > 0
       ? {
           sec: sections.length + 1,
           num: "Q",
-          title: "챕터 퀴즈",
+          title: finale ? "마무리 세션" : "챕터 퀴즈",
           sub: [
-            `${quiz.length}문항 · 전 섹션 종합`,
-            parts.length > 0 && estimate ? `약 ${estimate.quiz}분` : null,
+            finale ? `${stationNames.join(" · ")} — 전 섹션 종합` : `${quiz.length}문항 · 전 섹션 종합`,
+            parts.length > 0 && estimate ? `약 ${estimate.finale}분` : null,
           ]
             .filter(Boolean)
             .join(" · "),

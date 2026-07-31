@@ -452,6 +452,16 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
             message: `session.diagram: edges ${edges.length}개 ≠ nodes ${nodes.length}개 - 1 (선형 체인 모델)`,
           });
         }
+        // 노드는 role(인출 큐)·name(인출 대상) 쌍 — 한쪽이 비면 그 노드는 과제가 성립하지 않는다
+        nodes.forEach((n, i) => {
+          if (n.role.trim() === "" || n.name.trim() === "") {
+            problems.push({
+              chapterId: cid,
+              code: "SESSION_DIAGRAM_NODE_EMPTY",
+              message: `session.diagram.nodes[${i}]: role 또는 name 이 비어 있음`,
+            });
+          }
+        });
       }
 
       // 교차 복습 항목: id 유일성 + 네 필드 전부 채워져야 한다 —
