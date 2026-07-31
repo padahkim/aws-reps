@@ -32,6 +32,14 @@ export const C = {
 export const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 export const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 
+/**
+ * 빈출 표기의 근거 문구 (#185) — 값은 공식 수치가 아니라 검증 원천이 없는 추정치라서,
+ * 그 사실 자체를 화면에 드러낸다. 목차 페이지의 고정 한 줄과 <Sec> 배지 툴팁이 같은
+ * 문구를 쓴다 — 챕터별로 복붙하지 않는다.
+ */
+export const FREQ_EVIDENCE_NOTE =
+  "빈출 표기는 공식 시험 청사진의 수치가 아니라 강의 강조도·수험 후기·도메인 비중 등을 종합한 추정치입니다. 실제 출제 구성은 회차마다 다를 수 있습니다.";
+
 /** 섹션 빈출 배지 색상 (hi=★★★, mid=★★☆, lo=★☆☆). */
 const FREQ_STYLE: Record<"hi" | "mid" | "lo", CSSProperties> = {
   hi: { background: C.redSoft, color: C.red },
@@ -84,7 +92,9 @@ export function Sec({
           </h2>
           <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: 2 }}>{sub}</div>
         </div>
+        {/* title 툴팁은 보조 수단이다 — 모바일에서는 목차 페이지의 고정 한 줄이 근거를 댄다 (#185) */}
         <span
+          title={FREQ_EVIDENCE_NOTE}
           style={{
             marginLeft: "auto",
             fontSize: "0.8rem",
@@ -92,6 +102,7 @@ export function Sec({
             borderRadius: 99,
             padding: "4px 14px",
             whiteSpace: "nowrap",
+            cursor: "help",
             ...FREQ_STYLE[freq],
           }}
         >

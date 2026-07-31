@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   chapterParts,
   estimateChapter,
+  FREQ_EVIDENCE_NOTE,
   getAllChapters,
   groupByPhase,
   mixedPool,
@@ -76,6 +77,11 @@ export default function Home() {
             </ul>
           </section>
         ))
+      )}
+
+      {/* 출제빈도 수치의 근거 (#185) — 챕터 목차의 빈출 별점과 같은 성질의 추정치라 같은 문구를 쓴다 */}
+      {chapters.length > 0 && (
+        <p style={{ fontSize: "0.78rem", color: "var(--muted)" }}>{FREQ_EVIDENCE_NOTE}</p>
       )}
 
       {/*
