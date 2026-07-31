@@ -236,7 +236,7 @@ flowchart LR
 | `ch0-1` | 4 | ✓ | ✓ |
 | `ch0-2` | 10 | ✓ | ✓ |
 | `ch1-1` | 18 | ✓ | ✓ |
-| `ch1-2` | 20 | — | ✓ |
+| `ch1-2` | 20 | ✓ | ✓ |
 <!-- END GENERATED -->
 
 **MDX 규정**: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정, #15). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
