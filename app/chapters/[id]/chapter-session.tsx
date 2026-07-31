@@ -41,6 +41,9 @@ interface Station {
   label: string;
   done: number;
   total: number;
+  // 점 채움용 진행률 오버라이드 — 없으면 done/total. 도식처럼 "표시 단위(도식 1장)"와
+  // "진행 단위(노드 4개)"가 다른 스테이션이 숫자는 1/1로 세면서 점은 노드 비율로 차게 한다.
+  frac?: number;
 }
 
 function ProgressRail({ stations }: { stations: Station[] }) {
@@ -48,7 +51,7 @@ function ProgressRail({ stations }: { stations: Station[] }) {
     <div style={{ margin: "1.4rem 0 0.4rem" }}>
       <div style={{ display: "flex", alignItems: "center" }}>
         {stations.map((s, i) => {
-          const frac = s.total > 0 ? s.done / s.total : 0;
+          const frac = s.frac ?? (s.total > 0 ? s.done / s.total : 0);
           return (
             <div
               key={s.label}
@@ -388,8 +391,19 @@ export default function ChapterSession({
   const hasQuiz = quiz.length > 0;
   const hasMixed = pool.length > 0;
 
+  // 도식은 한 장이므로 숫자는 1/1로 센다 (2026-07-28 사용자 피드백 — "도식 4/4"는 도식이
+  // 4개인 것처럼 읽힌다). 노드 단위 진행감은 frac 으로 점 채움에만 반영한다.
   const stations: Station[] = [
-    ...(hasDiagram ? [{ label: "도식", done: revealed.size, total: diagram.nodes.length }] : []),
+    ...(hasDiagram
+      ? [
+          {
+            label: "도식",
+            done: revealed.size === diagram.nodes.length ? 1 : 0,
+            total: 1,
+            frac: revealed.size / diagram.nodes.length,
+          },
+        ]
+      : []),
     ...(hasQuiz ? [{ label: "실전", done: explainedIds.size, total: quiz.length }] : []),
     ...(hasMixed ? [{ label: "혼합", done: openedMixed.size, total: mixedItems.length }] : []),
   ];
