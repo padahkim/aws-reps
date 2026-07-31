@@ -7,7 +7,7 @@
     "predev": "node scripts/gen-source-routes.mjs",
     "dev": "next dev",
     "source:gen": "node scripts/gen-source-routes.mjs",
-    "validate": "node scripts/validate-content.ts",
+    "validate": "node scripts/validate-content.ts && node scripts/gen-arch-facts.ts --check",
     "validate:test": "node scripts/validate-content.test.ts",
     "docs:facts": "node scripts/gen-arch-facts.ts",
     "prebuild": "npm run validate && node scripts/gen-source-routes.mjs --build",

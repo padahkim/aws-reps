@@ -39,9 +39,9 @@ npm run dev
 | 명령 | 하는 일 |
 |---|---|
 | `npm run dev` | 개발 서버 (predev로 /_source 라우트 생성 후 `next dev`) |
-| `npm run validate` | 콘텐츠 값 수준 계약 검사 (`scripts/validate-content.ts`) |
+| `npm run validate` | 콘텐츠 값 수준 계약 검사 + 사실 블록 신선도 (`validate-content.ts` → `gen-arch-facts.ts --check` 연쇄, #137) |
 | `npm run validate:test` | 검사기 자체의 회귀 테스트 (CI 전용) |
-| `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.ts`; `--check`는 CI 게이트) |
+| `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.ts`; `--check`는 validate 연쇄·CI 게이트) |
 | `npm run typecheck` | `tsc --noEmit` 타입 검사 |
 | `npm run build` | 정적 빌드 (`prebuild`가 validate + 라우트 생성 선행 → `next build`) |
 
@@ -236,7 +236,7 @@ flowchart LR
 | `ch0-1` | 4 | ✓ | ✓ |
 | `ch0-2` | 10 | ✓ | ✓ |
 | `ch1-1` | 18 | ✓ | ✓ |
-| `ch1-2` | 20 | — | ✓ |
+| `ch1-2` | 20 | ✓ | ✓ |
 <!-- END GENERATED -->
 
 **MDX 규정**: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정, #15). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
@@ -258,7 +258,7 @@ flowchart LR
 
 - `scripts/validate-content.ts` (`npm run validate`) — TypeScript가 못 잡는 **값 수준 계약**을 검사한다: 챕터 id 전역 유일, 섹션 ≥1·제목 비지 않음·`num` 챕터 내 유일, `prerequisites`가 실존 챕터 참조, 문항의 `concept` ≥1·`choices` ≥2·`answer` 범위·중복 없음·`choiceExplanations` 길이 일치, 인출 세션 id 유일(concepts·mixed 한 이름공간)·카드 `section`이 실존·도식 `edges = nodes-1`, 셀프 퀴즈 규칙(#98). `prebuild`와 CI 양쪽이 돌린다.
 - `scripts/gen-source-routes.mjs` — `/_source` 검수 라우트 코드생성. 손으로 쓴 소스는 `app/_source/`(언더스코어 = Next private 폴더라 라우팅 안 됨, 커밋됨)이고, 실제 라우트 `app/%5Fsource/`는 100% 생성물이라 gitignore다. `predev`는 그냥, `prebuild`는 `--build`로 호출 — **Vercel 프리뷰에서만 라우트를 유지**하고 프로덕션·로컬 빌드에선 통째로 제외한다(실유저 배포본에 9MB 날것 원본이 안 실리게).
-- `scripts/gen-arch-facts.ts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117). 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
+- `scripts/gen-arch-facts.ts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117), 그리고 #137부터 `npm run validate`가 끝에 연쇄 실행해 로컬·`prebuild`에서도 잡힌다. 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
 - `scripts/import-drills.ts` — 별도 리포의 문항 JSON → `drills.ts` 변환 어댑터(§5-2).
 - `scripts/git_guard.py` — `.claude/settings.json`에 등록된 **PreToolUse 훅**. gh CLI를 **기본 차단**(fail-closed)하고 홈 마커 + 개인 계정(padahkim) 두 조건을 모두 만족할 때만 허용하며, 파괴적 명령(`rm -rf`, `git push --force`, `git reset --hard` 등)을 막는다.
 
@@ -280,7 +280,7 @@ flowchart TD
   end
 ```
 
-주의: `prebuild`에는 typecheck·validate:test·`docs:facts --check`가 **없다**(그건 CI 전용 — 문서가 낡았다고 로컬 빌드를 막을 이유는 없다). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
+주의: `prebuild`에는 typecheck·validate:test가 **없다**(CI 전용). `docs:facts --check`는 #137부터 `validate` 연쇄로 **포함된다** — 문서가 낡으면 로컬·Vercel 빌드도 깨진다(구조 드리프트를 CI 전에 로컬에서 잡는 게 의도). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
 
 ---
 
