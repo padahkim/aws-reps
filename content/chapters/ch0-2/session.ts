@@ -208,7 +208,7 @@ export const session: SessionData = {
       id: "c21",
       section: "07",
       q: "EC2를 시작하며 역할을 붙이는 작업에는 어떤 IAM 권한이 필요하고, 그 정책의 statement는 왜 둘로 나누는가?",
-      a: "작업을 수행하는 주체에게 iam:PassRole이 필요하다(역할 확인용 iam:GetRole이 함께 쓰이기도 한다). ec2:RunInstances는 EC2 리소스(인스턴스·AMI 등)에, iam:PassRole은 전달할 역할의 ARN에 매칭되므로, 한 statement에 묶어 Resource를 역할 ARN으로 두면 RunInstances 쪽이 매칭되지 않아 시작 권한이 부여되지 않는다 — PassRole을 역할 ARN으로 좁히는 것이 최소 권한의 핵심. PassRole은 API 호출이 아니라 IAM 액션이라는 점도 상식 포인트.",
+      a: "작업을 수행하는 주체에게 iam:PassRole이 필요하다(역할 확인용 iam:GetRole이 함께 쓰이기도 한다). ec2:RunInstances는 EC2 리소스(인스턴스·AMI 등)에, iam:PassRole은 전달할 역할의 ARN에 매칭되므로, 한 statement에 묶어 Resource를 역할 ARN으로 두면 RunInstances 쪽이 매칭되지 않아 시작 권한이 부여되지 않는다 — PassRole을 역할 ARN으로 좁히는 것이 최소 권한의 핵심. “PassRole”이라는 독립 API는 없다는 것도 함께 기억 — 역할을 지정하는 다른 호출에 얹혀 검사되는 IAM 액션이다.",
       why: {
         q: "PassRole 권한 검사가 없다면 어떤 권한 상승이 가능해질까요? 낮은 권한의 유저가 관리자 역할을 EC2에 붙이는 상황을 상상해 보세요.",
         a: "역할을 붙인 EC2를 시작할 수 있는 사람은 그 인스턴스에서 코드를 실행해 역할의 임시 자격 증명을 꺼내 쓸 수 있다 — 검사가 없다면 EC2 시작 권한만 가진 유저가 관리자 역할을 인스턴스에 붙여 사실상 관리자가 되는 사다리가 생긴다. “누가 어떤 역할을 전달할 수 있는가”를 별도 액션으로 끊어 두는 이유다.",
