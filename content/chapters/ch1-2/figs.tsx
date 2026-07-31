@@ -26,7 +26,7 @@ export function PermissionSvg() {
     <FigSwitch
       wide={
         <FlowSvg vb="0 0 720 210" mid={mid}>
-          <FlowBox x={30} y={82} w={170} h={64} label="S3 · SNS · 다른 계정" sub="호출하는 쪽" color={C.amber} />
+          <FlowBox x={30} y={82} w={170} h={64} label="S3 · SNS · API Gateway" sub="호출하는 쪽 (푸시·다른 계정)" color={C.amber} />
           <FlowBox x={280} y={78} w={160} h={72} label="λ Lambda" color={C.ink} />
           <FlowBox x={520} y={82} w={170} h={64} label="DynamoDB · S3 · SQS" sub="접근당하는 쪽" color={C.teal} />
           <FlowArrow d="M200,110 L280,110" color={C.amber} mid={mid} animate />
@@ -50,7 +50,7 @@ export function PermissionSvg() {
       }
       narrow={
         <FlowSvg vb="0 0 360 430" mid={midV} minW={0}>
-          <FlowBox x={95} y={20} w={170} h={64} label="S3 · SNS · 다른 계정" sub="호출하는 쪽" color={C.amber} />
+          <FlowBox x={95} y={20} w={170} h={64} label="S3 · SNS · API Gateway" sub="호출하는 쪽 (푸시·다른 계정)" color={C.amber} />
           <FlowBox x={100} y={148} w={160} h={72} label="λ Lambda" color={C.ink} />
           <FlowBox x={95} y={300} w={170} h={64} label="DynamoDB · S3 · SQS" sub="접근당하는 쪽" color={C.teal} />
           <FlowArrow d="M180,84 L180,148" color={C.amber} mid={midV} animate />
