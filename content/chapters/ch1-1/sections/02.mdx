@@ -9,6 +9,8 @@ S3 접근 제어는 <b>사용자 기반(IAM 정책)</b>과 <b>리소스 기반(�
 
 접근 허용 조건: **(IAM 허용 OR 버킷 정책 허용) AND 명시적 Deny 없음**. 버킷 정책은 JSON이며 IAM 정책과 달리 `Principal` 필드(누가)가 있습니다 — 주요 용도는 ① 퍼블릭 공개 ② 업로드 암호화 강제 ③ **교차 계정(Cross-Account) 접근 허용**.
 
+③번이 버킷 정책의 일인 이유는 상황을 그려 보면 분명합니다 — 협력사 B의 개발자에게 내 버킷을 열어 주려는데, 내 IAM에는 그 사람이라는 대상 자체가 없습니다(IAM 정책이 붙는 곳은 내 계정 안의 신원뿐입니다). 열어 줄 자리를 가진 쪽은 내 소유물인 버킷이고, 그래서 `Principal`에 상대 계정을 적습니다. 다만 위의 OR는 같은 계정 안에서의 규칙이라, 계정이 다르면 **내 버킷 정책과 상대 계정 IAM 정책 양쪽 모두**가 허용해야 접근이 성립합니다.
+
 {/* CodeBlock 내용은 \n 이스케이프 한 줄 템플릿으로 쓴다 — MDX 다중행 표현식은
     행 선행 들여쓰기를 잘라먹어 원문이 훼손된다 (ch1-2/sections/02.mdx와 동일 사유). */}
 <CodeBlock>{`{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "PublicRead",\n    "Effect": "Allow",\n    "Principal": "*",\n    "Action": ["s3:GetObject"],\n    "Resource": ["arn:aws:s3:::my-bucket/*"]\n  }]\n}`}</CodeBlock>

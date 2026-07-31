@@ -4,6 +4,8 @@ import { ExamLi, ExamPoint, Note } from "../../ui";
 
 **권한 방식이 시험 포인트**: S3가 대상에 게시하려면 IAM 역할이 아니라 **대상 측 리소스(액세스) 정책**(SNS/SQS Access Policy, Lambda Resource Policy)에서 S3를 허용해야 합니다.
 
+5절 복제에서는 S3에 IAM 역할을 쥐여 줬는데 여기서는 왜 다를까요? 복제는 내가 시켜서 S3가 **내 버킷**을 복사하는 일이라 내가 만든 역할을 맡길 수 있습니다. 반면 이벤트 알림은 S3가 스스로 **남의 큐·토픽·함수**의 문을 두드리는 일이고, 그 문의 열쇠는 그 리소스를 가진 쪽에만 있습니다 — 그래서 SQS·SNS·Lambda가 자기 정책에 “S3의 게시를 허용한다”를 적어 줍니다.
+
 **Amazon EventBridge 통합**: 모든 S3 이벤트가 자동 전달되며 ① 메타데이터·객체 크기·이름 기반 **고급 JSON 필터링** ② **18개 이상 서비스**(Step Functions, Kinesis 등)로 전달 ③ 아카이브·재생(Replay)·안정적(신뢰성 있는) 전송 지원.
 
 <Note>SQS FIFO 큐는 S3 이벤트 알림의 직접 대상이 될 수 없다 — EventBridge를 경유한다.</Note>
