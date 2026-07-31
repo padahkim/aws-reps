@@ -8,6 +8,7 @@ import {
   hasSessionFinale,
   mixedPool,
 } from "@/lib/content";
+import { FREQ_EVIDENCE_NOTE } from "@/content/chapters/ui";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
@@ -137,6 +138,12 @@ export default async function ChapterPage({
         />
       )}
       <SectionToc chapterId={meta.id} groups={groups} />
+      {/* 빈출 별점의 근거 (#185) — 툴팁이 없는 모바일에서도 이 줄이 항상 보인다 */}
+      {items.some((item) => item.freq) && (
+        <p style={{ marginTop: "1rem", fontSize: "0.78rem", color: "var(--muted)" }}>
+          {FREQ_EVIDENCE_NOTE}
+        </p>
+      )}
     </article>
   );
 }
