@@ -14,7 +14,7 @@ import { ExamLi, ExamPoint, Fold, SubTitle, Table, WarnBox } from "../../ui";
 
 롱 폴링으로 큐를 읽으며 배치 크기 1~10. <b>가시성 타임아웃은 함수 타임아웃의 6배</b> 권장(계산 문제 출제). 성공 항목은 Lambda가 큐에서 삭제하고, 실패 배치는 개별 항목 단위로 큐에 복귀 — 이미 성공한 항목이 다시 올 수 있으니 <b>멱등</b> 처리해야 합니다.
 
-<WarnBox>실패 메시지 DLQ는 <b>SQS 큐 자체에</b> 설정한다 — <b>Lambda의 DLQ 설정은 비동기 호출 전용</b>이라 ESM에서는 동작하지 않음(핵심 함정). 대안은 Lambda Destination.</WarnBox>
+<WarnBox>실패 메시지 DLQ는 <b>SQS 큐 자체에</b> 설정한다(redrive 정책) — <b>Lambda의 DLQ 설정은 비동기 호출 전용</b>이라 ESM에서는 동작하지 않음(핵심 함정). 폐기 배치를 Destination으로 보내는 것도 <b>스트림 소스 전용</b>이라 SQS ESM에는 못 붙는다.</WarnBox>
 
 <SubTitle>스케일링 요약</SubTitle>
 

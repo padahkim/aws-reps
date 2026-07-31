@@ -73,7 +73,7 @@ export const session: SessionData = {
       id: "c6",
       section: "06",
       q: "DLQ와 Destinations를 적용 범위와 대상 서비스 축으로 대조해 보세요.",
-      a: "DLQ는 비동기 호출의 “실패”만, 대상은 SQS·SNS 2종. Destinations는 비동기 호출의 성공+실패 모두에 각각 지정할 수 있고 ESM의 폐기 배치도 커버하며, 대상은 SQS·SNS·Lambda·EventBridge 4종이다.",
+      a: "DLQ는 비동기 호출의 “실패”만, 대상은 SQS·SNS 2종. Destinations는 비동기 호출의 성공+실패 모두에 각각 지정할 수 있고 스트림 ESM(Kinesis·DDB Streams)의 폐기 배치도 커버하며, 대상은 SQS·SNS·Lambda·EventBridge 4종이다.",
       why: {
         q: "공식 문서가 Destinations를 DLQ의 “대안”으로 두는 근거 두 가지는 무엇일까요?",
         a: "① 실패만이 아니라 성공/실패 모두 지원하고 ② 이벤트 본문 위주인 DLQ와 달리 호출 컨텍스트·응답 등 더 풍부한 정보를 전송하기 때문이다 — “실패 이벤트를 더 많은 컨텍스트와 함께”가 보이면 Destinations가 정답 방향이다.",
@@ -279,8 +279,8 @@ export const session: SessionData = {
       id: "m6",
       scenario: "이벤트 소스 매핑(SQS)에서 실패한 메시지를 모으고 싶다 — DLQ는 어디에 설정?",
       service: "SQS 큐 자체의 DLQ",
-      why: "ESM의 실패 배치는 개별 항목 단위로 큐에 복귀하므로 DLQ도 소스 큐에 설정한다.",
-      contrast: "Lambda의 DLQ 설정은 비동기 호출 전용이라 ESM에서는 동작하지 않는다(핵심 함정) — 대안은 Lambda Destination.",
+      why: "ESM의 실패 배치는 개별 항목 단위로 큐에 복귀하므로, 실패분은 소스 큐의 redrive 정책이 DLQ로 모은다.",
+      contrast: "Lambda의 DLQ 설정은 비동기 호출 전용이라 ESM에서는 동작하지 않는다(핵심 함정). 폐기 배치를 Destination으로 보내는 것도 스트림 소스(Kinesis·DDB Streams) 얘기다 — SQS ESM에는 못 붙인다.",
     },
     {
       id: "m7",
