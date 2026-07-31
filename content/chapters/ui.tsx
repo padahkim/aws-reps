@@ -38,7 +38,7 @@ export const SANS = "'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
  * 문구를 쓴다 — 챕터별로 복붙하지 않는다.
  */
 export const FREQ_EVIDENCE_NOTE =
-  "빈출 표기는 공식 시험 청사진의 수치가 아니라 강의 강조도·수험 후기·도메인 비중을 종합한 추정치입니다. 실제 출제 구성은 회차마다 다를 수 있습니다.";
+  "빈출 표기는 공식 시험 청사진의 수치가 아니라 강의 강조도·수험 후기·도메인 비중 등을 종합한 추정치입니다. 실제 출제 구성은 회차마다 다를 수 있습니다.";
 
 /** 섹션 빈출 배지 색상 (hi=★★★, mid=★★☆, lo=★☆☆). */
 const FREQ_STYLE: Record<"hi" | "mid" | "lo", CSSProperties> = {

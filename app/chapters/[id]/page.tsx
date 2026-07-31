@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import {
   chapterParts,
   estimateChapter,
+  FREQ_EVIDENCE_NOTE,
   getAllChapters,
   getChapter,
   hasSessionFinale,
   mixedPool,
 } from "@/lib/content";
-import { FREQ_EVIDENCE_NOTE } from "@/content/chapters/ui";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 

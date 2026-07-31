@@ -30,6 +30,10 @@ export type { ChapterEstimate } from "./reading-time";
 // 원칙을 지키기 위한 통로 re-export ("use client" 경계는 원 모듈에 있어 그대로 보존된다).
 export { SelfQuiz } from "@/content/chapters/interactive";
 
+// 빈출 표기 근거 문구 (#185) — 같은 원칙의 통로 re-export. 문구 정본은 content/chapters/ui.tsx
+// (본문 <Sec> 배지 툴팁과 한 곳을 공유해야 하므로 그쪽이 소유한다).
+export { FREQ_EVIDENCE_NOTE } from "@/content/chapters/ui";
+
 export function getAllChapters(): ChapterEntry[] {
   return registry;
 }
