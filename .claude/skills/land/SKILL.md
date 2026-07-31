@@ -334,12 +334,22 @@ NOW_HEAD=$(gh api "$API"/pulls/"$PR" --jq .head.sha)
 # GraphQL 이라 예산 소진 시 이 게이트가 착지를 막는다 — 주의 절의 "착지는 REST 만으로 완주"
 # 계약 유지, PR #189 Codex 지적). check-runs = GitHub Actions, statuses = Vercel.
 CHK=$(gh api "$API"/commits/"$NOW_HEAD"/check-runs \
-  --jq '{pend: [.check_runs[] | select(.status != "completed") | .name],
+  --jq '{all: [.check_runs[].name],
+         pend: [.check_runs[] | select(.status != "completed") | .name],
          fail: [.check_runs[] | select(.status == "completed"
                 and (.conclusion | IN("success","neutral","skipped") | not)) | .name]}')
 STS=$(gh api "$API"/commits/"$NOW_HEAD"/status \
-  --jq '{pend: [.statuses[] | select(.state == "pending") | .context],
+  --jq '{all: [.statuses[].context],
+         pend: [.statuses[] | select(.state == "pending") | .context],
          fail: [.statuses[] | select(.state == "failure" or .state == "error") | .context]}')
+
+# 기대 체크 등록 확인 (PR #189 라운드 2 P1) — push 직후엔 워크플로가 체크를 아직 등록하지
+# 않아 두 질의가 **빈 목록**을 줄 수 있고, 그걸 그대로 판정하면 게이트가 공허하게 통과한다.
+# 빈 결과·기대 컨텍스트 누락 = 통과가 아니라 "아직 pending"이다 — 보일 때까지 재조회한다.
+echo "$CHK" | jq -e '.all | index("verify")' >/dev/null \
+  && echo "$STS" | jq -e '.all | index("Vercel")' >/dev/null \
+  || { echo "CI 미등록 — 기대 체크(verify·Vercel)가 아직 없다. pending 취급, 재조회"; exit 1; }
+
 FAILS=$(printf '%s\n%s\n' "$CHK" "$STS" | jq -s '[.[].fail] | add')
 PENDS=$(printf '%s\n%s\n' "$CHK" "$STS" | jq -s '[.[].pend] | add')
 [ "$(echo "$FAILS" | jq length)" -eq 0 ] || { echo "CI 실패: $FAILS"; exit 1; }    # 멈추고 실패 체크 이름을 보고 (우회는 위 "명시 지시로만" 규칙)
