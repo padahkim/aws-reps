@@ -16,18 +16,6 @@ export interface Problem {
 /** 섹션 num 표기 — 제로패딩 2자리 이상 숫자 ("00"·"01"·"10"). schema.ts SectionMeta.num 참조. */
 const SECTION_NUM_FORMAT = /^\d{2,}$/;
 
-/** 섹션 본문 예산 상한 (~3KB) — schema.ts "섹션 분량 예산" 참조. 초과는 warn(비실패). */
-export const SECTION_BUDGET_BYTES = 3 * 1024;
-
-/**
- * 섹션 소스에서 <Fold …>…</Fold> 블록(심화층)을 제외한 UTF-8 바이트 수 — 예산은
- * 본문(시험 직결) 층에만 적용된다. 접은 내용까지 세면 접어도 경고가 안 사라져
- * Fold 의 유인이 없어진다. Fold 중첩은 규약에 없다(비탐욕 매칭이라 안쪽 닫는 태그에서 끊긴다).
- */
-export function sectionBudgetBytes(source: string): number {
-  return Buffer.byteLength(source.replace(/<Fold\b[\s\S]*?<\/Fold>/g, ""), "utf8");
-}
-
 /**
  * 챕터 레지스트리 전체를 정적 검사한다. 위반 목록을 돌려준다(빈 배열 = 통과).
  * 던지지 않는다 — 호출부가 종료 코드를 정한다.
@@ -518,33 +506,10 @@ function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
 }
 
-/** 섹션 분량 예산 warn (#162) — 종료 코드에 영향 없음. fs 오류는 던진다(조용한 no-op 금지). */
-async function warnSectionBudgets(chapterIds: string[]): Promise<void> {
-  const { readdir, readFile } = await import("node:fs/promises");
-  const { join, dirname } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
-  const root = dirname(dirname(fileURLToPath(import.meta.url))); // scripts/ 의 부모 = 리포 루트
-  for (const id of chapterIds) {
-    const dir = join(root, "content", "chapters", id, "sections");
-    const files = (await readdir(dir)).filter((f) => f.endsWith(".mdx")).sort();
-    for (const f of files) {
-      const bytes = sectionBudgetBytes(await readFile(join(dir, f), "utf8"));
-      if (bytes > SECTION_BUDGET_BYTES) {
-        console.warn(
-          `⚠ [SECTION_BUDGET] ${id} sections/${f}: 본문 ${(bytes / 1024).toFixed(1)}KB > ` +
-            `${(SECTION_BUDGET_BYTES / 1024).toFixed(1)}KB — 시험 비직결 상세를 <Fold> 로 접는 것을 고려 (schema.ts 섹션 분량 예산)`
-        );
-      }
-    }
-  }
-}
-
 async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
   const chapters = registry.map((entry) => entry.data);
   const problems = validateChapters(chapters);
-
-  await warnSectionBudgets(chapters.map((c) => c.chapterMeta.id));
 
   if (problems.length === 0) {
     console.log(`✓ content 검사 통과 (챕터 ${chapters.length}개)`);

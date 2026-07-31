@@ -362,8 +362,9 @@ export function WarnBox({ children }: { children: ReactNode }) {
 
 /**
  * '더 알아보기' 접기 (#162) — 시험 비직결 심화를 접어 본문과 층을 나눈다 (본문 = 시험 직결,
- * 심화 = Fold — 분량 예산 규약은 schema.ts "섹션 분량 예산"). 상태 없는 네이티브 <details>라
- * JS 없이 동작하고, 검증기의 분량 계산은 <Fold …>…</Fold> 블록을 예산에서 제외한다.
+ * 심화 = Fold — 언제 접는가는 schema.ts "섹션 분량"). 상태 없는 네이티브 <details>라 JS 없이
+ * 동작한다. **분량 게이트는 없다** — 접기는 작성자의 판단이지 검증기가 시키는 처방이 아니다
+ * (#186 에서 바이트 상한 폐지. 검증기의 예산 계산도 함께 사라졌다).
  */
 export function Fold({ topic, children }: { topic: string; children: ReactNode }) {
   return (
