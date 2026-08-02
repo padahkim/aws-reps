@@ -213,7 +213,7 @@ export interface ReferenceLink {
 }
 
 export interface Question {
-  id: string;                     // 챕터-로컬 "q1". 전역 키는 앱이 `${meta.id}:${q.id}`로 합성
+  id: string;                     // 챕터-로컬 "q1" — React key 용. 진도 저장 키는 아래 slug 를 쓴다
   scope: "mini" | "final";        // 본문 인라인(mini) vs 챕터 종합(final)
   concept: string[];              // 최소 1개
   scenario: string;
@@ -225,8 +225,10 @@ export interface Question {
   title?: string;                 // 문항 한 줄 제목
   difficulty?: "easy" | "medium" | "hard";  // 난이도 (하·중·상)
   references?: ReferenceLink[];   // AWS 공식 문서 링크
-  slug?: string;                  // drills 원본의 안정 식별자 — 부분 선별(meta.ts filter)의 키.
-                                  // positional id(q1…)는 원본 재정렬 시 밀리므로 선별에 쓰지 않는다 (#69 Codex 리뷰)
+  slug?: string;                  // drills 원본의 안정 식별자 — 부분 선별(meta.ts filter)의 키이자
+                                  // **진도 저장의 전역 문항 키**(`${meta.id}:${slug ?? id}`, #66).
+                                  // positional id(q1…)는 원본 재정렬 시 밀리므로 둘 다에 쓰지 않는다
+                                  // (#69 Codex 리뷰 → PR #202 에서 진도 키까지 확대)
 }
 
 // ── 인출 세션 (이슈 #54 spike 결정. 위 "인출 세션 규약" 참조) ──────────────

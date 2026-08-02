@@ -13,7 +13,7 @@ export interface TocItem {
   title: string;
   sub: string;
   freq?: "hi" | "mid" | "lo";   // 빈출도 (#161 — 데이터는 v2부터 있었으나 목차에 안 보였다). 퀴즈 줄은 없음
-  quizIds?: string[];           // 점수 배지가 셀 문항의 챕터-로컬 id (#66) — 퀴즈/마무리 세션 줄에만
+  quizIds?: string[];           // 점수 배지가 셀 문항의 **안정 식별자** (#66) — 퀴즈/마무리 세션 줄에만
 }
 
 /**
@@ -61,8 +61,8 @@ function quizScore(
 ): { passed: number; attempted: number; total: number } | null {
   let passed = 0;
   let attempted = 0;
-  for (const questionId of quizIds) {
-    const record = records[globalQuestionKey(chapterId, questionId)];
+  for (const stableId of quizIds) {
+    const record = records[globalQuestionKey(chapterId, stableId)];
     if (!record) continue;
     attempted += 1;
     if (record.lastResult === "pass") passed += 1;

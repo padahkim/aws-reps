@@ -9,6 +9,7 @@ import {
   hasSessionFinale,
   mixedPool,
 } from "@/lib/content";
+import { stableQuestionId } from "@/lib/progress/keys";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
@@ -65,8 +66,9 @@ export default async function ChapterPage({
       ].filter(Boolean)
     : [];
   // 점수 배지가 셀 문항 (#66) — 챕터 종합(final)만 센다. 본문 인라인(mini)은 챕터 완료 판정의
-  // 대상이 아니다 (설계 §2-3 finalQ). 배지 계산 자체는 클라이언트 몫이라 여기서는 id 만 넘긴다.
-  const finalQuizIds = quiz.filter((q) => q.scope === "final").map((q) => q.id);
+  // 대상이 아니다 (설계 §2-3 finalQ). 배지 계산 자체는 클라이언트 몫이라 여기서는 식별자만
+  // 넘기는데, 그 식별자는 저장 키와 같은 **안정 id** 여야 한다 (positional q.id 가 아니다).
+  const finalQuizIds = quiz.filter((q) => q.scope === "final").map(stableQuestionId);
   const quizItem: TocItem | undefined =
     finale || quiz.length > 0
       ? {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { globalQuestionKey } from "./keys";
+import { globalQuestionKey, stableQuestionId, type QuestionIdentity } from "./keys";
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` (#66 — 부모 에픽 #86의 첫 쓰기 경로).
@@ -23,6 +23,14 @@ export interface QuestionRecord {
   correct: number;                  // 그중 정답 횟수
   lastResult: "pass" | "fail";      // 마지막 채점 결과 — 배지·완료 판정이 보는 값 (§2-3)
   lastAt: string;                   // 마지막 채점 시각 (ISO 8601)
+  /**
+   * 첫 채점의 결과 — 한 번 쓰이면 다시 바뀌지 않는다. 설계 §4-1 스키마에 없는 필드를 더한
+   * 것이다 (PR #202 → 사용자 결정): §2-1 이 숙달을 "첫 시도 정답"으로 정의하는데, 나머지
+   * 네 필드로는 재응시 뒤에 그 사실을 복원할 방법이 없다. 판정을 만드는 건 #86 잔여지만
+   * **데이터는 지금부터 쌓이므로** 그때 가서는 소급이 불가능하다.
+   * optional 인 이유: 이 필드가 생기기 전에 저장된 기록이 있을 수 있다 (§4-3 read-repair).
+   */
+  firstResult?: "pass" | "fail";
   [extra: string]: unknown;
 }
 
@@ -84,12 +92,21 @@ function repairQuestion(raw: unknown): QuestionRecord | undefined {
   let correct = Math.min(count(raw.correct, 0), attempts);
   if (lastResult === "pass" && correct === 0) correct = 1;
   if (lastResult === "fail" && correct === attempts) correct = attempts - 1;
+  // firstResult 가 없는 기록 중 시도가 1회뿐인 것은 첫 결과 = 마지막 결과다 — 그만큼은
+  // 복원해 준다 (§4-3 "누락 필드 기본값 주입"). 2회 이상이면 복원할 근거가 없어 비워 둔다.
+  const firstResult =
+    raw.firstResult === "pass" || raw.firstResult === "fail"
+      ? raw.firstResult
+      : attempts === 1
+        ? lastResult
+        : undefined;
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3 — 구버전 세션이 신버전 필드를 지우지 않도록)
     attempts,
     correct,
     lastResult,
     lastAt: raw.lastAt,
+    firstResult,
   };
 }
 
@@ -174,20 +191,24 @@ function save(data: Progress): void {
  */
 export function recordQuestionAttempt(
   chapterId: string,
-  questionId: string,
+  question: QuestionIdentity,
   passed: boolean,
 ): void {
   if (typeof window === "undefined") return;
   const raw = readRaw();
   const data = repair(raw);
-  const gk = globalQuestionKey(chapterId, questionId);
+  // 문항 객체를 받아 여기서 안정 식별자로 푼다 — 호출부가 실수로 원시 q.id 를 넘길 자리를
+  // 아예 없앤다 (positional id 로 저장하면 원본 재정렬 때 진도가 조용히 엉뚱한 문항에 붙는다)
+  const gk = globalQuestionKey(chapterId, stableQuestionId(question));
   const prev = data.questions[gk];
+  const result = passed ? "pass" : "fail";
   data.questions[gk] = {
     ...prev,
     attempts: (prev?.attempts ?? 0) + 1,
     correct: (prev?.correct ?? 0) + (passed ? 1 : 0),
-    lastResult: passed ? "pass" : "fail",
+    lastResult: result,
     lastAt: new Date().toISOString(),
+    firstResult: prev?.firstResult ?? result,   // 첫 채점에만 쓰이고 그 뒤로는 고정 (§2-1)
   };
   save({
     ...data,

@@ -6,6 +6,8 @@
  * 순수 함수 validateChapters()를 export 해 픽스처(*.test.ts)가 직접 먹인다.
  */
 import type { ChapterData } from "../content/schema.ts";
+// 저장 키 규칙의 정본을 그대로 쓴다 — 여기서 규칙을 베끼면 게이트가 실물과 어긋난다.
+import { stableQuestionId } from "../lib/progress/keys.ts";
 
 export interface Problem {
   chapterId: string;   // 위반이 속한 챕터 id (id 유일성 위반 등 전역 검사는 대표 id)
@@ -242,10 +244,12 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
     }
 
     // ── 문항 검사 (빈 quiz 는 적법 → 이 루프가 그냥 안 돈다) ────────────
-    // 문항 id 는 챕터 내 유일 — 앱이 `${chapterId}:${q.id}` 를 전역 키로 합성하므로
-    // (lib/progress/keys.ts globalQuestionKey) 중복 id 는 React key 충돌이자, #66 부터는
-    // **두 문항이 하나의 진도 기록을 공유하는** 사고다 (한쪽 채점이 다른 쪽을 덮어쓴다).
+    // 문항 id 는 챕터 내 유일 — React key 가 이 값을 쓴다 (chapter-quiz.tsx).
     const qIdSeen = new Set<string>();
+    // 진도 저장 키는 id 가 아니라 **안정 식별자**(slug 우선)다 (lib/progress/keys.ts). 그래서
+    // 유일성을 그 해석된 값에서도 본다 — 겹치면 두 문항이 하나의 진도 기록을 공유해 한쪽
+    // 채점이 다른 쪽을 덮어쓴다. id 는 다른데 slug 가 같은 경우를 id 검사만으로는 못 잡는다.
+    const qKeySeen = new Set<string>();
     quiz.forEach((q, qi) => {
       const qref = `${cid}:${q.id}`;
 
@@ -262,15 +266,31 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
           message: `quiz[${qi}]: id "${q.id}" 가 챕터 내에서 중복`,
         });
       }
-      // 구분자 금지 — 위 챕터 id 검사와 같은 이유 (전역 키 합성이 단사여야 한다)
-      if (q.id.includes(":")) {
+      qIdSeen.add(q.id);
+
+      const key = stableQuestionId(q);
+      if (key.trim() === "") {
         problems.push({
           chapterId: cid,
-          code: "QUESTION_ID_DELIMITER",
-          message: `quiz[${qi}]: id "${q.id}" 에 ":" 사용 — 전역 문항 키의 구분자라 쓸 수 없음`,
+          code: "QUESTION_KEY_EMPTY",
+          message: `quiz[${qi}]: 진도 저장 키(slug 우선)가 비어 있음`,
+        });
+      } else if (qKeySeen.has(key)) {
+        problems.push({
+          chapterId: cid,
+          code: "QUESTION_KEY_DUP",
+          message: `quiz[${qi}]: 진도 저장 키 "${key}" 가 챕터 내에서 중복 — 두 문항이 한 기록을 공유하게 됨`,
         });
       }
-      qIdSeen.add(q.id);
+      // 구분자 금지 — 위 챕터 id 검사와 같은 이유 (전역 키 합성이 단사여야 한다)
+      if (key.includes(":")) {
+        problems.push({
+          chapterId: cid,
+          code: "QUESTION_KEY_DELIMITER",
+          message: `quiz[${qi}]: 진도 저장 키 "${key}" 에 ":" 사용 — 전역 문항 키의 구분자라 쓸 수 없음`,
+        });
+      }
+      qKeySeen.add(key);
 
       // 시나리오·해설 비어있음 — 빈 scenario 는 빈 문항으로, 빈 explanation 은
       // 채점 후 해설 패널 공백으로 렌더된다 (app/chapters/[id]/chapter-quiz.tsx).

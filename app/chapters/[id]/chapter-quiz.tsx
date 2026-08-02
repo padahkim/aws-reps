@@ -76,7 +76,8 @@ function QuizItem({
   function grade(choice: number[]) {
     setSelected(choice);
     setSubmitted(true);
-    recordQuestionAttempt(chapterId, q.id, sameSet(choice, q.answer));
+    // 문항 객체째 넘긴다 — 저장 키는 q.id 가 아니라 안정 식별자(slug)다 (lib/progress/keys.ts)
+    recordQuestionAttempt(chapterId, q, sameSet(choice, q.answer));
   }
 
   function pick(idx: number) {
