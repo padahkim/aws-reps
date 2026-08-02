@@ -141,8 +141,8 @@ export const glossary: GlossaryTerm[] = [
   },
   {
     id: "permission-boundary",
-    term: "Permission Boundary",
-    full: "권한 경계",
+    term: "권한 경계",
+    full: "Permissions Boundary",
     short: "주체가 가질 수 있는 권한의 최대 한도를 정하는 안전장치 정책 — 이 경계를 넘는 권한은 붙여도 무효다.",
     chapterId: "ch0-2",
   },
@@ -202,7 +202,7 @@ export const glossary: GlossaryTerm[] = [
     id: "jwt",
     term: "JWT",
     full: "JSON Web Token",
-    short: "서명된 JSON 형식의 신원 토큰 — 웹 IdP가 발급하며 OIDC 페더레이션의 재료가 된다.",
+    short: "클레임(정보 조각)을 담는 컴팩트 토큰 형식 — OIDC IdP의 ID 토큰이 보통 서명된 JWT로 발급되어 페더레이션의 재료가 된다.",
   },
   {
     id: "u2f",
@@ -214,13 +214,13 @@ export const glossary: GlossaryTerm[] = [
     id: "sigv4",
     term: "SigV4",
     full: "AWS Signature Version 4",
-    short: "AWS API 요청 서명 방식 — 자격 증명으로 요청마다 서명을 만들어 위·변조와 재사용을 막는다.",
+    short: "AWS API 요청 서명 방식 — 요청마다 서명을 만들어 요청자의 진위와 내용 위·변조를 검증하고, 타임스탬프로 오래된 요청의 재사용을 제한한다.",
     chapterId: "ch0-1",
   },
   {
     id: "credential-provider-chain",
     term: "Credential Provider Chain",
-    short: "SDK·CLI가 자격 증명을 찾는 정해진 탐색 순서 — 환경 변수 → 프로파일 → 역할 순으로 훑어 처음 찾은 것을 쓴다.",
+    short: "SDK·CLI가 자격 증명을 찾는 탐색 순서 — 환경 변수·프로파일·역할 같은 소스를 차례로 훑어 처음 찾은 것을 쓰되, 정확한 순서는 SDK·도구마다 다르다.",
     chapterId: "ch0-1",
   },
   {
@@ -239,7 +239,7 @@ export const glossary: GlossaryTerm[] = [
     id: "cloudtrail",
     term: "CloudTrail",
     full: "AWS CloudTrail",
-    short: "계정에서 일어난 API 호출을 기록하는 감사 로그 서비스 — \"누가 언제 무엇을 했나\"를 남긴다.",
+    short: "계정의 API 호출을 기록하는 감사 로그 서비스(\"누가 언제 무엇을 했나\") — 관리 이벤트는 기본 기록되고, S3 객체 접근 같은 데이터 이벤트는 따로 켜야 남는다.",
   },
   {
     id: "access-analyzer",
@@ -415,7 +415,7 @@ export const glossary: GlossaryTerm[] = [
     id: "throttling",
     term: "스로틀링",
     full: "Throttling",
-    short: "요청이 한도를 넘을 때 AWS가 요청을 거절하는 것 — 429 오류로 나타나며 백오프 재시도로 대응한다.",
+    short: "요청이 한도를 넘을 때 AWS가 요청을 거절하는 것 — Lambda 동기 호출에서는 429 오류로 나타나며, 백오프 재시도로 대응한다.",
     chapterId: "ch1-2",
   },
   {
@@ -455,8 +455,27 @@ export const glossary: GlossaryTerm[] = [
   {
     id: "lambda-at-edge",
     term: "Lambda@Edge",
-    short: "CloudFront 엣지에서 실행되는 Lambda — us-east-1 리전에 작성하면 전 세계 엣지로 복제된다.",
+    short: "CloudFront 배포에 연결해 전 세계 엣지로 복제되는 Lambda — us-east-1에서 만들고 번호 버전을 발행해 연결해야 한다($LATEST·별칭 불가).",
     chapterId: "ch1-2",
+  },
+  {
+    id: "cloudfront-functions",
+    term: "CloudFront Functions",
+    short: "CloudFront 엣지에서 도는 초경량 JavaScript 함수 — 헤더 조작 같은 밀리초급 처리 전용이고, 더 무거운 일은 Lambda@Edge 몫이다.",
+    chapterId: "ch1-2",
+  },
+  {
+    id: "function-url",
+    term: "함수 URL",
+    full: "Lambda Function URL",
+    short: "Lambda 함수에 직접 붙는 전용 HTTPS 엔드포인트 — API Gateway 없이 함수를 바로 호출하게 해 준다.",
+    chapterId: "ch1-2",
+  },
+  {
+    id: "api-gateway",
+    term: "API Gateway",
+    full: "Amazon API Gateway",
+    short: "백엔드 앞에 세우는 관리형 API 관문 — HTTP 요청을 받아 Lambda 등으로 라우팅하고 인증·스로틀링을 대신 처리한다.",
   },
   {
     id: "rie",
@@ -511,6 +530,7 @@ export const glossary: GlossaryTerm[] = [
     term: "CodeDeploy",
     full: "AWS CodeDeploy",
     short: "배포 자동화 서비스 — Lambda에서는 별칭의 트래픽 전환(카나리·선형)을 자동화한다.",
+    chapterId: "ch1-2",
   },
   {
     id: "codepipeline",
@@ -537,6 +557,7 @@ export const glossary: GlossaryTerm[] = [
     term: "CloudWatch",
     full: "Amazon CloudWatch",
     short: "AWS의 모니터링 서비스 — 지표(메트릭)·로그(CloudWatch Logs)·경보를 한곳에 모은다.",
+    chapterId: "ch1-2",
   },
 
   // ── 스토리지·데이터 ───────────────────────────────────────────────────
@@ -621,12 +642,29 @@ export const glossary: GlossaryTerm[] = [
     term: "CORS",
     full: "Cross-Origin Resource Sharing",
     short: "다른 출처(도메인)에서 온 브라우저 요청을 허용하는 규칙 — S3 버킷 등에 설정한다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "mfa-delete",
+    term: "MFA Delete",
+    short: "S3 객체 버전의 영구 삭제·버전 관리 중단에 MFA 인증을 요구하는 보호 설정 — 버전 관리가 전제이고 루트 사용자만 켤 수 있다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "object-lambda",
+    term: "Object Lambda",
+    full: "S3 Object Lambda",
+    short: "S3 객체를 꺼내는 순간 Lambda로 가공해 돌려주는 기능 — 원본은 하나만 두고 응답만 바꾼다.",
+    detail:
+      "2025-11부터 기존 사용 고객·일부 파트너 전용으로 전환돼 신규 사용은 막혔지만, 시험 선지에는 여전히 등장한다 — 개념은 익혀 둔다.",
+    chapterId: "ch1-1",
   },
   {
     id: "efs",
     term: "EFS",
     full: "Amazon Elastic File System",
     short: "여러 인스턴스·Lambda가 동시에 마운트해 쓰는 공유 파일 시스템(NFS)이다.",
+    chapterId: "ch1-2",
   },
   {
     id: "ebs",
@@ -670,7 +708,7 @@ export const glossary: GlossaryTerm[] = [
     id: "kinesis",
     term: "Kinesis",
     full: "Amazon Kinesis",
-    short: "실시간 스트리밍 데이터 서비스 — 스트림 처리는 Data Streams, 적재는 Firehose가 담당한다.",
+    short: "실시간 스트리밍 데이터 서비스 — 스트림 처리는 Kinesis Data Streams가 담당하고, 적재를 맡던 Firehose는 현재 Amazon Data Firehose로 이름이 바뀌어 분리됐다.",
   },
   {
     id: "msk",
@@ -696,7 +734,7 @@ export const glossary: GlossaryTerm[] = [
     id: "arn",
     term: "ARN",
     full: "Amazon Resource Name",
-    short: "AWS 리소스의 전역 고유 주소 — arn:aws:서비스:리전:계정:리소스 형식이다.",
+    short: "AWS 리소스의 전역 고유 주소 — arn:<파티션>:<서비스>:<리전>:<계정>:<리소스> 형식이며, 일반 계정의 파티션은 aws다(예: arn:aws:…).",
     chapterId: "ch0-2",
   },
   {
@@ -723,7 +761,7 @@ export const glossary: GlossaryTerm[] = [
     id: "free-tier",
     term: "프리 티어",
     full: "Free Tier",
-    short: "신규 가입·상시 무료 사용량 — 일정 한도까지는 무료로 쓸 수 있는 요금 구간이다.",
+    short: "일정 한도까지 무료로 쓰는 요금 구간 — 신규 가입 혜택(크레딧·기간 한정 무료 플랜)과 상시 무료 한도는 별개 범주다.",
   },
   {
     id: "apn",
