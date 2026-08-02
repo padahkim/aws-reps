@@ -64,12 +64,16 @@ export default async function ChapterPage({
         pool.length > 0 ? "혼합 복습" : null,
       ].filter(Boolean)
     : [];
+  // 점수 배지가 셀 문항 (#66) — 챕터 종합(final)만 센다. 본문 인라인(mini)은 챕터 완료 판정의
+  // 대상이 아니다 (설계 §2-3 finalQ). 배지 계산 자체는 클라이언트 몫이라 여기서는 id 만 넘긴다.
+  const finalQuizIds = quiz.filter((q) => q.scope === "final").map((q) => q.id);
   const quizItem: TocItem | undefined =
     finale || quiz.length > 0
       ? {
           sec: sections.length + 1,
           num: "Q",
           title: finale ? "마무리 세션" : "챕터 퀴즈",
+          quizIds: finalQuizIds,
           sub: [
             finale ? `${stationNames.join(" · ")} — 전 섹션 종합` : `${quiz.length}문항 · 전 섹션 종합`,
             parts.length > 0 && estimate ? `약 ${estimate.finale}분` : null,

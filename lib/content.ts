@@ -155,7 +155,9 @@ export function groupByPhase(entries: ChapterEntry[]): [string, ChapterEntry[]][
   return [...groups.entries()];
 }
 
-/** 문항 id는 챕터-로컬("q1") — 진도·오답노트용 전역 키는 앱이 합성한다 (schema.ts Question.id 참조). */
-export function globalQuestionKey(chapterId: string, questionId: string): string {
-  return `${chapterId}:${questionId}`;
-}
+/**
+ * 문항 id는 챕터-로컬("q1") — 진도·오답노트용 전역 키는 앱이 합성한다 (schema.ts Question.id 참조).
+ * 정본은 lib/progress/keys.ts 로 옮겼다 (#66): 이 파일은 서버 전용이라 채점을 하는 클라이언트
+ * 컴포넌트가 값으로 import 할 수 없다. 여기 통로는 서버 쪽 소비자를 위해 남긴다.
+ */
+export { globalQuestionKey } from "./progress/keys";

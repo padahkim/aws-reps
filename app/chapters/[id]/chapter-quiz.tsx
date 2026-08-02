@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
+import { recordQuestionAttempt } from "@/lib/progress/store";
 
 /**
  * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
@@ -14,6 +15,10 @@ import type { Question } from "@/lib/content";
  * 왜 틀렸는지 스스로 설명한 뒤에 열어야 학습 효과가 산다 (#54 선결정). 정답/오답 배너는
  * 게이트 앞에 그대로 보인다 (입장은 이미 확정됐고, 미뤄지는 건 근거 해설이다).
  * 문항 간 이동은 게이팅하지 않는다 — 정답 여부와 무관하게 자유.
+ *
+ * 채점 결과 지속 (#66): 채점할 때마다 문항별 사실(시도·정오·시각)을 `dva.progress.v1` 에
+ * 남긴다 (lib/progress/store.ts). 화면 상태(selected·submitted)는 예전대로 비저장이다 —
+ * 되살려야 할 것은 "무엇을 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
  */
 
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 배경·글자색 쌍 고정으로 다크 모드에서도 읽힘.
@@ -42,11 +47,13 @@ function sameSet(a: number[], b: number[]): boolean {
 
 function QuizItem({
   index,
+  chapterId,
   question: q,
   gated = false,
   onExplainedChange,
 }: {
   index: number;
+  chapterId: string;
   question: Question;
   gated?: boolean;
   onExplainedChange?: (id: string, explained: boolean) => void;
@@ -60,11 +67,22 @@ function QuizItem({
   // 해설 공개 시점: 기존 모드 = 채점 즉시, 세션 모드 = 자기설명 체크포인트 통과 후
   const showExplanations = gated ? explained : submitted;
 
+  /**
+   * 채점 = 이 문항의 유일한 기록 지점 (#66). 단일 정답(선택지 클릭)과 복수 정답(채점 버튼)이
+   * 여기로 모이므로, `<ChapterQuiz>` 를 소비하는 두 경로(세션 실전 스테이션 / 단독 퀴즈
+   * 페이지) 모두에서 같은 기록이 남는다. 인자로 선택을 받는 이유: setState 는 비동기라
+   * 같은 렌더의 `selected` 로는 방금 고른 값을 채점할 수 없다.
+   */
+  function grade(choice: number[]) {
+    setSelected(choice);
+    setSubmitted(true);
+    recordQuestionAttempt(chapterId, q.id, sameSet(choice, q.answer));
+  }
+
   function pick(idx: number) {
     if (submitted) return;
     if (!multi) {
-      setSelected([idx]);
-      setSubmitted(true);
+      grade([idx]);
     } else {
       setSelected((prev) =>
         prev.includes(idx) ? prev.filter((v) => v !== idx) : [...prev, idx],
@@ -77,6 +95,8 @@ function QuizItem({
     onExplainedChange?.(q.id, true);
   }
 
+  // 다시 풀기 — 화면만 되돌린다. 이미 남은 기록은 지우지 않고, 재채점이 시도를 하나 더
+  // 쌓는다 (설계 §1-2: 즉시 재도전은 막지 않되 기록은 사실대로 남는다).
   function reset() {
     setSelected([]);
     setSubmitted(false);
@@ -183,7 +203,7 @@ function QuizItem({
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem" }}>
           <button
             type="button"
-            onClick={() => setSubmitted(true)}
+            onClick={() => grade(selected)}
             disabled={selected.length === 0}
             style={{
               font: "inherit",
@@ -305,11 +325,13 @@ function QuizItem({
 }
 
 export default function ChapterQuiz({
+  chapterId,
   quiz,
   gated = false,
   header,
   onExplainedChange,
 }: {
+  chapterId: string;              // 채점 기록의 전역 문항 키 접두 (#66) — 필수: 빠뜨린 경로는 조용히 기록을 잃는다
   quiz: Question[];
   // ── 세션 모드 (#59) — 실전 스테이션이 이 컴포넌트를 재사용할 때만 쓴다 ──
   gated?: boolean;                // 채점 후 해설을 자기설명 체크포인트 뒤로 미룬다
@@ -331,6 +353,7 @@ export default function ChapterQuiz({
         <QuizItem
           key={q.id}
           index={i}
+          chapterId={chapterId}
           question={q}
           gated={gated}
           onExplainedChange={onExplainedChange}

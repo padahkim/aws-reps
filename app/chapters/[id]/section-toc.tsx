@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useReadSections } from "@/lib/progress";
+import { globalQuestionKey } from "@/lib/progress/keys";
+import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/store";
 import { ProgressBar } from "../../progress-bar";
 
 /** 목차 한 줄에 필요한 직렬화 가능 데이터 — 서버(page.tsx)가 meta.sections에서 만들어 내려준다. */
@@ -11,6 +13,7 @@ export interface TocItem {
   title: string;
   sub: string;
   freq?: "hi" | "mid" | "lo";   // 빈출도 (#161 — 데이터는 v2부터 있었으나 목차에 안 보였다). 퀴즈 줄은 없음
+  quizIds?: string[];           // 점수 배지가 셀 문항의 챕터-로컬 id (#66) — 퀴즈/마무리 세션 줄에만
 }
 
 /**
@@ -45,11 +48,62 @@ function FreqStars({ freq }: { freq: "hi" | "mid" | "lo" }) {
 }
 
 /**
+ * 퀴즈 점수 — 저장된 점수가 아니라 문항별 마지막 결과의 런타임 집계다 (설계 §4-1: 파생 가능한
+ * 값은 저장하지 않는다). 그래서 "다시 풀기" 후 재채점한 결과가 별도 갱신 없이 그대로 반영된다.
+ *
+ * 분모는 문항 전체가 아니라 **푼 문항 수**다 (#66): 11문항 중 3개만 풀고 나온 상태를 "2/11"로
+ * 보여주면 안 푼 8개를 틀린 것처럼 읽힌다. 한 문항도 안 풀었으면 null — 배지 자체가 없다.
+ */
+function quizScore(
+  chapterId: string,
+  quizIds: string[],
+  records: Record<string, QuestionRecord>,
+): { passed: number; attempted: number } | null {
+  let passed = 0;
+  let attempted = 0;
+  for (const questionId of quizIds) {
+    const record = records[globalQuestionKey(chapterId, questionId)];
+    if (!record) continue;
+    attempted += 1;
+    if (record.lastResult === "pass") passed += 1;
+  }
+  return attempted > 0 ? { passed, attempted } : null;
+}
+
+/**
+ * 목차 퀴즈 줄의 점수 배지. 강조는 파트 헤더의 `{groupDone}/{total}` 과 같은 어법이다 —
+ * 푼 것을 다 맞혔을 때만 accent, 그 외에는 muted (등급을 매기는 자리가 아니다).
+ */
+function ScoreBadge({ passed, attempted }: { passed: number; attempted: number }) {
+  const perfect = passed === attempted;
+  return (
+    <span
+      aria-label={`퀴즈 점수 — 푼 ${attempted}문항 중 ${passed}문항 정답`}
+      style={{
+        fontSize: "0.78rem",
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums",
+        whiteSpace: "nowrap",
+        borderRadius: 99,
+        padding: "2px 9px",
+        border: `1px solid ${perfect ? "var(--accent)" : "var(--border)"}`,
+        color: perfect ? "var(--accent)" : "var(--muted)",
+      }}
+    >
+      <span aria-hidden>
+        {passed}/{attempted}
+      </span>
+    </span>
+  );
+}
+
+/**
  * 챕터 첫 화면의 섹션 목차 — 읽은 섹션 체크 + 챕터 진도 바 (이슈 #7).
- * v3.1(#161): 파트 그룹 헤더 + 파트별 진도 + 빈출 별점.
+ * v3.1(#161): 파트 그룹 헤더 + 파트별 진도 + 빈출 별점. #66: 퀴즈 줄의 점수 배지.
  */
 export function SectionToc({ chapterId, groups }: { chapterId: string; groups: TocGroup[] }) {
   const read = new Set(useReadSections(chapterId));
+  const records = useQuestionRecords();
   const all = groups.flatMap((g) => g.items);
   const done = all.filter((item) => read.has(item.sec)).length;
 
@@ -96,6 +150,7 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
             <ol style={{ listStyle: "none", display: "grid", gap: "0.6rem" }}>
               {group.items.map((item) => {
                 const isRead = read.has(item.sec);
+                const score = item.quizIds ? quizScore(chapterId, item.quizIds, records) : null;
                 return (
                   // minWidth: 0 — 그리드 항목의 기본 min-width:auto 는 안쪽 nowrap 부제의
                   // min-content 를 바닥으로 삼아 줄이 트랙보다 넓어진다 (모바일 가로 스크롤).
@@ -139,6 +194,7 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
                         </span>
                       </span>
                       {item.freq && <FreqStars freq={item.freq} />}
+                      {score && <ScoreBadge passed={score.passed} attempted={score.attempted} />}
                       <span
                         aria-label={isRead ? "읽음" : "안 읽음"}
                         style={{

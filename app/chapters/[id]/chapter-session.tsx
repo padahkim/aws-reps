@@ -15,8 +15,9 @@ import ChapterQuiz from "./chapter-quiz";
  * 스테이션과 레일 항목이 함께 사라진다. 개념 카드는 여기 없다 — 각 섹션 페이지 하단이
  * 제자리다 (#58).
  *
- * 상태는 전부 비저장(useState) — 세션은 한 자리 완주 설계 (#54. localStorage 는 필요가
- * 3번 증명되기 전 도입 안 함 — 이슈 #59 범위 제외).
+ * 세션 화면 상태(도식 공개·혼합 카드 열림·진행률 레일)는 전부 비저장(useState) — 세션은
+ * 한 자리 완주 설계다 (#54). 예외는 실전 스테이션의 **채점 결과**로, 이건 세션 화면이 아니라
+ * 학습 진도라서 `dva.progress.v1` 에 남는다 (#66 — 기록은 <ChapterQuiz> 안에서 한다).
  */
 
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 앱은 content/를 lib/content.ts로만
@@ -363,10 +364,12 @@ function MixedCard({
 /* ── 메인 ─────────────────────────────────────────────────────────────── */
 
 export default function ChapterSession({
+  chapterId,
   diagram,
   quiz,
   pool,
 }: {
+  chapterId: string;              // 실전 스테이션의 채점 기록용 (#66) — <ChapterQuiz> 로 그대로 넘긴다
   diagram?: SessionDiagram;
   quiz: Question[];
   pool: MixedPoolItem[];
@@ -453,6 +456,7 @@ export default function ChapterSession({
 
       {hasQuiz && (
         <ChapterQuiz
+          chapterId={chapterId}
           quiz={quiz}
           gated
           header={
