@@ -136,6 +136,9 @@ a:hover {
   position: absolute;
   right: 8px;
   bottom: 6px;
+  /* 버튼이 DOM에서 면들보다 앞이라(낭독 순서), preserve-3d 스택 컨텍스트인
+     .flip-inner가 나중에 그려져 버튼을 덮는다 — 페인트 순서만 되돌린다 */
+  z-index: 1;
   background: none;
   border: none;
   cursor: pointer;

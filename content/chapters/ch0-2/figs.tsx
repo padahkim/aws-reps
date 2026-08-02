@@ -112,6 +112,19 @@ export function InfoCard({
       style={{ position: "relative", "--flip-ring": color } as CSSProperties}
       onClick={() => setFlipped((f) => !f)}
     >
+      {/* 버튼이 면들보다 DOM에서 앞이다 (PR #208 Codex 라운드 2): 토글 후 스크린리더가
+          앞으로 읽어 나가면 새로 드러난 면이 바로 따라온다. 화면 위치는 절대 위치라 그대로.
+          보이는 문구도 "카드 뒤집기"로 고정 — aria-label이 이를 포함해야 음성 입력
+          사용자가 보이는 문구로 버튼을 부를 수 있다 (상태는 화살표·aria-pressed가 전달). */}
+      <button
+        type="button"
+        className="flip-toggle"
+        aria-pressed={flipped}
+        aria-label={typeof title === "string" ? `${title} — 카드 뒤집기` : "카드 뒤집기"}
+        style={{ fontFamily: MONO, fontSize: "0.68rem", color }}
+      >
+        {flipped ? "↩" : "↻"} 카드 뒤집기
+      </button>
       <div className="flip-inner" style={{ transform: flipped ? "rotateY(180deg)" : undefined }}>
         <div
           className="flip-face"
@@ -131,15 +144,6 @@ export function InfoCard({
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        className="flip-toggle"
-        aria-pressed={flipped}
-        aria-label={typeof title === "string" ? `${title} — 카드 뒤집기` : "카드 뒤집기"}
-        style={{ fontFamily: MONO, fontSize: "0.68rem", color }}
-      >
-        {flipped ? "↩ 탭하면 복귀" : "↻ 탭하면 상세"}
-      </button>
     </div>
   );
 }
