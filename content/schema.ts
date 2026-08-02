@@ -32,6 +32,8 @@
  *   content/chapters/ui.tsx              — 전 챕터 공용 프리미티브·상수 (팔레트 C, MONO·SANS,
  *                                          Sec·Table·ExamPoint·CodeBlock·WarnBox·Fig 등)
  *   content/chapters/interactive.tsx     — 인터랙티브 공용 프레임·버튼 (SimFrame·SelfQuiz·chipBtn 등)
+ *   content/glossary.ts                  — 전역 용어집 (GlossaryTerm[]) — 챕터 소속이 아닌 전역
+ *                                          자산. 본문 팝오버(#193)·/glossary 페이지(#192)가 소비 (#57 결정)
  *
  * 공용 승격 규약 (#156 — 2026-07-28):
  *   • figs.tsx 는 **챕터 고유물 전용**이다. 챕터와 무관한 프리미티브·상수를 여기 두지 않는다 —
@@ -302,6 +304,27 @@ export interface SelfQuizEntry {
   // 태깅 기준: 주(첫) 물음이 예/아니오로 직접 답하는 판정 의문문이고 정답의 첫 판정이
   // 예·아니오 한쪽에 1:1 매핑될 때만 — 선택형(A/B 중?)·wh형·"판단은?"류는 제외.
   yn?: "예" | "아니오";
+}
+
+// ── 용어집 (#56 에픽 → #57 spike 결정) ─────────────────────────────────────
+
+/**
+ * 용어집 항목 — content/glossary.ts (전역 단일 파일)가 GlossaryTerm[] 을 export 한다.
+ * 챕터 소속(ChapterData 슬롯)이 아니라 전역 자산인 이유 (#57 결정 1): 용어는 챕터 횡단으로
+ * 등장하고(리전·IAM 은 전 챕터에 나온다), 전담 챕터가 아직 없는 용어(DynamoDB 등)도
+ * 수록해야 하므로 챕터 소속 구조에는 둘 곳이 없다.
+ * 소비처 둘 — 본문 팝오버 <Term>(#193)은 short 를, /glossary 페이지(#192)는 short+detail 을
+ * 쓴다. id 는 페이지 앵커(/glossary#<id>)이자 팝오버가 용어를 짚는 참조 키다.
+ */
+export interface GlossaryTerm {
+  id: string;          // 전역 유일, 소문자 케밥 케이스 ("s3"·"dlq"·"edge-location") —
+                       // URL 앵커로 쓰이므로 형식을 검증기가 강제한다 (GLOSSARY_ID_FORMAT)
+  term: string;        // 화면 표기 ("S3"·"리전"·"$LATEST")
+  full?: string;       // 약어의 원문 확장 또는 한국어 용어의 영문 원어
+                       // ("Amazon Simple Storage Service"·"Region"). 덧붙일 게 없으면 생략
+  short: string;       // 한 줄 설명 — 팝오버에 그대로 뜬다. 1문장 유지
+  detail?: string;     // 상세 — /glossary 페이지 전용. "\n\n" = 문단 구분. 없으면 short 만 표시
+  chapterId?: string;  // 본문에서 자세히 다루는 챕터 id (실존 검증) — 전담 챕터 미작성이면 생략
 }
 
 /** 각 챕터의 meta.ts가 export 하는 계약. */

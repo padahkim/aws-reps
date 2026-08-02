@@ -3,7 +3,8 @@
  * 타입 정본은 content/schema.ts — 여기서는 re-export만 하고 평행 타입을 만들지 않는다.
  */
 import { registry, type ChapterEntry } from "@/content/registry";
-import type { SelfQuizEntry, SessionConcept, SessionMixedItem } from "@/content/schema";
+import { glossary } from "@/content/glossary";
+import type { GlossaryTerm, SelfQuizEntry, SessionConcept, SessionMixedItem } from "@/content/schema";
 
 export type {
   ChapterMeta,
@@ -11,6 +12,7 @@ export type {
   Question,
   ChapterData,
   Domain,
+  GlossaryTerm,
   SectionMeta,
   SelfQuizEntry,
   SessionData,
@@ -33,6 +35,15 @@ export { SelfQuiz } from "@/content/chapters/interactive";
 // 빈출 표기 근거 문구 (#185) — 같은 원칙의 통로 re-export. 문구 정본은 content/chapters/ui.tsx
 // (본문 <Sec> 배지 툴팁과 한 곳을 공유해야 하므로 그쪽이 소유한다).
 export { FREQ_EVIDENCE_NOTE } from "@/content/chapters/ui";
+
+// 전역 용어집 (#57 결정 1) — 데이터 정본은 content/glossary.ts, 앱은 이 통로로만 본다.
+// 배열 순서는 계약이 아니다 — /glossary 페이지(#192)가 표시 순서를 정한다.
+export { glossary };
+
+/** 용어집 단건 조회 — 팝오버(<Term>, #193)·앵커 검증용. 없는 id 는 undefined. */
+export function glossaryTerm(id: string): GlossaryTerm | undefined {
+  return glossary.find((t) => t.id === id);
+}
 
 export function getAllChapters(): ChapterEntry[] {
   return registry;

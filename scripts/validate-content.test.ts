@@ -5,10 +5,11 @@
  * 실행: `npm run validate:test`. 하나라도 어긋나면 종료 코드 1.
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
-import { validateChapters, type Problem } from "./validate-content.ts";
+import { validateChapters, validateGlossary, type Problem } from "./validate-content.ts";
 import type {
   ChapterData,
   ChapterMeta,
+  GlossaryTerm,
   Question,
   SectionMeta,
   SelfQuizEntry,
@@ -432,6 +433,68 @@ expectClean("정상 챕터(복수정답·prereq·choiceExpl·다중 섹션)", [
     ],
     [section(), section({ num: "02", title: "t2" })]
   ),
+]);
+
+// ── 용어집 (#57 결정 1 — validateGlossary) ──────────────────────────────────
+
+function gterm(over: Partial<GlossaryTerm> = {}): GlossaryTerm {
+  return { id: "s3", term: "S3", short: "설명 한 줄", ...over };
+}
+
+/** 용어집 검사는 chapters 를 함께 받는다 (chapterId 실존 검증) — 픽스처 챕터는 "1-1" 하나. */
+const GLOSSARY_CHAPTERS = [ch(meta("1-1"))];
+
+function expectGlossaryCaught(label: string, terms: GlossaryTerm[], code: string) {
+  const found = codes(validateGlossary(terms, GLOSSARY_CHAPTERS));
+  if (found.has(code)) {
+    console.log(`  ✓ ${label} → ${code}`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: ${code} 기대했으나 미검출 (검출: ${[...found].join(", ") || "없음"})`);
+  }
+}
+
+function expectGlossaryClean(label: string, terms: GlossaryTerm[]) {
+  const found = validateGlossary(terms, GLOSSARY_CHAPTERS);
+  if (found.length === 0) {
+    console.log(`  ✓ ${label} → 통과`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: 통과 기대했으나 위반 ${found.length}건 (${found.map((p) => p.code).join(", ")})`);
+  }
+}
+
+console.log("\n── 용어집: 검출되어야 하는 위반 ──");
+
+expectGlossaryCaught("id 빈 문자열", [gterm({ id: "  " })], "GLOSSARY_ID_EMPTY");
+expectGlossaryCaught("id 대문자", [gterm({ id: "S3" })], "GLOSSARY_ID_FORMAT");
+expectGlossaryCaught("id 공백 포함", [gterm({ id: "edge location" })], "GLOSSARY_ID_FORMAT");
+expectGlossaryCaught("id 특수문자($LATEST)", [gterm({ id: "$latest" })], "GLOSSARY_ID_FORMAT");
+expectGlossaryCaught("id 중복", [gterm(), gterm({ term: "다른 용어" })], "GLOSSARY_ID_DUP");
+expectGlossaryCaught("term 빈 문자열", [gterm({ term: " " })], "GLOSSARY_TERM_EMPTY");
+expectGlossaryCaught("term 표기 중복", [gterm(), gterm({ id: "s3-dup" })], "GLOSSARY_TERM_DUP");
+expectGlossaryCaught("term 공백 변형 중복", [gterm(), gterm({ id: "s3-b", term: "S3 " })], "GLOSSARY_TERM_DUP");
+expectGlossaryCaught("short 빈 문자열", [gterm({ short: "" })], "GLOSSARY_SHORT_EMPTY");
+expectGlossaryCaught("full 빈 문자열", [gterm({ full: " " })], "GLOSSARY_FIELD_EMPTY");
+expectGlossaryCaught("detail 빈 문자열", [gterm({ detail: "" })], "GLOSSARY_FIELD_EMPTY");
+expectGlossaryCaught("chapterId 미존재 참조", [gterm({ chapterId: "ghost-9" })], "GLOSSARY_CHAPTER_MISSING");
+
+console.log("\n── 용어집: 통과해야 하는 케이스 ──");
+
+// 빈 용어집도 적법 — 데이터가 채워지기 전 상태에서 검사기가 죽지 않아야 한다
+expectGlossaryClean("빈 용어집", []);
+// 필수 필드만 (full·detail·chapterId 전부 생략) — optional 생략은 적법한 표현
+expectGlossaryClean("필수 필드만", [gterm()]);
+// 전 필드 + 실존 chapterId + 케밥 케이스 id
+expectGlossaryClean("전 필드(실존 chapterId·케밥 id)", [
+  gterm({
+    id: "edge-location",
+    term: "엣지 로케이션",
+    full: "Edge Location",
+    short: "사용자 가까이에 둔 캐시 거점.",
+    detail: "문단 하나.\n\n문단 둘.",
+    chapterId: "1-1",
+  }),
 ]);
 
 console.log("");
