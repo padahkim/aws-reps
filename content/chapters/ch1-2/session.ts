@@ -18,7 +18,7 @@ export const session: SessionData = {
       id: "c1",
       section: "01",
       q: "“서버리스”의 실제 뜻은 무엇이며, EC2와 Lambda는 실행 시간·과금·확장에서 어떻게 다른가요?",
-      a: "서버리스는 서버가 없다는 게 아니라 서버를 관리·프로비저닝하지 않는다는 뜻이다.\nEC2는 계속 실행되는 가상 서버라 실행 중 항상 과금되고 확장에 ASG 구성 같은 개입이 필요하다.\nLambda는 가상 함수로 실행이 최대 15분으로 짧고, 요청 수 + 컴퓨팅 시간(GB-초)으로 과금되며, 스케일링이 완전 자동이다.",
+      a: "서버리스는 서버가 없다는 게 아니라 서버를 관리·프로비저닝하지 않는다는 뜻이다.\n• EC2는 계속 실행되는 가상 서버라 실행 중 항상 과금되고 확장에 ASG 구성 같은 개입이 필요하다.\n• Lambda는 가상 함수로 실행이 최대 15분으로 짧고, 요청 수 + 컴퓨팅 시간(GB-초)으로 과금되며, 스케일링이 완전 자동이다.",
       why: {
         q: "“임의의 Docker 이미지를 실행하고 싶다”는 요구에 Lambda 컨테이너 이미지가 답이 될 수 없는 이유는 무엇일까요?",
         a: "Lambda 컨테이너 이미지는 반드시 Lambda Runtime API를 구현해야 하기 때문이다 — 아무 이미지나 올릴 수 없다. 임의의 Docker 이미지를 그대로 실행하는 요구의 정답은 ECS/Fargate다 (빈출 함정).",
@@ -62,7 +62,7 @@ export const session: SessionData = {
       id: "c5",
       section: "05",
       q: "핸들러가 받는 이벤트 객체와 컨텍스트 객체는 무엇이 다른가요? 각각에 들어 있는 것을 예로 들어 보세요.",
-      a: "이벤트 객체는 호출 서비스가 보낸 데이터다 — Records, source, 요청 본문.\n컨텍스트 객체는 호출·런타임 메타데이터다 — aws_request_id, function_name, memory_limit_in_mb, 로그 그룹/스트림.\n“데이터 vs 메타데이터”가 구분 축이다.",
+      a: "• 이벤트 객체는 호출 서비스가 보낸 데이터다 — Records, source, 요청 본문.\n• 컨텍스트 객체는 호출·런타임 메타데이터다 — aws_request_id, function_name, memory_limit_in_mb, 로그 그룹/스트림.\n“데이터 vs 메타데이터”가 구분 축이다.",
       why: {
         q: "타임아웃 직전에 정리 작업을 하고 싶다면 무엇을 쓸까요?",
         a: "context.get_remaining_time_in_millis() — 컨텍스트 객체에서 남은 실행 시간을 확인해 타임아웃 전에 정리 로직을 태울 수 있다 (시험 포인트).",
@@ -73,7 +73,7 @@ export const session: SessionData = {
       id: "c6",
       section: "06",
       q: "DLQ와 Destinations를 적용 범위와 대상 서비스 축으로 대조해 보세요.",
-      a: "DLQ는 비동기 호출의 “실패”만, 대상은 SQS·SNS 2종.\nDestinations는 비동기 호출의 성공+실패 모두에 각각 지정할 수 있고 스트림 ESM(Kinesis·DDB Streams)의 폐기 배치도 커버하며, 대상은 SQS·SNS·Lambda·EventBridge 4종이다.",
+      a: "• DLQ는 비동기 호출의 “실패”만, 대상은 SQS·SNS 2종.\n• Destinations는 비동기 호출의 성공+실패 모두에 각각 지정할 수 있고 스트림 ESM(Kinesis·DDB Streams)의 폐기 배치도 커버하며, 대상은 SQS·SNS·Lambda·EventBridge 4종이다.",
       why: {
         q: "공식 문서가 Destinations를 DLQ의 “대안”으로 두는 근거 두 가지는 무엇일까요?",
         a: "① 실패만이 아니라 성공/실패 모두 지원하고\n② 이벤트 본문 위주인 DLQ와 달리 호출 컨텍스트·응답 등 더 풍부한 정보를 전송하기 때문이다 — “실패 이벤트를 더 많은 컨텍스트와 함께”가 보이면 Destinations가 정답 방향이다.",
@@ -84,7 +84,7 @@ export const session: SessionData = {
       id: "c7",
       section: "07",
       q: "Lambda 권한의 방향 규칙 — 어떤 경우가 실행 역할이고 어떤 경우가 리소스 기반 정책인지 말해 보세요.",
-      a: "나가는 권한 = 실행 역할: 함수가 다른 서비스에 접근할 때, 그리고 ESM처럼 Lambda가 소스를 폴링해 읽어올 때.\n들어오는 호출 권한 = 리소스 기반 정책: S3 이벤트 알림처럼 서비스가 함수를 직접 호출(푸시)할 때.\n동일 계정에서는 둘 중 하나만 허용해도 호출된다.",
+      a: "• 나가는 권한 = 실행 역할: 함수가 다른 서비스에 접근할 때, 그리고 ESM처럼 Lambda가 소스를 폴링해 읽어올 때.\n• 들어오는 호출 권한 = 리소스 기반 정책: S3 이벤트 알림처럼 서비스가 함수를 직접 호출(푸시)할 때.\n동일 계정에서는 둘 중 하나만 허용해도 호출된다.",
       why: {
         q: "ESM은 “다른 서비스가 Lambda로 데이터를 보내는” 그림처럼 보이는데, 왜 소스를 읽는 권한이 실행 역할 쪽에 있어야 할까요?",
         a: "폴링 주체가 Lambda 자신이기 때문이다 — 스트림·큐가 함수를 부르는 게 아니라 Lambda가 소스로 “나가서” 읽어온다. 방향이 나가는 쪽이므로 권한도 실행 역할에 있어야 한다.",
@@ -113,7 +113,7 @@ export const session: SessionData = {
       id: "c10",
       section: "10",
       q: "CloudFront Functions와 Lambda@Edge의 선택 기준을 트리거 지점·실행 시간·기능 접근 축으로 말해 보세요.",
-      a: "CloudFront Functions는 Viewer Request/Response 2지점 전용, 1ms 미만, JavaScript 전용 — 캐시 키 정규화·헤더 조작·URL 재작성 같은 초경량 작업용이다.\nLambda@Edge는 4개 후크 지점 전부, 최대 30초, 네트워크·파일시스템·바디 접근이 가능해 무거운 로직·외부 서비스 호출용이다.",
+      a: "• CloudFront Functions는 Viewer Request/Response 2지점 전용, 1ms 미만, JavaScript 전용 — 캐시 키 정규화·헤더 조작·URL 재작성 같은 초경량 작업용이다.\n• Lambda@Edge는 4개 후크 지점 전부, 최대 30초, 네트워크·파일시스템·바디 접근이 가능해 무거운 로직·외부 서비스 호출용이다.",
       why: {
         q: "Lambda@Edge를 왜 하필 us-east-1에서 작성해야 할까요?",
         a: "us-east-1에서 작성한 함수를 CloudFront가 전 세계 엣지 로케이션으로 복제해 주는 구조이기 때문이다 — 각 엣지에 직접 배포하는 게 아니라 한 리전에서 쓰고 복제를 맡긴다.",
@@ -146,7 +146,7 @@ export const session: SessionData = {
       id: "c13",
       section: "13",
       q: "Reserved Concurrency와 Provisioned Concurrency의 역할·비용 차이를 말해 보세요.",
-      a: "Reserved는 함수별 동시 실행 상한을 지정해 격리하는 기능 — 무료이고, 0으로 설정하면 모든 호출이 차단되어 긴급 차단 스위치로도 쓴다.\nProvisioned는 호출 전에 실행 환경을 미리 초기화해 콜드 스타트를 제거하는 기능 — 유료이고, 게시된 버전/별칭에만 설정할 수 있다($LATEST 불가).",
+      a: "• Reserved는 함수별 동시 실행 상한을 지정해 격리하는 기능 — 무료이고, 0으로 설정하면 모든 호출이 차단되어 긴급 차단 스위치로도 쓴다.\n• Provisioned는 호출 전에 실행 환경을 미리 초기화해 콜드 스타트를 제거하는 기능 — 유료이고, 게시된 버전/별칭에만 설정할 수 있다($LATEST 불가).",
       why: {
         q: "한 함수의 폭주가 왜 같은 계정의 “다른” 함수들까지 스로틀시킬까요?",
         a: "계정(리전)당 동시 실행 한도 기본 1,000을 모든 함수가 공유하기 때문이다 — 한 함수가 풀을 다 쓰면 나머지 전부가 스로틀된다. 그래서 중요한 함수는 Reserved Concurrency로 몫을 떼어 격리한다 (시나리오 단골).",
@@ -179,7 +179,7 @@ export const session: SessionData = {
       id: "c16",
       section: "16",
       q: "$LATEST·게시 버전·별칭의 가변/불변을 구분하고, 가중치 라우팅의 규칙을 말해 보세요.",
-      a: "$LATEST는 가변 작업본.\n게시(publish)하면 V1, V2 … 불변 버전이 되고 코드+구성(환경 변수 포함)이 고유 ARN으로 고정된다.\nAlias는 버전을 가리키는 가변 포인터다.\n가중치 라우팅은 최대 2개 버전 사이에서만(예: V1 95% / V2 5%), 별칭이 별칭을 가리키는 건 불가, 가중치·Provisioned Concurrency는 게시된 버전/별칭에만 된다.",
+      a: "• $LATEST는 가변 작업본.\n• 게시(publish)하면 V1, V2 … 불변 버전이 되고 코드+구성(환경 변수 포함)이 고유 ARN으로 고정된다.\n• Alias는 버전을 가리키는 가변 포인터다.\n가중치 라우팅은 최대 2개 버전 사이에서만(예: V1 95% / V2 5%), 별칭이 별칭을 가리키는 건 불가, 가중치·Provisioned Concurrency는 게시된 버전/별칭에만 된다.",
       why: {
         q: "블루/그린 배포에서 사용자에게 고정으로 남는 것과 뒤에서 교체되는 것은 각각 무엇일까요?",
         a: "사용자에게는 별칭의 안정적인 ARN이 고정으로 남고, 별칭이 가리키는 게시 버전만 뒤에서 교체된다 — 별칭이 “가변 포인터”라는 성질이 블루/그린을 성립시킨다.",
@@ -190,7 +190,7 @@ export const session: SessionData = {
       id: "c17",
       section: "17",
       q: "CodeDeploy의 Linear·Canary·AllAtOnce 세 전략의 동작 차이를 말해 보세요.",
-      a: "Linear는 N분마다 일정 비율씩 증가(Linear10PercentEvery3Minutes),\nCanary는 X%로 시험 후 한 번에 100%(Canary10Percent5Minutes),\nAllAtOnce는 즉시 100% 전환 — 가장 빠르고 위험하다.\nCodeDeploy가 자동화하는 대상은 Lambda Alias의 트래픽 전환이다.",
+      a: "• Linear는 N분마다 일정 비율씩 증가(Linear10PercentEvery3Minutes),\n• Canary는 X%로 시험 후 한 번에 100%(Canary10Percent5Minutes),\n• AllAtOnce는 즉시 100% 전환 — 가장 빠르고 위험하다.\nCodeDeploy가 자동화하는 대상은 Lambda Alias의 트래픽 전환이다.",
       why: {
         q: "배포 전후 검증과 자동 롤백은 각각 무엇으로 구현하나요?",
         a: "Pre/Post Traffic Hook(Lambda 함수)으로 배포 전후를 검증하고, CloudWatch Alarm이 울리면 자동 롤백한다. AppSpec 필수 4필드는 Name·Alias·CurrentVersion·TargetVersion.",
@@ -201,7 +201,7 @@ export const session: SessionData = {
       id: "c18",
       section: "18",
       q: "함수 URL은 무엇에 설정할 수 있고, 접근 제어와 트래픽 제한은 각각 무엇으로 하나요?",
-      a: "alias 또는 $LATEST에만 설정할 수 있다(특정 버전 불가).\n접근 제어는 리소스 기반 정책(계정·IP CIDR)과 AuthType(NONE — 그래도 리소스 정책의 허용 명시 필요 / AWS_IAM),\n트래픽 제한은 Reserved Concurrency로 한다.\n퍼블릭 인터넷 접근용 기능이다.",
+      a: "• alias 또는 $LATEST에만 설정할 수 있다(특정 버전 불가).\n• 접근 제어는 리소스 기반 정책(계정·IP CIDR)과 AuthType(NONE — 그래도 리소스 정책의 허용 명시 필요 / AWS_IAM),\n• 트래픽 제한은 Reserved Concurrency로 한다.\n퍼블릭 인터넷 접근용 기능이다.",
     },
     // ── 19 익스텐션 · 테스트 · Firehose ────────────────────────────────
     {
