@@ -56,6 +56,21 @@ main {
   }
 }
 
+/* 용어집 항목 (#192) — 앵커 딥링크(/glossary#id)로 진입했을 때 대상 항목을 표시한다.
+   :target 은 인라인 스타일로 걸 수 없어 여기서 맡는다. 색은 앱 공용 변수만 쓴다.
+   border 도 여기 있어야 한다 — 인라인으로 두면 :target 의 border-color 를 이겨
+   하이라이트가 조용히 죽는다 (.widget-btn 과 같은 규칙). */
+.glossary-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  scroll-margin-top: 1rem;
+}
+
+.glossary-item:target {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 a {
   color: var(--accent);
   text-decoration: none;

@@ -18,7 +18,7 @@ export default function Home() {
       <header style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontSize: "1.5rem" }}>AWS DVA-C02 학습</h1>
         <p style={{ color: "var(--muted)" }}>
-          챕터 {chapters.length}개
+          챕터 {chapters.length}개 · <Link href="/glossary">용어집</Link>
         </p>
       </header>
 
