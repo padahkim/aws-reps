@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { SessionConcept } from "@/lib/content";
 
 /**
@@ -23,6 +23,26 @@ const PAL = {
 } as const;
 
 const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+
+// 다항 답 렌더 (#204) — 답 데이터의 \n = 항목 경계. 마커(•·①류)로 시작하는 줄은 행잉
+// 인던트를 줘서, 항목이 두 줄로 꺾여도 어디까지가 한 항목인지 보이게 한다. 마커 없는
+// 줄(결론·부기 문장)은 평문 그대로 — 마커는 데이터에 실려 오고 여기서 만들어 붙이지 않는다.
+const ITEM_MARKER = /^[•①-⑳]/;
+
+function AnswerLines({ text, style }: { text: string; style: CSSProperties }) {
+  return (
+    <div style={style}>
+      {text.split("\n").map((line, i) => (
+        <div
+          key={i}
+          style={ITEM_MARKER.test(line) ? { paddingLeft: "1.25em", textIndent: "-1.25em" } : undefined}
+        >
+          {line}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function ConceptCard({ index, concept }: { index: number; concept: SessionConcept }) {
   const [opened, setOpened] = useState(false);
@@ -104,7 +124,7 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
 
       {opened && (
         <div style={{ padding: "0 1.1rem 1.1rem" }}>
-          <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.75 }}>{concept.a}</p>
+          <AnswerLines text={concept.a} style={{ fontSize: "0.92rem", lineHeight: 1.75 }} />
           {concept.why && (
             <div
               style={{
@@ -155,7 +175,8 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
                     {whyAnswerOpened ? "모범 답 닫기" : "먼저 스스로 답한 뒤 — 모범 답 열기"}
                   </button>
                   {whyAnswerOpened && (
-                    <p
+                    <AnswerLines
+                      text={concept.why.a}
                       style={{
                         margin: "0.7rem 0 0",
                         paddingTop: "0.7rem",
@@ -163,9 +184,7 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
                         fontSize: "0.87rem",
                         lineHeight: 1.7,
                       }}
-                    >
-                      {concept.why.a}
-                    </p>
+                    />
                   )}
                 </>
               )}
