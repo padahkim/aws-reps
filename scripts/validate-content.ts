@@ -5,7 +5,7 @@
  * 실행: `npm run validate` (build 앞에 자동 연결됨).
  * 순수 함수 validateChapters()를 export 해 픽스처(*.test.ts)가 직접 먹인다.
  */
-import type { ChapterData } from "../content/schema.ts";
+import type { ChapterData, GlossaryTerm } from "../content/schema.ts";
 
 export interface Problem {
   chapterId: string;   // 위반이 속한 챕터 id (id 유일성 위반 등 전역 검사는 대표 id)
@@ -501,6 +501,74 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
   return problems;
 }
 
+/** 용어집 id — URL 앵커(/glossary#<id>)로 쓰이므로 소문자 케밥 케이스만. schema.ts GlossaryTerm.id 참조. */
+const GLOSSARY_ID_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * 전역 용어집(content/glossary.ts) 정적 검사 (#57 결정 1 — 검증기 연동).
+ * chapters 를 함께 받는 이유: chapterId 는 실존 챕터만 참조해야 한다 (PREREQ_MISSING 과
+ * 같은 원리 — 손으로 쓰는 교차 참조는 검증기 없이는 낡는다).
+ * Problem.chapterId 는 용어집이 챕터 소속이 아니므로 대표 id "glossary" 를 쓴다.
+ */
+export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[]): Problem[] {
+  const problems: Problem[] = [];
+  const push = (code: string, message: string) =>
+    problems.push({ chapterId: "glossary", code, message });
+
+  const knownIds = new Set(chapters.map((c) => c.chapterMeta.id));
+  const idSeen = new Set<string>();
+  const termSeen = new Set<string>();
+
+  terms.forEach((t, i) => {
+    const ref = t.id.trim() === "" ? `glossary[${i}]` : `glossary[${i}] (id "${t.id}")`;
+
+    // id: 비어있지 않음 + 앵커 형식 + 전역 유일
+    if (t.id.trim() === "") {
+      push("GLOSSARY_ID_EMPTY", `${ref}: id 가 비어 있음`);
+    } else {
+      if (!GLOSSARY_ID_FORMAT.test(t.id)) {
+        push(
+          "GLOSSARY_ID_FORMAT",
+          `${ref}: id 가 소문자 케밥 케이스가 아님 — URL 앵커(/glossary#<id>)로 쓰이므로 "s3"·"edge-location" 형식만 허용`
+        );
+      }
+      if (idSeen.has(t.id)) {
+        push("GLOSSARY_ID_DUP", `${ref}: id 가 용어집 안에서 중복`);
+      }
+      idSeen.add(t.id);
+    }
+
+    // term: 비어있지 않음 + 표기 중복 없음 (같은 용어가 두 항목이면 팝오버가 어느 쪽을 가리키는지 애매해진다)
+    if (t.term.trim() === "") {
+      push("GLOSSARY_TERM_EMPTY", `${ref}: term 이 비어 있음`);
+    } else {
+      if (termSeen.has(t.term)) {
+        push("GLOSSARY_TERM_DUP", `${ref}: term "${t.term}" 이 용어집 안에서 중복`);
+      }
+      termSeen.add(t.term);
+    }
+
+    // short 는 팝오버의 전부다 — 비면 빈 팝오버가 뜬다
+    if (t.short.trim() === "") {
+      push("GLOSSARY_SHORT_EMPTY", `${ref}: short 가 비어 있음 (팝오버 한 줄 설명 필수)`);
+    }
+
+    // optional 필드는 "있는데 빈 문자열"만 잡는다 — 생략이 적법한 표현이다 (why.a 와 같은 원리)
+    for (const field of ["full", "detail"] as const) {
+      if (t[field] !== undefined && t[field].trim() === "") {
+        push("GLOSSARY_FIELD_EMPTY", `${ref}: ${field} 가 빈 문자열 — 채우거나 필드를 생략하라`);
+      }
+    }
+
+    // chapterId 는 실존 챕터만
+    if (t.chapterId !== undefined && !knownIds.has(t.chapterId)) {
+      push("GLOSSARY_CHAPTER_MISSING", `${ref}: chapterId "${t.chapterId}" 는 존재하지 않는 챕터 id`);
+    }
+  });
+
+  return problems;
+}
+
 /** 이 파일이 직접 실행됐는지 (import 되었는지 아닌지) — ESM 판별. */
 function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
@@ -508,11 +576,12 @@ function isMain(): boolean {
 
 async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
+  const { glossary } = await import("../content/glossary.ts");
   const chapters = registry.map((entry) => entry.data);
-  const problems = validateChapters(chapters);
+  const problems = [...validateChapters(chapters), ...validateGlossary(glossary, chapters)];
 
   if (problems.length === 0) {
-    console.log(`✓ content 검사 통과 (챕터 ${chapters.length}개)`);
+    console.log(`✓ content 검사 통과 (챕터 ${chapters.length}개 · 용어 ${glossary.length}개)`);
     return;
   }
 
