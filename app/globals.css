@@ -130,9 +130,23 @@ a:hover {
   transform: rotateY(180deg);
 }
 
-.flip-card:focus-visible {
+/* 접근 가능한 컨트롤은 카드 전체가 아니라 이 토글 버튼이다 (PR #208 Codex 지적) —
+   라벨 고정 + aria-pressed. 카드 아무 데나 탭하는 UX는 래퍼 onClick이 담당한다. */
+.flip-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+
+.flip-toggle:focus-visible {
   outline: 2px solid var(--flip-ring);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

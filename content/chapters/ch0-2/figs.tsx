@@ -101,65 +101,45 @@ export function InfoCard({
 
   if (back === undefined) return <div style={cardStyle}>{front}</div>;
 
-  // 어포던스 — 뒤집을 수 있음을 앞뒤 양면에서 알린다. 장식이 아니라 상태 안내라 aria-hidden 없이 둔다.
-  const hint = (label: string) => (
-    <div
-      style={{
-        fontFamily: MONO,
-        fontSize: "0.66rem",
-        fontWeight: 700,
-        color,
-        opacity: 0.75,
-        marginTop: "auto",
-        paddingTop: 8,
-        textAlign: "right",
-      }}
-    >
-      {label}
-    </div>
-  );
-
+  // 컨트롤은 카드 전체가 아니라 우하단 토글 버튼 하나다 (PR #208 Codex 지적): 카드 전체를
+  // role="button"으로 만들면 접근성 이름이 면 내용을 따라 상태와 함께 바뀌어 aria-pressed가
+  // 무엇의 눌림인지 모호해진다. 버튼 라벨은 고정하고 상태는 aria-pressed로만 전달하며,
+  // 면 콘텐츠는 버튼 밖의 일반 텍스트로 노출한다. 카드 아무 데나 탭해도 뒤집히는 UX는
+  // 래퍼 onClick이 유지한다 (버튼 클릭도 여기로 버블링돼 한 번만 토글).
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={flipped}
       className="flip-card"
-      style={{ "--flip-ring": color } as CSSProperties}
+      style={{ position: "relative", "--flip-ring": color } as CSSProperties}
       onClick={() => setFlipped((f) => !f)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          setFlipped((f) => !f);
-        }
-      }}
     >
       <div className="flip-inner" style={{ transform: flipped ? "rotateY(180deg)" : undefined }}>
         <div
           className="flip-face"
           aria-hidden={flipped}
-          style={{ ...cardStyle, display: "flex", flexDirection: "column" }}
+          style={{ ...cardStyle, paddingBottom: "2.1rem" }}
         >
-          <div>{front}</div>
-          {hint("↻ 탭하면 상세")}
+          {front}
         </div>
         <div
           className="flip-face flip-face-back"
           aria-hidden={!flipped}
-          style={{
-            ...cardStyle,
-            border: `1px solid ${color}`,
-            display: "flex",
-            flexDirection: "column",
-          }}
+          style={{ ...cardStyle, border: `1px solid ${color}`, paddingBottom: "2.1rem" }}
         >
           <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
           <div style={{ fontSize: "0.88rem", color: C.inkSoft, marginTop: 6, lineHeight: 1.65 }}>
             {back}
           </div>
-          {hint("↩ 탭하면 복귀")}
         </div>
       </div>
+      <button
+        type="button"
+        className="flip-toggle"
+        aria-pressed={flipped}
+        aria-label={typeof title === "string" ? `${title} — 카드 뒤집기` : "카드 뒤집기"}
+        style={{ fontFamily: MONO, fontSize: "0.68rem", color }}
+      >
+        {flipped ? "↩ 탭하면 복귀" : "↻ 탭하면 상세"}
+      </button>
     </div>
   );
 }
