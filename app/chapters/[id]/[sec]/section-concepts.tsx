@@ -104,7 +104,10 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
 
       {opened && (
         <div style={{ padding: "0 1.1rem 1.1rem" }}>
-          <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.75 }}>{concept.a}</p>
+          {/* 답 데이터의 \n = 다항 나열 경계 (#204) — pre-line으로 줄바꿈만 살린다 */}
+          <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.75, whiteSpace: "pre-line" }}>
+            {concept.a}
+          </p>
           {concept.why && (
             <div
               style={{
@@ -162,6 +165,7 @@ function ConceptCard({ index, concept }: { index: number; concept: SessionConcep
                         borderTop: `1px dashed ${PAL.amber}`,
                         fontSize: "0.87rem",
                         lineHeight: 1.7,
+                        whiteSpace: "pre-line",
                       }}
                     >
                       {concept.why.a}
