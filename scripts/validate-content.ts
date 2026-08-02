@@ -539,13 +539,15 @@ export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[])
     }
 
     // term: 비어있지 않음 + 표기 중복 없음 (같은 용어가 두 항목이면 팝오버가 어느 쪽을 가리키는지 애매해진다)
-    if (t.term.trim() === "") {
+    // 중복 비교는 trim 후 — "S3 "와 "S3"는 화면에서 같은 라벨로 렌더된다 (PR #200 Codex 라운드 3)
+    const label = t.term.trim();
+    if (label === "") {
       push("GLOSSARY_TERM_EMPTY", `${ref}: term 이 비어 있음`);
     } else {
-      if (termSeen.has(t.term)) {
-        push("GLOSSARY_TERM_DUP", `${ref}: term "${t.term}" 이 용어집 안에서 중복`);
+      if (termSeen.has(label)) {
+        push("GLOSSARY_TERM_DUP", `${ref}: term "${label}" 이 용어집 안에서 중복`);
       }
-      termSeen.add(t.term);
+      termSeen.add(label);
     }
 
     // short 는 팝오버의 전부다 — 비면 빈 팝오버가 뜬다

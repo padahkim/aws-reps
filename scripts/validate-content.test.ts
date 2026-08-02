@@ -473,6 +473,7 @@ expectGlossaryCaught("id 특수문자($LATEST)", [gterm({ id: "$latest" })], "GL
 expectGlossaryCaught("id 중복", [gterm(), gterm({ term: "다른 용어" })], "GLOSSARY_ID_DUP");
 expectGlossaryCaught("term 빈 문자열", [gterm({ term: " " })], "GLOSSARY_TERM_EMPTY");
 expectGlossaryCaught("term 표기 중복", [gterm(), gterm({ id: "s3-dup" })], "GLOSSARY_TERM_DUP");
+expectGlossaryCaught("term 공백 변형 중복", [gterm(), gterm({ id: "s3-b", term: "S3 " })], "GLOSSARY_TERM_DUP");
 expectGlossaryCaught("short 빈 문자열", [gterm({ short: "" })], "GLOSSARY_SHORT_EMPTY");
 expectGlossaryCaught("full 빈 문자열", [gterm({ full: " " })], "GLOSSARY_FIELD_EMPTY");
 expectGlossaryCaught("detail 빈 문자열", [gterm({ detail: "" })], "GLOSSARY_FIELD_EMPTY");

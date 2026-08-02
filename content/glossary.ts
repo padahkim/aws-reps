@@ -13,6 +13,7 @@
  *   • short 는 1문장 — 팝오버(#193)에 그대로 뜬다. AWS 백지 독자 기준으로 쓴다.
  *   • detail 은 /glossary 페이지 전용 — short 에 얹을 것이 있을 때만. 없으면 생략.
  *   • chapterId 는 그 용어를 본문에서 자세히 다루는 챕터 — 전담 챕터가 아직 없으면 생략.
+ *   • 전수의 유지: 누락이 발견되면 그 자리에서 추가한다 (#192~#194 구현·검수가 발견 지점).
  *   • 배열 순서는 계약이 아니다 — 표시 순서·그룹핑은 /glossary 페이지(#192)가 정한다.
  *     아래 그룹 주석은 저작 편의용일 뿐이다.
  */
@@ -94,7 +95,9 @@ export const glossary: GlossaryTerm[] = [
     id: "root-user",
     term: "루트 사용자",
     full: "Root User",
-    short: "계정 생성 시 만들어지는 모든 권한의 최상위 사용자 — 일상 작업에는 쓰지 않고 MFA를 걸어 잠가 두는 것이 원칙이다.",
+    short: "계정 생성 시 만들어지는 최상위 사용자 — 일상 작업에는 쓰지 않고 MFA를 걸어 잠가 두는 것이 원칙이다.",
+    detail:
+      "계정 안에서는 모든 권한을 갖지만, Organizations 멤버 계정이라면 조직이 건 SCP가 루트 사용자도 제한한다.",
     chapterId: "ch0-2",
   },
   {
@@ -143,7 +146,7 @@ export const glossary: GlossaryTerm[] = [
     id: "permission-boundary",
     term: "권한 경계",
     full: "Permissions Boundary",
-    short: "자격 증명 기반 정책이 부여할 수 있는 권한의 최대 한도를 정하는 안전장치 정책 — 단 같은 계정의 리소스 기반 정책이 주체에게 직접 허용한 접근에는 예외가 있다.",
+    short: "자격 증명 기반 정책이 부여할 수 있는 권한의 최대 한도를 정하는 안전장치 정책 — 단 같은 계정의 리소스 기반 정책이 유저·역할 세션 ARN을 직접 지정해 허용한 접근에는 예외가 있다.",
     chapterId: "ch0-2",
   },
   {
@@ -254,6 +257,18 @@ export const glossary: GlossaryTerm[] = [
     term: "Access Analyzer",
     full: "IAM Access Analyzer",
     short: "외부에 열려 있는 리소스 접근을 찾아내 알려 주는 IAM 분석 도구다.",
+  },
+  {
+    id: "credential-report",
+    term: "Credential Report",
+    short: "계정 전체 유저의 자격 증명 상태(비밀번호·액세스 키 사용 시점 등)를 한 번에 내려받는 IAM 감사 보고서다.",
+    chapterId: "ch0-2",
+  },
+  {
+    id: "access-advisor",
+    term: "Access Advisor",
+    short: "유저·역할이 어떤 서비스에 실제로 접근했는지 보여 주는 IAM 도구 — 안 쓰는 권한을 걷어내는 근거가 된다.",
+    chapterId: "ch0-2",
   },
   {
     id: "cloudshell",
@@ -457,7 +472,28 @@ export const glossary: GlossaryTerm[] = [
     id: "dlq",
     term: "DLQ",
     full: "Dead Letter Queue",
-    short: "처리에 계속 실패한 메시지를 따로 모아 두는 큐 — 실패 원인 분석과 재처리를 위한 격리 공간이다.",
+    short: "처리에 계속 실패한 메시지·이벤트를 따로 보내 두는 실패 목적지 — Lambda 비동기 호출에서는 SQS 큐뿐 아니라 SNS 토픽도 지정할 수 있다.",
+    chapterId: "ch1-2",
+  },
+  {
+    id: "destinations",
+    term: "Destinations",
+    full: "Lambda Destinations",
+    short: "비동기 호출·ESM 처리의 성공/실패 결과를 SQS·SNS·EventBridge·Lambda로 라우팅하는 기능 — 실패만 받는 DLQ와 달리 성공도 보낼 수 있다.",
+    chapterId: "ch1-2",
+  },
+  {
+    id: "layers",
+    term: "레이어",
+    full: "Lambda Layers",
+    short: "여러 함수가 공유하는 종속성·라이브러리 묶음 — 배포 패키지에서 공통 부분을 분리해 재사용한다.",
+    chapterId: "ch1-2",
+  },
+  {
+    id: "extensions",
+    term: "익스텐션",
+    full: "Lambda Extensions",
+    short: "함수 실행 환경에 나란히 붙어 모니터링·시크릿 조회 같은 부가 작업을 담당하는 보조 프로세스다.",
     chapterId: "ch1-2",
   },
   {
@@ -669,7 +705,7 @@ export const glossary: GlossaryTerm[] = [
   {
     id: "presigned-url",
     term: "Presigned URL",
-    short: "서명을 미리 담은 임시 URL — AWS 자격 증명이 없는 사람도 기한 안에는 그 객체에 접근할 수 있게 해 준다.",
+    short: "서명을 미리 담은 임시 URL — AWS 자격 증명이 없는 사람도 그 객체에 접근하게 해 주며, 유효 기간은 URL에 적은 기한과 서명에 쓴 자격 증명의 수명 중 짧은 쪽이다.",
     chapterId: "ch1-1",
   },
   {
@@ -677,6 +713,33 @@ export const glossary: GlossaryTerm[] = [
     term: "CORS",
     full: "Cross-Origin Resource Sharing",
     short: "다른 출처(도메인)에서 온 브라우저 요청을 허용하는 규칙 — S3 버킷 등에 설정한다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "access-point",
+    term: "액세스 포인트",
+    full: "S3 Access Points",
+    short: "한 버킷에 용도별 진입점을 여러 개 만들어 각자 정책을 붙이는 기능 — 거대해진 버킷 정책 하나를 쪼개 준다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "s3-analytics",
+    term: "S3 Analytics",
+    short: "객체 접근 패턴을 분석해 Standard→Standard-IA 전환 시점을 추천해 주는 분석 도구다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "s3-event-notification",
+    term: "S3 이벤트 알림",
+    full: "S3 Event Notifications",
+    short: "객체 생성·삭제 같은 버킷 이벤트를 SQS·SNS·Lambda·EventBridge로 쏘아 주는 기능이다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "s3-access-log",
+    term: "S3 액세스 로그",
+    full: "S3 Server Access Logging",
+    short: "버킷에 온 요청을 다른 버킷에 로그로 남기는 기능 — 로그 버킷을 자기 자신으로 지정하면 무한 루프가 된다.",
     chapterId: "ch1-1",
   },
   {
