@@ -5,6 +5,9 @@
  * 실행: `npm run validate` (build 앞에 자동 연결됨).
  * 순수 함수 validateChapters()를 export 해 픽스처(*.test.ts)가 직접 먹인다.
  */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ChapterData, GlossaryTerm } from "../content/schema.ts";
 
 export interface Problem {
@@ -571,16 +574,75 @@ export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[])
   return problems;
 }
 
+/**
+ * Term 팝오버 참조 규칙 (#193) — id 는 **리터럴 문자열 속성**으로만 쓴다.
+ * id={expr} 동적 표현은 정적으로 검증할 수 없으므로 존재 자체를 위반으로 잡는다(fail-closed) —
+ * "검증 불가능한 참조를 허용하지 않는 구조"가 이 검사의 계약이다.
+ */
+const TERM_TAG = /<Term(?![A-Za-z0-9])([^>]*)/g;
+const TERM_ID_ATTR = /\bid="([^"]*)"/;
+
+/**
+ * 본문 소스의 <Term id="..."> 참조 정적 검사 (#193) — 실존 용어집 id 만 통과.
+ * 소스는 문자열로 받는다 (fs 순회는 main 담당 — validateChapters 와 같은 순수 함수 패턴).
+ * Problem.chapterId 는 경로에서 챕터 디렉터리명을 뽑아 쓴다 (content/chapters/<cid>/...).
+ */
+export function validateTermRefs(
+  files: { path: string; source: string }[],
+  termIds: Set<string>
+): Problem[] {
+  const problems: Problem[] = [];
+
+  for (const { path, source } of files) {
+    const cid = /content\/chapters\/([^/]+)\//.exec(path)?.[1] ?? "content";
+    for (const tag of source.matchAll(TERM_TAG)) {
+      const id = TERM_ID_ATTR.exec(tag[1])?.[1];
+      if (id === undefined) {
+        problems.push({
+          chapterId: cid,
+          code: "TERM_REF_UNPARSEABLE",
+          message: `${path}: <Term> 에 리터럴 id="..." 속성이 없음 — 동적 id 는 검증할 수 없으므로 금지`,
+        });
+      } else if (!termIds.has(id)) {
+        problems.push({
+          chapterId: cid,
+          code: "TERM_REF_UNKNOWN",
+          message: `${path}: <Term id="${id}"> 는 용어집(content/glossary.ts)에 없는 id`,
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
 /** 이 파일이 직접 실행됐는지 (import 되었는지 아닌지) — ESM 판별. */
 function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
+}
+
+/** content/chapters 아래 본문 소스(.mdx·.tsx) 전수 — Term 참조 스캔 대상. */
+function collectChapterSources(): { path: string; source: string }[] {
+  const root = fileURLToPath(new URL("../content/chapters", import.meta.url));
+  return fs
+    .readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((rel) => rel.endsWith(".mdx") || rel.endsWith(".tsx"))
+    .map((rel) => {
+      const abs = path.join(root, rel);
+      // Problem 메시지·챕터 추출용 경로는 리포 루트 기준 통일 표기(슬래시)로
+      return { path: `content/chapters/${rel.split(path.sep).join("/")}`, source: fs.readFileSync(abs, "utf8") };
+    });
 }
 
 async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
   const { glossary } = await import("../content/glossary.ts");
   const chapters = registry.map((entry) => entry.data);
-  const problems = [...validateChapters(chapters), ...validateGlossary(glossary, chapters)];
+  const problems = [
+    ...validateChapters(chapters),
+    ...validateGlossary(glossary, chapters),
+    ...validateTermRefs(collectChapterSources(), new Set(glossary.map((t) => t.id))),
+  ];
 
   if (problems.length === 0) {
     console.log(`✓ content 검사 통과 (챕터 ${chapters.length}개 · 용어 ${glossary.length}개)`);

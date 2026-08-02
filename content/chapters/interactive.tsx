@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { glossary } from "../glossary";
 import { C, MONO } from "./ui";
 
 /**
@@ -167,6 +168,140 @@ export function Switch({
         }}
       />
     </button>
+  );
+}
+
+/**
+ * 본문 용어 팝오버 (#193, 에픽 #56) — 용어 클릭 → 그 자리 팝오버(원문 확장 + 한 줄 설명)
+ * + /glossary#<id> 딥링크. 읽던 흐름을 끊지 않는 것이 요점이라 자체 구현했다
+ * (#57 결정: 본문이 max-width 48rem 단일 컬럼이라 포지셔닝 난도가 낮고, 리포는
+ * 런타임 무의존 관례를 유지한다 — flip 등 정밀 포지셔닝은 하지 않는다).
+ *
+ * 사용: MDX 에서 Term 에 id(용어집 id)를 **리터럴 문자열로** 쓴다 — 검증기
+ * (validate-content TERM_REF_*)가 소스를 정적 스캔해 실존 id 만 통과시키므로,
+ * id={expr} 동적 표현은 위반으로 잡힌다. 표시 텍스트는 children(본문에 쓰인 표기),
+ * 생략하면 용어집 표기(term)로 렌더된다.
+ *
+ * 팝오버 내부는 전부 span 이다 — 트리거가 MDX 문단(p) 안에 놓이므로 div/p 를 쓰면
+ * HTML 중첩 위반으로 hydration 이 흔들린다. 카드 색은 배경·글자 쌍 고정(규약 색 박스
+ * 규정 — C.card/C.ink), 트리거 자체는 본문 텍스트라 앱 테마에 순응(.term-trigger).
+ */
+export function Term({ id, children }: { id: string; children?: ReactNode }) {
+  const t = glossary.find((g) => g.id === id);
+  const [open, setOpen] = useState(false);
+  // 컬럼 내 좌우 클램프 보정값(px) — 열릴 때 측정해 한 번 정한다
+  const [dx, setDx] = useState(0);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLSpanElement>(null);
+
+  // 배치: 용어 아래 왼쪽 정렬로 렌더한 뒤, 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  // useLayoutEffect 라 보정 전 프레임은 화면에 뜨지 않는다. 닫힘 → dx 리셋이므로
+  // 다음 열림도 항상 dx=0 기준으로 측정한다.
+  useLayoutEffect(() => {
+    if (!open) {
+      setDx(0);
+      return;
+    }
+    const pop = popRef.current;
+    const col = wrapRef.current?.closest("main");
+    if (!pop || !col) return;
+    const pad = 8;
+    const colRect = col.getBoundingClientRect();
+    const popRect = pop.getBoundingClientRect();
+    let shift = 0;
+    if (popRect.right > colRect.right - pad) shift = colRect.right - pad - popRect.right;
+    if (popRect.left + shift < colRect.left + pad) shift = colRect.left + pad - popRect.left;
+    setDx(shift);
+  }, [open]);
+
+  // dismiss: 바깥 탭/클릭(document pointerdown — 리포 최초의 클릭아웃사이드) + Escape.
+  // Escape 는 초점을 트리거로 되돌린다 — 팝오버 링크에 초점이 있던 채 닫히면 초점이 유실된다.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // 없는 id — 검증기가 커밋 전에 잡지만, 런타임 방어로 본문 텍스트만 남긴다
+  if (!t) return <>{children ?? id}</>;
+
+  return (
+    <span ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="term-trigger"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {children ?? t.term}
+      </button>
+      {open && (
+        <span
+          ref={popRef}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            transform: `translateX(${dx}px)`,
+            zIndex: 10,
+            display: "block",
+            width: "min(320px, calc(100vw - 2rem))",
+            background: C.card,
+            color: C.ink,
+            border: `1px solid ${C.line}`,
+            borderRadius: 10,
+            boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+            padding: "10px 12px",
+            // 트리거가 b/굵은 표 셀 안에 있어도 팝오버는 본문 톤을 유지한다
+            fontSize: "0.82rem",
+            fontWeight: 400,
+            lineHeight: 1.65,
+            textAlign: "left",
+            whiteSpace: "normal",
+          }}
+        >
+          <span style={{ display: "block", fontWeight: 700 }}>
+            {t.term}
+            {t.full && (
+              <span style={{ marginLeft: 6, fontWeight: 400, fontSize: "0.78rem", color: C.inkSoft }}>
+                {t.full}
+              </span>
+            )}
+          </span>
+          <span style={{ display: "block", margin: "4px 0 8px" }}>{t.short}</span>
+          {/* next/link 가 아니라 일반 a — Link 클라이언트 전환은 hash 만 바꾸고 브라우저의
+              :target 상태를 갱신하지 않아, /glossary 의 대상 항목 하이라이트(#192,
+              .glossary-item:target)가 켜지지 않는다. 실제 내비게이션이어야 :target 이 계산된다. */}
+          <a
+            href={`/glossary#${t.id}`}
+            style={{
+              // 카드가 색 고정이므로 링크색도 고정 팔레트(C.blue) — var(--accent)는 다크에서 안 읽힌다
+              color: C.blue,
+              fontSize: "0.78rem",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            용어집에서 자세히 →
+          </a>
+        </span>
+      )}
+    </span>
   );
 }
 

@@ -5,7 +5,7 @@
  * 실행: `npm run validate:test`. 하나라도 어긋나면 종료 코드 1.
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
-import { validateChapters, validateGlossary, type Problem } from "./validate-content.ts";
+import { validateChapters, validateGlossary, validateTermRefs, type Problem } from "./validate-content.ts";
 import type {
   ChapterData,
   ChapterMeta,
@@ -496,6 +496,53 @@ expectGlossaryClean("전 필드(실존 chapterId·케밥 id)", [
     chapterId: "1-1",
   }),
 ]);
+
+// ── 본문 Term 참조 (#193 — validateTermRefs) ────────────────────────────────
+
+const TERM_IDS = new Set(["region", "s3"]);
+
+function srcFile(source: string, path = "content/chapters/ch1-1/sections/01.mdx") {
+  return [{ path, source }];
+}
+
+function expectTermCaught(label: string, files: { path: string; source: string }[], code: string) {
+  const found = codes(validateTermRefs(files, TERM_IDS));
+  if (found.has(code)) {
+    console.log(`  ✓ ${label} → ${code}`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: ${code} 기대했으나 미검출 (검출: ${[...found].join(", ") || "없음"})`);
+  }
+}
+
+function expectTermClean(label: string, files: { path: string; source: string }[]) {
+  const found = validateTermRefs(files, TERM_IDS);
+  if (found.length === 0) {
+    console.log(`  ✓ ${label} → 통과`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: 통과 기대했으나 위반 ${found.length}건 (${found.map((p) => p.code).join(", ")})`);
+  }
+}
+
+console.log("\n── Term 참조: 검출되어야 하는 위반 ──");
+
+expectTermCaught("없는 id 참조", srcFile('<Term id="ghost">유령</Term>'), "TERM_REF_UNKNOWN");
+expectTermCaught("동적 id 표현", srcFile("<Term id={termId}>리전</Term>"), "TERM_REF_UNPARSEABLE");
+expectTermCaught("id 속성 누락", srcFile("<Term>리전</Term>"), "TERM_REF_UNPARSEABLE");
+expectTermCaught(
+  "여러 참조 중 하나만 위반",
+  srcFile('<Term id="region">리전</Term>과 <Term id="ghost">유령</Term>'),
+  "TERM_REF_UNKNOWN"
+);
+
+console.log("\n── Term 참조: 통과해야 하는 케이스 ──");
+
+expectTermClean("실존 id 참조", srcFile('<Term id="region">리전</Term>'));
+expectTermClean("children 생략(self-closing)", srcFile('<Term id="s3" />'));
+expectTermClean("속성 줄바꿈", srcFile('<Term\n  id="region"\n>리전</Term>'));
+expectTermClean("Term 미사용 파일", srcFile("일반 본문 문단. TermX 나 </Term> 비슷한 문자열은 무해."));
+expectTermClean("유사 컴포넌트명(TermCard)은 무시", srcFile('<TermCard id="ghost" />'));
 
 console.log("");
 if (failures === 0) {
