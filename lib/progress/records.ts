@@ -89,19 +89,24 @@ function repairQuestion(raw: unknown): QuestionRecord | undefined {
   // lastResult 가 있다는 건 최소 1회 채점됐다는 뜻. correct 가 살아 있으면 attempts 는 최소
   // 그만큼이다 — 반대로 잡으면 멀쩡한 correct 를 클램프가 깎아 버린다
   const attempts = Math.max(count(raw.attempts, 1), count(raw.correct, 0), 1);
-  let correct = Math.min(count(raw.correct, 0), attempts);
-  if (lastResult === "pass" && correct === 0) correct = 1;
-  if (lastResult === "fail" && correct === attempts) correct = attempts - 1;
   // 시도가 1회면 첫 결과 = 마지막 결과다. 저장값이 그와 다르면 **불가능한 이력**이므로
-  // lastResult 를 정본으로 덮어쓴다 (누계 정합과 같은 규칙, PR #202 Codex P2). 없으면 이걸로
-  // 복원되고(§4-3 "누락 필드 기본값 주입"), 2회 이상이면 복원할 근거가 없어 비워 둔다 —
-  // **모르는 것은 모르는 채로 둔다**. 여기서 아무 값이나 채우면 §2-1 숙달 판정이 오염된다.
+  // lastResult 를 정본으로 덮어쓴다. 없으면 이걸로 복원되고(§4-3 "누락 필드 기본값 주입"),
+  // 2회 이상이면 복원할 근거가 없어 비워 둔다 — **모르는 것은 모르는 채로 둔다**.
+  // 여기서 아무 값이나 채우면 §2-1 숙달 판정이 오염된다.
   const firstResult =
     attempts === 1
       ? lastResult
       : raw.firstResult === "pass" || raw.firstResult === "fail"
         ? raw.firstResult
         : undefined;
+  // 누계는 **알려진 양 끝**이 하한과 상한을 정한다 (PR #202 Codex P2). lastResult 만 보던
+  // 예전 규칙은 `{attempts:2, correct:2, firstResult:"fail", lastResult:"pass"}`(첫 시도가
+  // 오답인데 전부 정답)나 `{attempts:2, correct:1, 양끝 모두 pass}`(정답 2회를 아는데 1회)
+  // 같은 불가능한 이력을 통과시켰다. 시도가 1회면 양 끝이 같은 시도이므로 한 번만 센다.
+  const endpoints = attempts === 1 ? [lastResult] : [firstResult, lastResult];
+  const knownPass = endpoints.filter((r) => r === "pass").length;
+  const knownFail = endpoints.filter((r) => r === "fail").length;
+  const correct = Math.min(Math.max(count(raw.correct, 0), knownPass), attempts - knownFail);
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3 — 구버전 세션이 신버전 필드를 지우지 않도록)
     attempts,
@@ -223,13 +228,22 @@ export function recordQuestionAttempt(
   // 한 번이 과거 이력을 통째로 "처음 푸는 문항"으로 되돌린다 (PR #202 Codex P2).
   // mergeOverRaw 로는 못 막는다 — 같은 키에서는 새로 쓴 항목이 원본을 이기기 때문이다.
   const salvaged = prev === undefined ? salvageQuestion(raw.questions, gk) : undefined;
-  const prevAttempts = prev?.attempts ?? count(salvaged?.attempts, 0);
-  const prevCorrect = Math.min(prev?.correct ?? count(salvaged?.correct, 0), prevAttempts);
   const prevFirst =
     prev?.firstResult ??
     (salvaged?.firstResult === "pass" || salvaged?.firstResult === "fail"
       ? salvaged.firstResult
       : undefined);
+  // 구제한 기록의 시도 횟수도 **하한을 추론해서** 잡는다 — repairQuestion 이 쓰는 규칙과
+  // 같아야 한다 (PR #202 Codex P2). attempts 만 망가진 기록에서 0으로 떨어뜨리면 아래 클램프가
+  // 살아남은 correct 를 전부 0으로 깎고, prevAttempts === 0 이 첫 결과까지 이번 답으로 덮는다.
+  // 정답 횟수와 "첫 결과가 있다"는 사실은 각각 시도가 최소 그만큼 있었다는 증거다.
+  const salvagedAttempts = Math.max(
+    count(salvaged?.attempts, 0),
+    count(salvaged?.correct, 0),
+    prevFirst !== undefined ? 1 : 0,
+  );
+  const prevAttempts = prev?.attempts ?? salvagedAttempts;
+  const prevCorrect = Math.min(prev?.correct ?? count(salvaged?.correct, 0), prevAttempts);
   data.questions[gk] = {
     ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
