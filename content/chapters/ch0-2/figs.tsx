@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { C, Code, MONO, SANS } from "../ui";
 import { chipBtn, outlineBtn, SimFrame, Switch } from "../interactive";
 
@@ -41,31 +41,39 @@ const CARD_TONE = {
 /**
  * iam_guide Card+Chip 이식 — 색 제목 + (선택) 한 줄 비유 + 본문.
  * items 를 주면 Table rows 관례처럼 ReactNode 배열을 목록으로 그린다.
+ * back 을 주면 플립 카드가 된다 (#205 파일럿): 탭/클릭·Enter/Space 로 뒤집혀 뒷면에
+ * 본문 상세의 압축 재진술을 보여준다. 뒷면은 새 지식 금지 — 본문이 단일 진실.
+ * <button> 이 아니라 role="button" 인 이유: 뒷면에 목록 등 블록 콘텐츠가 올 수 있는데
+ * button 의 콘텐츠 모델은 phrasing 뿐이라 유효하지 않은 HTML 이 된다.
  */
 export function InfoCard({
   tone = "blue",
   title,
   sub,
   items,
+  back,
   children,
 }: {
   tone?: keyof typeof CARD_TONE;
   title: ReactNode;
   sub?: ReactNode;
   items?: ReactNode[];
+  back?: ReactNode;
   children?: ReactNode;
 }) {
   const color = CARD_TONE[tone];
-  return (
-    <div
-      style={{
-        background: C.card,
-        border: `1px solid ${C.line}`,
-        borderRadius: 12,
-        padding: "0.9rem 1rem",
-        color: C.ink,
-      }}
-    >
+  const [flipped, setFlipped] = useState(false);
+
+  const cardStyle: CSSProperties = {
+    background: C.card,
+    border: `1px solid ${C.line}`,
+    borderRadius: 12,
+    padding: "0.9rem 1rem",
+    color: C.ink,
+  };
+
+  const front = (
+    <>
       <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
       {sub && <div style={{ fontSize: "0.78rem", color: C.inkSoft, marginTop: 2 }}>{sub}</div>}
       {children && (
@@ -88,6 +96,70 @@ export function InfoCard({
           ))}
         </ul>
       )}
+    </>
+  );
+
+  if (back === undefined) return <div style={cardStyle}>{front}</div>;
+
+  // 어포던스 — 뒤집을 수 있음을 앞뒤 양면에서 알린다. 장식이 아니라 상태 안내라 aria-hidden 없이 둔다.
+  const hint = (label: string) => (
+    <div
+      style={{
+        fontFamily: MONO,
+        fontSize: "0.66rem",
+        fontWeight: 700,
+        color,
+        opacity: 0.75,
+        marginTop: "auto",
+        paddingTop: 8,
+        textAlign: "right",
+      }}
+    >
+      {label}
+    </div>
+  );
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={flipped}
+      className="flip-card"
+      style={{ "--flip-ring": color } as CSSProperties}
+      onClick={() => setFlipped((f) => !f)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setFlipped((f) => !f);
+        }
+      }}
+    >
+      <div className="flip-inner" style={{ transform: flipped ? "rotateY(180deg)" : undefined }}>
+        <div
+          className="flip-face"
+          aria-hidden={flipped}
+          style={{ ...cardStyle, display: "flex", flexDirection: "column" }}
+        >
+          <div>{front}</div>
+          {hint("↻ 탭하면 상세")}
+        </div>
+        <div
+          className="flip-face flip-face-back"
+          aria-hidden={!flipped}
+          style={{
+            ...cardStyle,
+            border: `1px solid ${color}`,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
+          <div style={{ fontSize: "0.88rem", color: C.inkSoft, marginTop: 6, lineHeight: 1.65 }}>
+            {back}
+          </div>
+          {hint("↩ 탭하면 복귀")}
+        </div>
+      </div>
     </div>
   );
 }
