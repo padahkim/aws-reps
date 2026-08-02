@@ -163,7 +163,7 @@ APP_ARCHITECTURE_DRAFT §3의 2키 체계(`dva.progress.v1` / `dva.review.v1`)�
 - 첫 채점에만 쓰이고 그 뒤로는 고정. 읽는 코드는 아직 없다.
 - optional인 이유는 이 필드 이전에 저장된 기록 때문이다 — read-repair가 `attempts === 1`인 기록에 한해 `lastResult`로 복원하고(그 경우 첫 결과 = 마지막 결과), 2회 이상이면 근거가 없어 비워 둔다.
 - 파생 가능한 값은 저장하지 않는다: 약점 개념(§2-2)·커버리지(§3-2)·due 카운트는 전부 위 두 키 + 콘텐츠 데이터의 런타임 조인으로 계산. 저장은 사실(시도·상자·시각)만.
-- 쓰기는 전부 `lib/progress/store.ts` 경유(초안 규칙 유지).
+- 쓰기는 전부 한 모듈을 경유한다(초안 규칙 유지) — 구현체는 `lib/progress/records.ts`다. 초안과 이 문서가 적었던 `store.ts` 는 **버렸다** [2026-08-02, PR #202]: Next/React 리포에서 `store` 는 Redux·Zustand 류 메모리 상태 컨테이너로 읽히는데, 이 파일은 localStorage 저장소이면서 훅(`useQuestionRecords`)까지 export 해 이름과 API 표면이 함께 오독을 부른다. 경로 이름은 이 문서가 지킬 결정이 아니므로 코드 쪽 가독성을 따랐다.
 
 ### 4-2. 규약 의존 지점 명세 — 이 표 밖의 의존은 금지
 

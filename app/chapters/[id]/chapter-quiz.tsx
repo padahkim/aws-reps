@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
-import { recordQuestionAttempt } from "@/lib/progress/store";
+import { recordQuestionAttempt } from "@/lib/progress/records";
 
 /**
  * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
@@ -17,7 +17,7 @@ import { recordQuestionAttempt } from "@/lib/progress/store";
  * 문항 간 이동은 게이팅하지 않는다 — 정답 여부와 무관하게 자유.
  *
  * 채점 결과 지속 (#66): 채점할 때마다 문항별 사실(시도·정오·시각)을 `dva.progress.v1` 에
- * 남긴다 (lib/progress/store.ts). 화면 상태(selected·submitted)는 예전대로 비저장이다 —
+ * 남긴다 (lib/progress/records.ts). 화면 상태(selected·submitted)는 예전대로 비저장이다 —
  * 되살려야 할 것은 "무엇을 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
  */
 

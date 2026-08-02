@@ -137,14 +137,14 @@ flowchart TD
 | `app/_source/` | dev·프리뷰 전용 **원본 검수 도구**. 레거시 `.jsx`를 문자열로 읽어 브라우저 Babel로 렌더(§7). |
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
-| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `store.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
+| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `records.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
 | `scripts/` | 빌드·검증·하네스 — `validate-content.ts`·`gen-source-routes.mjs`·`gen-arch-facts.ts`·`import-drills.ts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
 | 루트 | `next.config.ts`(output:export+MDX)·`tsconfig.json`·`mdx-components.tsx`·`package.json`·`.nvmrc`. |
 
-> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/store.ts`.
+> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records.ts`.
 
 ---
 
@@ -252,7 +252,7 @@ localStorage 키가 **둘**이고, 각각 파일 하나가 소유한다. 다른 
 | 키 | 소유 모듈 | 담는 것 |
 |---|---|---|
 | `"aws-reps.read.v1"` | `lib/progress.ts` | 읽음 진도 — `{ [chapterId]: 읽은 섹션 번호[] }`(1-based, 마무리 페이지 포함) |
-| `"dva.progress.v1"` | `lib/progress/store.ts` | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
+| `"dva.progress.v1"` | `lib/progress/records.ts` | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
 
 - **전역 문항 키**는 `lib/progress/keys.ts`가 `` `${chapterId}:${slug ?? id}` ``로 합성한다. `q.id`를 쓰지 않는 이유: `drills.ts`는 생성물이고 임포터가 id를 위치대로(`q1`…) 발급해, 원본에 문항이 하나 끼어들면 그 뒤 id가 전부 밀려 **진도가 조용히 엉뚱한 문항에 붙는다**(#69의 선별 결정을 진도 키까지 확대 — PR #202). 저장 데이터가 콘텐츠 규약에 거는 **유일한 하드 의존**이라(설계 §4-2), 검증기가 **해석된 키**의 유일성과 `:` 미포함을 강제한다(`QUESTION_KEY_DUP`·`QUESTION_KEY_DELIMITER`).
 - `firstResult`는 첫 채점에만 쓰이고 고정된다 — §2-1의 숙달 판정("첫 시도 정답")이 재응시 뒤에는 복원 불가능하기 때문이다. 읽는 코드는 아직 없고 #86에서 쓴다.
@@ -318,7 +318,7 @@ flowchart TD
 
 **더 읽기**: [`docs/README.md`](README.md) (문서 지도) · [`CLAUDE.md`](../CLAUDE.md) (규칙 전문) · [`docs/CURRICULUM.md`](CURRICULUM.md) (커리큘럼 도면·24챕터 트리) · [`docs/design/APP_ARCHITECTURE_DRAFT.md`](design/APP_ARCHITECTURE_DRAFT.md) (초기 *제안* — 구현물 아님, 아래 주의) · 진단은 자매 문서 [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md).
 
-> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델 중에서는 `dva.progress.v1`만 #66에서 들어왔고(`lib/progress/store.ts`, 설계 정본은 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §4), `dva.review.v1`은 아직 없다. 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
+> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델 중에서는 `dva.progress.v1`만 #66에서 들어왔고(`lib/progress/records.ts`, 설계 정본은 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §4), `dva.review.v1`은 아직 없다. 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
 
 ---
 

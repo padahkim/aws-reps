@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useReadSections } from "@/lib/progress";
 import { globalQuestionKey } from "@/lib/progress/keys";
-import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/store";
+import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/records";
 import { ProgressBar } from "../../progress-bar";
 
 /** 목차 한 줄에 필요한 직렬화 가능 데이터 — 서버(page.tsx)가 meta.sections에서 만들어 내려준다. */
