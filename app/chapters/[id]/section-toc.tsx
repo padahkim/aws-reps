@@ -58,7 +58,7 @@ function quizScore(
   chapterId: string,
   quizIds: string[],
   records: Record<string, QuestionRecord>,
-): { passed: number; attempted: number } | null {
+): { passed: number; attempted: number; total: number } | null {
   let passed = 0;
   let attempted = 0;
   for (const questionId of quizIds) {
@@ -67,15 +67,24 @@ function quizScore(
     attempted += 1;
     if (record.lastResult === "pass") passed += 1;
   }
-  return attempted > 0 ? { passed, attempted } : null;
+  return attempted > 0 ? { passed, attempted, total: quizIds.length } : null;
 }
 
 /**
- * 목차 퀴즈 줄의 점수 배지. 강조는 파트 헤더의 `{groupDone}/{total}` 과 같은 어법이다 —
- * 푼 것을 다 맞혔을 때만 accent, 그 외에는 muted (등급을 매기는 자리가 아니다).
+ * 목차 퀴즈 줄의 점수 배지. 강조는 **전 문항을 풀고 전부 맞혔을 때만** 붙는다 — 분모가 푼
+ * 문항 수라서 `passed === attempted` 만 보면 15문항 중 1개 풀어 맞힌 상태가 만점과 같은
+ * 강조를 받는다 (PR #202 리뷰). 등급을 매기는 자리는 아니므로 그 외에는 전부 muted 다.
  */
-function ScoreBadge({ passed, attempted }: { passed: number; attempted: number }) {
-  const perfect = passed === attempted;
+function ScoreBadge({
+  passed,
+  attempted,
+  total,
+}: {
+  passed: number;
+  attempted: number;
+  total: number;
+}) {
+  const perfect = attempted === total && passed === total;
   return (
     <span
       aria-label={`퀴즈 점수 — 푼 ${attempted}문항 중 ${passed}문항 정답`}
@@ -194,7 +203,13 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
                         </span>
                       </span>
                       {item.freq && <FreqStars freq={item.freq} />}
-                      {score && <ScoreBadge passed={score.passed} attempted={score.attempted} />}
+                      {score && (
+                        <ScoreBadge
+                          passed={score.passed}
+                          attempted={score.attempted}
+                          total={score.total}
+                        />
+                      )}
                       <span
                         aria-label={isRead ? "읽음" : "안 읽음"}
                         style={{

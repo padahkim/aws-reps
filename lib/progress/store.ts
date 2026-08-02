@@ -37,8 +37,11 @@ export interface ChapterRecord {
   [extra: string]: unknown;
 }
 
+/** 이 빌드가 아는 마이너 버전 — 메이저는 키 접미 `.v1` 이다 (§4-3). */
+const V = 1;
+
 export interface Progress {
-  v: 1;                                        // 마이너(호환 확장) 버전 — 메이저는 키 접미 `.v1` (§4-3)
+  v: number;                                   // 마이너(호환 확장) 버전. 모르는 상위 버전은 낮추지 않는다
   chapters: Record<string, ChapterRecord>;
   questions: Record<string, QuestionRecord>;   // 키 = 전역 문항 키 (keys.ts)
   [extra: string]: unknown;                    // 미지 필드 보존 (§4-3)
@@ -49,7 +52,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function emptyProgress(): Progress {
-  return { v: 1, chapters: {}, questions: {} };
+  return { v: V, chapters: {}, questions: {} };
 }
 
 /** 0 이상의 정수로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback. */
@@ -61,18 +64,30 @@ function count(value: unknown, fallback: number): number {
 
 /**
  * 문항 기록 하나를 규약대로 고친다. 시도 사실을 복원할 수 없을 만큼 망가졌으면 undefined —
- * 그 항목 하나만 버리고 나머지 진도는 살린다.
+ * 그 항목은 **집계에서만** 빠진다 (저장에서 지우지는 않는다 — mergeOverRaw 참조).
+ *
+ * 누계(attempts·correct)와 마지막 결과가 모순이면 **lastResult 를 정본으로 삼는다** (PR #202
+ * Codex P2): 배지·완료 판정이 직접 읽는 값이 lastResult 라, 여기서 어긋난 채 두면 화면이
+ * 말하는 것과 누계가 따로 논다. 게다가 이후 채점이 이 값들을 그대로 증가시켜 모순이 굳는다.
  */
 function repairQuestion(raw: unknown): QuestionRecord | undefined {
   if (!isRecord(raw)) return undefined;
   const lastResult = raw.lastResult === "pass" || raw.lastResult === "fail" ? raw.lastResult : undefined;
-  if (lastResult === undefined || typeof raw.lastAt !== "string") return undefined;
-  // lastResult 가 있다는 건 최소 1회 채점됐다는 뜻 — attempts 가 없거나 0이면 1로 복원한다
-  const attempts = Math.max(count(raw.attempts, 1), 1);
+  // lastAt 은 파싱 가능한 시각이어야 한다 — 문자열이기만 하면 통과시키면 간격 반복(§1-2 dueAt)과
+  // 연체 정렬(§1-3)이 이 값을 Date 로 읽는 순간 조용히 깨진다
+  if (lastResult === undefined || typeof raw.lastAt !== "string" || !Number.isFinite(Date.parse(raw.lastAt))) {
+    return undefined;
+  }
+  // lastResult 가 있다는 건 최소 1회 채점됐다는 뜻. correct 가 살아 있으면 attempts 는 최소
+  // 그만큼이다 — 반대로 잡으면 멀쩡한 correct 를 클램프가 깎아 버린다
+  const attempts = Math.max(count(raw.attempts, 1), count(raw.correct, 0), 1);
+  let correct = Math.min(count(raw.correct, 0), attempts);
+  if (lastResult === "pass" && correct === 0) correct = 1;
+  if (lastResult === "fail" && correct === attempts) correct = attempts - 1;
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3 — 구버전 세션이 신버전 필드를 지우지 않도록)
     attempts,
-    correct: Math.min(count(raw.correct, 0), attempts),
+    correct,
     lastResult,
     lastAt: raw.lastAt,
   };
@@ -85,7 +100,13 @@ function repairChapter(raw: unknown): ChapterRecord | undefined {
   return { ...raw, visitedAt: raw.visitedAt, completedAt };
 }
 
-/** 저장된 객체를 현재 구조로 고친다 (§4-3) — 누락 필드는 기본값, 미지 필드는 보존. */
+/**
+ * 저장된 객체를 현재 구조로 고친다 (§4-3) — 누락 필드는 기본값, 미지 필드는 보존.
+ *
+ * `v` 는 **읽어서 분기하되 낮추지 않는다** (PR #202 Codex P2): 내부 v 는 호환 확장 버전이라
+ * 상위 v 의 데이터도 이 구조로 읽히지만, 그렇다고 v 를 1로 되찍으면 신버전이 이미 마이그레이션한
+ * 데이터를 구버전 탭이 "미마이그레이션"으로 되돌려 표시한다. 모르는 상위 버전은 그대로 통과시킨다.
+ */
 function repair(raw: Record<string, unknown>): Progress {
   const chapters: Record<string, ChapterRecord> = {};
   if (isRecord(raw.chapters)) {
@@ -101,22 +122,38 @@ function repair(raw: Record<string, unknown>): Progress {
       if (fixed) questions[gk] = fixed;
     }
   }
-  return { ...raw, v: 1, chapters, questions };
+  const v = typeof raw.v === "number" && Number.isInteger(raw.v) && raw.v > V ? raw.v : V;
+  return { ...raw, v, chapters, questions };
 }
 
-/** 저장소 전체를 읽는다. 서버·파싱 실패·접근 불가는 전부 "진도 없음"으로 강건하게. */
-export function loadProgress(): Progress {
-  if (typeof window === "undefined") return emptyProgress();
-  let raw: unknown;
+/** 저장된 원본을 파싱만 해서 돌려준다. 못 읽으면 빈 객체 — 서버·파싱 실패·접근 불가 공통. */
+function readRaw(): Record<string, unknown> {
+  if (typeof window === "undefined") return {};
   try {
     const text = window.localStorage.getItem(KEY);
-    if (text === null) return emptyProgress();
-    raw = JSON.parse(text);
+    if (text === null) return {};
+    const parsed: unknown = JSON.parse(text);
+    return isRecord(parsed) ? parsed : {};
   } catch {
     // 파싱 실패·스토리지 접근 불가(프라이빗 모드 등) — lib/progress.ts 와 같은 처리
-    return emptyProgress();
+    return {};
   }
-  return isRecord(raw) ? repair(raw) : emptyProgress();
+}
+
+/** 저장소 전체를 읽는다. 못 읽거나 망가졌으면 그만큼 "진도 없음"으로 강건하게. */
+export function loadProgress(): Progress {
+  return repair(readRaw());
+}
+
+/**
+ * 원본 위에 고친 값을 얹는다 — **읽기가 삭제가 되지 않게 하는 자리다**.
+ * `repair` 는 못 고친 항목을 집계에서 빼는데, 그 결과를 그대로 저장하면 무관한 문항 하나를
+ * 채점한 것만으로 남의 기록이 영구히 사라진다. 원본을 먼저 깔면 못 고친 항목은 저장소에
+ * 그대로 남고, 고친 항목만 정규화된 값으로 덮인다.
+ */
+function mergeOverRaw<T>(raw: unknown, repaired: Record<string, T>): Record<string, T> {
+  // 원본 항목의 형은 모른다(그래서 못 고쳤다) — 저장 직전에만 쓰는 통과용 캐스트다
+  return isRecord(raw) ? { ...(raw as Record<string, T>), ...repaired } : repaired;
 }
 
 function save(data: Progress): void {
@@ -141,7 +178,8 @@ export function recordQuestionAttempt(
   passed: boolean,
 ): void {
   if (typeof window === "undefined") return;
-  const data = loadProgress();
+  const raw = readRaw();
+  const data = repair(raw);
   const gk = globalQuestionKey(chapterId, questionId);
   const prev = data.questions[gk];
   data.questions[gk] = {
@@ -151,17 +189,32 @@ export function recordQuestionAttempt(
     lastResult: passed ? "pass" : "fail",
     lastAt: new Date().toISOString(),
   };
-  save(data);
+  save({
+    ...data,
+    chapters: mergeOverRaw(raw.chapters, data.chapters),
+    questions: mergeOverRaw(raw.questions, data.questions),
+  });
 }
 
 /**
  * 마운트 후 문항 기록을 읽는다 — SSG HTML 은 항상 "기록 없음"으로 렌더되므로 useEffect 로
  * 채워야 hydration 불일치가 없다 (lib/progress.ts useReadSections 와 같은 규칙).
+ *
+ * `storage` 이벤트도 듣는다 (PR #202 Codex P2): 목차를 한 탭에 열어 둔 채 다른 탭에서 퀴즈를
+ * 풀면, 마운트 1회 스냅샷만으로는 배지가 새로고침 전까지 낡은 점수를 계속 보인다. 이 이벤트는
+ * **다른 탭의 쓰기만** 오므로 같은 탭의 채점과 겹치지 않는다.
  */
 export function useQuestionRecords(): Record<string, QuestionRecord> {
   const [records, setRecords] = useState<Record<string, QuestionRecord>>({});
   useEffect(() => {
-    setRecords(loadProgress().questions);
+    const read = () => setRecords(loadProgress().questions);
+    read();
+    // key === null 은 localStorage.clear() — 그때도 다시 읽어야 비워진 상태가 반영된다
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === KEY) read();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
   return records;
 }

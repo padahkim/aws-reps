@@ -36,6 +36,17 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
         message: `챕터 id "${id}" 가 ${count}번 등장 — 리포 전역 유일해야 함`,
       });
     }
+    // 전역 문항 키가 `${chapterId}:${questionId}` 라서(lib/progress/keys.ts) 두 성분 중
+    // 어느 쪽에든 ":" 가 있으면 합성이 단사가 아니게 된다 — 챕터 "a"의 문항 "b:c" 와
+    // 챕터 "a:b"의 문항 "c" 가 같은 키 "a:b:c" 를 만들어 진도가 서로를 덮어쓴다
+    // (PR #202 Codex P2). 유일성 검사만으로는 못 잡으므로 구분자 자체를 금지한다.
+    if (id.includes(":")) {
+      problems.push({
+        chapterId: id,
+        code: "CHAPTER_ID_DELIMITER",
+        message: `챕터 id "${id}" 에 ":" 사용 — 전역 문항 키의 구분자라 쓸 수 없음`,
+      });
+    }
   }
 
   // 실존 챕터 id 집합 (prerequisites 참조 검증용)
@@ -232,7 +243,8 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
 
     // ── 문항 검사 (빈 quiz 는 적법 → 이 루프가 그냥 안 돈다) ────────────
     // 문항 id 는 챕터 내 유일 — 앱이 `${chapterId}:${q.id}` 를 전역 키로 합성하므로
-    // (lib/content.ts globalQuestionKey) 중복 id 는 React key 충돌로 이어진다.
+    // (lib/progress/keys.ts globalQuestionKey) 중복 id 는 React key 충돌이자, #66 부터는
+    // **두 문항이 하나의 진도 기록을 공유하는** 사고다 (한쪽 채점이 다른 쪽을 덮어쓴다).
     const qIdSeen = new Set<string>();
     quiz.forEach((q, qi) => {
       const qref = `${cid}:${q.id}`;
@@ -248,6 +260,14 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
           chapterId: cid,
           code: "QUESTION_ID_DUP",
           message: `quiz[${qi}]: id "${q.id}" 가 챕터 내에서 중복`,
+        });
+      }
+      // 구분자 금지 — 위 챕터 id 검사와 같은 이유 (전역 키 합성이 단사여야 한다)
+      if (q.id.includes(":")) {
+        problems.push({
+          chapterId: cid,
+          code: "QUESTION_ID_DELIMITER",
+          message: `quiz[${qi}]: id "${q.id}" 에 ":" 사용 — 전역 문항 키의 구분자라 쓸 수 없음`,
         });
       }
       qIdSeen.add(q.id);
