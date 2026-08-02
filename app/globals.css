@@ -116,6 +116,63 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* 개념 카드 플립 (#205, ch0-2 §02 파일럿) — InfoCard 의 back 변형이 쓴다.
+   #144 체계대로 상태 전환(모션·포커스)만 여기서 맡고, 색은 figs.tsx 가
+   --flip-ring 커스텀 속성으로 주입한다.
+   높이: 두 면을 같은 그리드 셀(grid-area 1/1)에 겹쳐 쌓아 카드 높이가
+   항상 큰 면을 따른다 — 절대 위치·측정 코드 없이 "뒷면이 더 길 때"를 해결. */
+.flip-card {
+  perspective: 900px;
+  cursor: pointer;
+  border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.flip-inner {
+  display: grid;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+
+.flip-face {
+  grid-area: 1 / 1;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.flip-face-back {
+  transform: rotateY(180deg);
+}
+
+/* 접근 가능한 컨트롤은 카드 전체가 아니라 이 토글 버튼이다 (PR #208 Codex 지적) —
+   라벨 고정 + aria-pressed. 카드 아무 데나 탭하는 UX는 래퍼 onClick이 담당한다. */
+.flip-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  /* 버튼이 DOM에서 면들보다 앞이라(낭독 순서), preserve-3d 스택 컨텍스트인
+     .flip-inner가 나중에 그려져 버튼을 덮는다 — 페인트 순서만 되돌린다 */
+  z-index: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+
+.flip-toggle:focus-visible {
+  outline: 2px solid var(--flip-ring);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner {
+    transition: none;
+  }
+}
+
 /* 토글 스위치 (#72) — .widget-btn 과 같은 취지지만 알약형이라 그 클래스를 씌우면 모양이
    깨진다(radius 9px·굵은 글자). 배경은 on/off·disabled 에 따라 인라인으로 정해지므로
    여기서 background 를 덮어쓸 수 없다 — 인라인이 이긴다. 그래서 호버는 밝기로 준다.

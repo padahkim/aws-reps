@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { C, Code, MONO, SANS } from "../ui";
 import { chipBtn, outlineBtn, SimFrame, Switch } from "../interactive";
 
@@ -41,31 +41,39 @@ const CARD_TONE = {
 /**
  * iam_guide Card+Chip 이식 — 색 제목 + (선택) 한 줄 비유 + 본문.
  * items 를 주면 Table rows 관례처럼 ReactNode 배열을 목록으로 그린다.
+ * back 을 주면 플립 카드가 된다 (#205 파일럿): 탭/클릭·Enter/Space 로 뒤집혀 뒷면에
+ * 본문 상세의 압축 재진술을 보여준다. 뒷면은 새 지식 금지 — 본문이 단일 진실.
+ * <button> 이 아니라 role="button" 인 이유: 뒷면에 목록 등 블록 콘텐츠가 올 수 있는데
+ * button 의 콘텐츠 모델은 phrasing 뿐이라 유효하지 않은 HTML 이 된다.
  */
 export function InfoCard({
   tone = "blue",
   title,
   sub,
   items,
+  back,
   children,
 }: {
   tone?: keyof typeof CARD_TONE;
   title: ReactNode;
   sub?: ReactNode;
   items?: ReactNode[];
+  back?: ReactNode;
   children?: ReactNode;
 }) {
   const color = CARD_TONE[tone];
-  return (
-    <div
-      style={{
-        background: C.card,
-        border: `1px solid ${C.line}`,
-        borderRadius: 12,
-        padding: "0.9rem 1rem",
-        color: C.ink,
-      }}
-    >
+  const [flipped, setFlipped] = useState(false);
+
+  const cardStyle: CSSProperties = {
+    background: C.card,
+    border: `1px solid ${C.line}`,
+    borderRadius: 12,
+    padding: "0.9rem 1rem",
+    color: C.ink,
+  };
+
+  const front = (
+    <>
       <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
       {sub && <div style={{ fontSize: "0.78rem", color: C.inkSoft, marginTop: 2 }}>{sub}</div>}
       {children && (
@@ -88,6 +96,54 @@ export function InfoCard({
           ))}
         </ul>
       )}
+    </>
+  );
+
+  if (back === undefined) return <div style={cardStyle}>{front}</div>;
+
+  // 컨트롤은 카드 전체가 아니라 우하단 토글 버튼 하나다 (PR #208 Codex 지적): 카드 전체를
+  // role="button"으로 만들면 접근성 이름이 면 내용을 따라 상태와 함께 바뀌어 aria-pressed가
+  // 무엇의 눌림인지 모호해진다. 버튼 라벨은 고정하고 상태는 aria-pressed로만 전달하며,
+  // 면 콘텐츠는 버튼 밖의 일반 텍스트로 노출한다. 카드 아무 데나 탭해도 뒤집히는 UX는
+  // 래퍼 onClick이 유지한다 (버튼 클릭도 여기로 버블링돼 한 번만 토글).
+  return (
+    <div
+      className="flip-card"
+      style={{ position: "relative", "--flip-ring": color } as CSSProperties}
+      onClick={() => setFlipped((f) => !f)}
+    >
+      {/* 버튼이 면들보다 DOM에서 앞이다 (PR #208 Codex 라운드 2): 토글 후 스크린리더가
+          앞으로 읽어 나가면 새로 드러난 면이 바로 따라온다. 화면 위치는 절대 위치라 그대로.
+          보이는 문구도 "카드 뒤집기"로 고정 — aria-label이 이를 포함해야 음성 입력
+          사용자가 보이는 문구로 버튼을 부를 수 있다 (상태는 화살표·aria-pressed가 전달). */}
+      <button
+        type="button"
+        className="flip-toggle"
+        aria-pressed={flipped}
+        aria-label={typeof title === "string" ? `${title} — 카드 뒤집기` : "카드 뒤집기"}
+        style={{ fontFamily: MONO, fontSize: "0.68rem", color }}
+      >
+        {flipped ? "↩" : "↻"} 카드 뒤집기
+      </button>
+      <div className="flip-inner" style={{ transform: flipped ? "rotateY(180deg)" : undefined }}>
+        <div
+          className="flip-face"
+          aria-hidden={flipped}
+          style={{ ...cardStyle, paddingBottom: "2.1rem" }}
+        >
+          {front}
+        </div>
+        <div
+          className="flip-face flip-face-back"
+          aria-hidden={!flipped}
+          style={{ ...cardStyle, border: `1px solid ${color}`, paddingBottom: "2.1rem" }}
+        >
+          <div style={{ fontWeight: 900, fontSize: "0.92rem", color }}>{title}</div>
+          <div style={{ fontSize: "0.88rem", color: C.inkSoft, marginTop: 6, lineHeight: 1.65 }}>
+            {back}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
