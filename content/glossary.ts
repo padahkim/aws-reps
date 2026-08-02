@@ -143,7 +143,15 @@ export const glossary: GlossaryTerm[] = [
     id: "permission-boundary",
     term: "권한 경계",
     full: "Permissions Boundary",
-    short: "주체가 가질 수 있는 권한의 최대 한도를 정하는 안전장치 정책 — 이 경계를 넘는 권한은 붙여도 무효다.",
+    short: "자격 증명 기반 정책이 부여할 수 있는 권한의 최대 한도를 정하는 안전장치 정책 — 단 같은 계정의 리소스 기반 정책이 주체에게 직접 허용한 접근에는 예외가 있다.",
+    chapterId: "ch0-2",
+  },
+  {
+    id: "pass-role",
+    term: "iam:PassRole",
+    short: "역할을 다른 서비스에 \"건네주는\" 행위에 붙는 IAM 권한 — EC2·Lambda 등에 역할을 지정하려면 지정하는 주체가 이 권한을 가져야 한다.",
+    detail:
+      "PassRole이라는 API가 따로 있는 게 아니라, 역할을 지정하는 다른 호출(ec2:RunInstances 등)에 얹혀 IAM이 함께 검사하는 액션이다. 아무 역할이나 붙여 관리자로 올라서는 권한 상승 경로를 막는 장치로, DVA 초빈출이다.",
     chapterId: "ch0-2",
   },
   {
@@ -316,13 +324,13 @@ export const glossary: GlossaryTerm[] = [
     id: "subnet",
     term: "서브넷",
     full: "Subnet",
-    short: "VPC를 더 잘게 나눈 네트워크 구역 — 인터넷에 열린 퍼블릭과 닫힌 프라이빗으로 나눈다.",
+    short: "VPC를 더 잘게 나눈 네트워크 구역 — 라우트 테이블에 인터넷 게이트웨이로 가는 경로가 있으면 퍼블릭, 없으면 프라이빗이다.",
   },
   {
     id: "security-group",
     term: "보안 그룹",
     full: "Security Group",
-    short: "인스턴스 단위의 가상 방화벽 — 허용할 인바운드/아웃바운드 트래픽을 정한다.",
+    short: "리소스의 네트워크 인터페이스(ENI) 단위 가상 방화벽 — EC2만이 아니라 Lambda·RDS 등 VPC 리소스에 붙어 허용할 인바운드/아웃바운드 트래픽을 정한다.",
   },
   {
     id: "nat",
@@ -342,7 +350,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Endpoint",
     short: "서비스에 요청을 보내는 접속 주소 — VPC 엔드포인트는 인터넷을 거치지 않고 AWS 서비스에 붙는 전용 통로다.",
     detail:
-      "VPC 엔드포인트는 두 유형이다 — Gateway(S3·DynamoDB 전용, 무료)와 Interface(대부분의 서비스, ENI 기반 유료). 시험에서는 \"프라이빗 서브넷에서 인터넷 없이 S3 접근\" 시나리오로 나온다.",
+      "AWS 서비스 접근용 VPC 엔드포인트는 Gateway(S3·DynamoDB 전용, 무료)와 Interface(대부분의 서비스, ENI 기반 유료)로 나뉜다 — 별도로 네트워크 어플라이언스용 Gateway Load Balancer 엔드포인트도 있다. 시험에서는 \"프라이빗 서브넷에서 인터넷 없이 S3 접근\" 시나리오로 나온다.",
   },
   {
     id: "route53",
@@ -380,7 +388,7 @@ export const glossary: GlossaryTerm[] = [
     id: "lambda",
     term: "Lambda",
     full: "AWS Lambda",
-    short: "서버 관리 없이 코드를 이벤트 단위로 실행하는 서버리스 컴퓨팅 서비스 — 실행된 시간만큼만 과금된다.",
+    short: "서버 관리 없이 코드를 이벤트 단위로 실행하는 서버리스 컴퓨팅 서비스 — 요청 수와 컴퓨팅 시간으로 과금된다.",
     chapterId: "ch1-2",
   },
   {
@@ -513,6 +521,13 @@ export const glossary: GlossaryTerm[] = [
     short: "서버(EC2) 관리 없이 컨테이너를 실행하는 서버리스 컨테이너 엔진 — ECS·EKS 위에서 쓴다.",
   },
   {
+    id: "alb",
+    term: "ALB",
+    full: "Application Load Balancer",
+    short: "HTTP(S) 계층에서 트래픽을 나눠 주는 로드 밸런서 — Lambda를 대상(타겟)으로 직접 연결할 수도 있다.",
+    chapterId: "ch1-2",
+  },
+  {
     id: "sam",
     term: "SAM",
     full: "AWS Serverless Application Model",
@@ -572,7 +587,7 @@ export const glossary: GlossaryTerm[] = [
     id: "bucket",
     term: "버킷",
     full: "Bucket",
-    short: "S3에서 객체를 담는 최상위 컨테이너 — 이름은 전 세계에서 유일해야 한다.",
+    short: "S3에서 객체를 담는 최상위 컨테이너 — 이름은 AWS 파티션 안의 모든 계정·리전을 통틀어 유일해야 한다(일반 계정 기준 사실상 전 세계).",
     chapterId: "ch1-1",
   },
   {
@@ -590,6 +605,26 @@ export const glossary: GlossaryTerm[] = [
     chapterId: "ch1-1",
   },
   {
+    id: "intelligent-tiering",
+    term: "Intelligent-Tiering",
+    full: "S3 Intelligent-Tiering",
+    short: "접근 패턴을 예측할 수 없을 때 고르는 S3 스토리지 클래스 — 접근 빈도에 따라 객체를 자동으로 싼 계층으로 옮겨 준다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "transfer-acceleration",
+    term: "Transfer Acceleration",
+    full: "S3 Transfer Acceleration",
+    short: "멀리 떨어진 사용자의 업로드·다운로드를 엣지 로케이션 경유로 가속하는 S3 기능이다.",
+    chapterId: "ch1-1",
+  },
+  {
+    id: "bucket-key",
+    term: "S3 Bucket Key",
+    short: "SSE-KMS에서 버킷 수준 키를 재사용해 KMS 호출을 최대 99% 줄이는 설정 — 대량 업로드 시 KMS 스로틀링의 해법이다.",
+    chapterId: "ch1-1",
+  },
+  {
     id: "ia",
     term: "IA",
     full: "Infrequent Access",
@@ -600,7 +635,7 @@ export const glossary: GlossaryTerm[] = [
     id: "glacier",
     term: "Glacier",
     full: "Amazon S3 Glacier",
-    short: "장기 보관(아카이브)용 초저가 스토리지 클래스 — 저장은 싸지만 꺼내는 데 시간이 걸린다.",
+    short: "장기 보관(아카이브)용 초저가 스토리지 클래스군 — Instant Retrieval은 즉시 조회되고, Flexible Retrieval·Deep Archive는 꺼내는 데 시간이 걸린다.",
     chapterId: "ch1-1",
   },
   {
