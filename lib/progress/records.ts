@@ -92,13 +92,15 @@ function repairQuestion(raw: unknown): QuestionRecord | undefined {
   let correct = Math.min(count(raw.correct, 0), attempts);
   if (lastResult === "pass" && correct === 0) correct = 1;
   if (lastResult === "fail" && correct === attempts) correct = attempts - 1;
-  // firstResult 가 없는 기록 중 시도가 1회뿐인 것은 첫 결과 = 마지막 결과다 — 그만큼은
-  // 복원해 준다 (§4-3 "누락 필드 기본값 주입"). 2회 이상이면 복원할 근거가 없어 비워 둔다.
+  // 시도가 1회면 첫 결과 = 마지막 결과다. 저장값이 그와 다르면 **불가능한 이력**이므로
+  // lastResult 를 정본으로 덮어쓴다 (누계 정합과 같은 규칙, PR #202 Codex P2). 없으면 이걸로
+  // 복원되고(§4-3 "누락 필드 기본값 주입"), 2회 이상이면 복원할 근거가 없어 비워 둔다 —
+  // **모르는 것은 모르는 채로 둔다**. 여기서 아무 값이나 채우면 §2-1 숙달 판정이 오염된다.
   const firstResult =
-    raw.firstResult === "pass" || raw.firstResult === "fail"
-      ? raw.firstResult
-      : attempts === 1
-        ? lastResult
+    attempts === 1
+      ? lastResult
+      : raw.firstResult === "pass" || raw.firstResult === "fail"
+        ? raw.firstResult
         : undefined;
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3 — 구버전 세션이 신버전 필드를 지우지 않도록)
@@ -173,6 +175,20 @@ function mergeOverRaw<T>(raw: unknown, repaired: Record<string, T>): Record<stri
   return isRecord(raw) ? { ...(raw as Record<string, T>), ...repaired } : repaired;
 }
 
+/**
+ * 원본에서 그 문항의 못 고친 기록을 꺼낸다. `repair` 가 거절한 기록도 **시도 횟수·정답
+ * 횟수·첫 결과·미지 필드**는 대개 멀쩡하다 — 거절 사유는 보통 `lastAt`·`lastResult` 하나다.
+ * 그것들을 다시 쓸 수 있게 돌려주는 자리이고, 값의 정규화는 호출부가 한다.
+ */
+function salvageQuestion(
+  rawQuestions: unknown,
+  gk: string,
+): Record<string, unknown> | undefined {
+  if (!isRecord(rawQuestions)) return undefined;
+  const entry = rawQuestions[gk];
+  return isRecord(entry) ? entry : undefined;
+}
+
 function save(data: Progress): void {
   if (typeof window === "undefined") return;
   try {
@@ -200,15 +216,31 @@ export function recordQuestionAttempt(
   // 문항 객체를 받아 여기서 안정 식별자로 푼다 — 호출부가 실수로 원시 q.id 를 넘길 자리를
   // 아예 없앤다 (positional id 로 저장하면 원본 재정렬 때 진도가 조용히 엉뚱한 문항에 붙는다)
   const gk = globalQuestionKey(chapterId, stableQuestionId(question));
-  const prev = data.questions[gk];
   const result = passed ? "pass" : "fail";
+  const prev = data.questions[gk];
+  // repair 가 이 기록을 거절했다면(예: lastAt 이 시각으로 안 읽힌다) 원본에서 **살릴 수 있는
+  // 사실만** 건진다. 거절 사유 하나 때문에 시도 횟수·첫 결과·미지 필드까지 버리면, 재응시
+  // 한 번이 과거 이력을 통째로 "처음 푸는 문항"으로 되돌린다 (PR #202 Codex P2).
+  // mergeOverRaw 로는 못 막는다 — 같은 키에서는 새로 쓴 항목이 원본을 이기기 때문이다.
+  const salvaged = prev === undefined ? salvageQuestion(raw.questions, gk) : undefined;
+  const prevAttempts = prev?.attempts ?? count(salvaged?.attempts, 0);
+  const prevCorrect = Math.min(prev?.correct ?? count(salvaged?.correct, 0), prevAttempts);
+  const prevFirst =
+    prev?.firstResult ??
+    (salvaged?.firstResult === "pass" || salvaged?.firstResult === "fail"
+      ? salvaged.firstResult
+      : undefined);
   data.questions[gk] = {
+    ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
-    attempts: (prev?.attempts ?? 0) + 1,
-    correct: (prev?.correct ?? 0) + (passed ? 1 : 0),
+    attempts: prevAttempts + 1,
+    correct: prevCorrect + (passed ? 1 : 0),
     lastResult: result,
     lastAt: new Date().toISOString(),
-    firstResult: prev?.firstResult ?? result,   // 첫 채점에만 쓰이고 그 뒤로는 고정 (§2-1)
+    // 첫 채점일 때만 쓰고 그 뒤로는 고정 (§2-1). 이력이 있는데 첫 결과를 모르는 경우
+    // (이 필드 이전에 저장된 다회 시도 기록)는 **모르는 채로 둔다** — 지금 결과를 첫 결과로
+    // 적으면 나중 시도가 첫 시도로 영구히 오기입되어 숙달 판정이 뒤집힌다
+    firstResult: prevAttempts === 0 ? result : prevFirst,
   };
   save({
     ...data,
