@@ -141,7 +141,7 @@
 
 APP_ARCHITECTURE_DRAFT §3의 2키 체계(`dva.progress.v1` / `dva.review.v1`)를 유지한다. `gk` = 전역 문항 키 `"{chapterId}:{안정 문항 id}"` (어댑터 합성, 규약 무변경 — PREWORK §2-4; 식별자 규칙은 §4-2 각주의 정정 참조).
 
-**`dva.progress.v1`의 필드 목록은 이 문서가 소유하지 않는다 — 정본은 코드다** [#207, 2026-08-03 · 파일 정정 #214, 2026-08-03]: `lib/progress/records-core.ts`의 `Progress`(키 전체) · `QuestionRecord`(문항) · `ChapterRecord`(챕터)가 구조를 소유하고, 이 키의 쓰기 **진입점**은 `lib/progress/records.ts`(그 형을 localStorage·React에 붙이는 층) 하나다. 처음 여기 있던 필드 목록은 코드가 생기는 순간 사본이 됐고 실제로 낡았다(정정 이력의 3건이 전부 이 절에서 났다) — 필드를 문서가 소유하지 않으면 낡을 게 없다. 문서가 지키는 것은 "왜 이 필드들인가"다:
+**`dva.progress.v1`의 필드 목록은 이 문서가 소유하지 않는다 — 정본은 코드다** [#207, 2026-08-03 · 파일 정정 #214]: `lib/progress/records-core.ts`의 `Progress`(키 전체) · `QuestionRecord`(문항) · `ChapterRecord`(챕터)가 구조를 소유하고, 이 키의 쓰기는 전부 `lib/progress/records.ts`를 거친다. 처음 여기 있던 필드 목록은 코드가 생기는 순간 사본이 됐고 실제로 낡았다(정정 이력의 3건이 전부 이 절에서 났다) — 필드를 문서가 소유하지 않으면 낡을 게 없다. 문서가 지키는 것은 "왜 이 필드들인가"다:
 
 - **저장은 사실만** — 문항의 시도·정오·시각, 챕터의 열람·완료 스냅샷. 약점 개념(§2-2)·커버리지(§3-2)·due 카운트처럼 파생 가능한 값은 저장하지 않는다: 전부 두 키 + 콘텐츠 데이터의 런타임 조인으로 계산한다.
 - **쓰기는 전부 한 모듈을 경유한다** — 구조 버전·read-repair(§4-3)·필드 불변식을 지키는 코드가 한 곳에 모여야 마이그레이션이 가능하다.
@@ -167,7 +167,7 @@ APP_ARCHITECTURE_DRAFT §3의 2키 체계(`dva.progress.v1` / `dva.review.v1`)�
 
 - 첫 채점에만 쓰이고 그 뒤로는 고정. 읽는 코드는 아직 없다.
 - optional인 이유는 이 필드 이전에 저장된 기록 때문이다 — read-repair가 `attempts === 1`인 기록에 한해 `lastResult`로 복원하고(그 경우 첫 결과 = 마지막 결과), 2회 이상이면 근거가 없어 비워 둔다.
-- 쓰기 모듈의 경로: 구현체는 `lib/progress/records.ts`다(§4-1). 초안과 이 문서가 적었던 `store.ts` 는 **버렸다** [2026-08-02, PR #202]: Next/React 리포에서 `store` 는 Redux·Zustand 류 메모리 상태 컨테이너로 읽히는데, 이 파일은 localStorage 저장소이면서 훅(`useQuestionRecords`)까지 export 해 이름과 API 표면이 함께 오독을 부른다. 경로 이름은 이 문서가 지킬 결정이 아니므로 코드 쪽 가독성을 따랐다.
+- 쓰기 모듈의 경로: 구현체는 `lib/progress/records.ts`다(§4-1 — 필드와 그 규칙은 옆 `records-core.ts`, #214). 초안과 이 문서가 적었던 `store.ts` 는 **버렸다** [2026-08-02, PR #202]: Next/React 리포에서 `store` 는 Redux·Zustand 류 메모리 상태 컨테이너로 읽히는데, 이 파일은 localStorage 저장소이면서 훅(`useQuestionRecords`)까지 export 해 이름과 API 표면이 함께 오독을 부른다. 경로 이름은 이 문서가 지킬 결정이 아니므로 코드 쪽 가독성을 따랐다.
 
 ### 4-2. 규약 의존 지점 명세 — 이 표 밖의 의존은 금지
 
