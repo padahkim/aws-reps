@@ -74,7 +74,7 @@ function emptyProgress(): Progress {
  * 판정은 **왕복 동일성**으로 한다: 파싱한 순간을 다시 직렬화해 원본과 같아야 한다. 이 저장소는
  * `toISOString()` 으로만 쓰므로 그 형식이 곧 정본이고, 달력값 검증도 여기에 딸려 온다
  * (2024-02-30 은 3월 1일로 되돌아와 불일치한다). 형식이 다른 값은 손상으로 보고 집계에서
- * 빼지만 **저장에서 지우지는 않는다** — 재응시 시 salvage 가 누계·첫 결과를 도로 살린다.
+ * 뺀다 — 그 문항 기록 하나만 버리고, 삭제는 다음 저장 때 반영된다 (repairQuestion 참조).
  */
 function isIsoInstant(value: unknown): value is string {
   if (typeof value !== "string") return false;
@@ -82,91 +82,47 @@ function isIsoInstant(value: unknown): value is string {
   return Number.isFinite(t) && new Date(t).toISOString() === value;
 }
 
-/** 0 이상의 정수로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback. */
-function count(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? Math.floor(value)
-    : fallback;
-}
-
-/** 시도 사실 3종 — 저장된 값을 규약대로 정리한 결과. */
-interface AttemptFacts {
-  attempts: number;
-  correct: number;
-  firstResult?: "pass" | "fail";
+/** 0 이상의 정수인가 — 횟수 필드의 유일한 형식 조건. */
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
 /**
- * 시도 사실(횟수·정답 수·첫 결과)을 규약대로 정리한다 — **로드 경로와 재응시 구제 경로가
- * 함께 쓰는 단 하나의 자리다.**
+ * 문항 기록 하나를 검사한다. **말이 되면 그대로 두고, 아니면 버린다** — 고쳐 쓰지 않는다.
  *
- * 왜 함수로 뽑았나 (PR #202 8라운드): 같은 규칙을 두 곳에 손으로 복제해 두는 동안 **같은 모양의
- * 결함이 세 번 반복됐다** — 한쪽에 규칙을 추가하면 다른 쪽이 조용히 옛 규칙으로 남았다
- * (5·7·8라운드). 불변식은 한 곳에만 있어야 두 경로가 갈라지지 않는다.
+ * 왜 고치지 않나 (2026-08-03 사용자 결정, PR #202): 앞뒤 안 맞는 값을 살려내려면 "응시 1회에
+ * 맞힘 3회면 둘 중 어느 쪽이 진짜인가" 같은 판단 규칙이 필요하고, 그 규칙은 자동 리뷰가
+ * 파고들 때마다 계속 늘어난다(실제로 그렇게 됐다). 그런데 **이 저장소에는 그런 값을 만드는
+ * 경로가 없다** — 쓰는 곳이 recordQuestionAttempt 하나뿐이고 항상 앞뒤 맞는 값만 쓴다.
+ * 그런 기록이 있다면 사람이 브라우저 저장소를 손으로 고친 것이고, 그건 살려낼 이력이 아니다.
  *
- * 규칙 넷, 순서가 중요하다:
- * 1. `attempts` 가 숫자로 **살아 있으면 그 값을 믿는다.** 살아 있는 값을 증거로 덮으면
- *    일어나지 않은 시도를 지어낸다.
- * 2. 없거나 망가졌을 때만 추론한다 — 정답 횟수만큼은 시도했고, 유효한 양 끝이 서로 다르면
- *    서로 다른 시도이므로 최소 2회다.
- * 3. 시도가 1회면 양 끝이 **같은 시도**다 → 첫 결과 = 마지막 결과. 알려진 쪽으로 채우고,
- *    저장값이 그와 어긋나면 불가능한 이력이므로 덮는다. 2회 이상인데 첫 결과를 모르면
- *    **모르는 채로 둔다** — 아무 값이나 채우면 §2-1 숙달 판정이 오염된다.
- * 4. 누계는 알려진 양 끝이 하한(그중 pass 수)과 상한(attempts − 그중 fail 수)을 정한다.
+ * **버리는 단위는 문항 하나**다. 저장소 전체를 비우면 한 글자 깨진 것 때문에 전 챕터 진도가
+ * 날아간다. 실제 삭제는 다음 저장 때 일어난다(로드는 집계에서 빼기만 한다).
+ *
+ * 여기서 하는 유일한 보정은 §4-3 이 말하는 "누락 필드 기본값 주입"이다 — 시도가 1회면 첫
+ * 결과가 곧 마지막 결과이므로 그 자리를 채운다 (`firstResult` 가 생기기 전에 저장된 기록의
+ * 이행 경로). 알 수 없는 필드는 그대로 통과시킨다.
  */
-function normalizeFacts(
-  attempts: unknown,
-  correct: unknown,
-  firstResult: unknown,
-  lastResult: unknown,
-): AttemptFacts {
-  const last = lastResult === "pass" || lastResult === "fail" ? lastResult : undefined;
-  const rawFirst = firstResult === "pass" || firstResult === "fail" ? firstResult : undefined;
-  // count 와 같은 잣대를 쓴다 — 0·음수·NaN 은 "살아 있는 값"이 아니다
-  const statedCount = count(attempts, 0);
-  const stated = statedCount >= 1 ? statedCount : undefined;
-  const knownCorrect = count(correct, 0);
-  // 양 끝이 서로 다르면 서로 다른 시도(≥2), 하나라도 알면 ≥1, 아무것도 모르면 0(= 이력 없음)
-  const endsFloor =
-    rawFirst !== undefined && last !== undefined && rawFirst !== last
-      ? 2
-      : rawFirst !== undefined || last !== undefined
-        ? 1
-        : 0;
-  // **오답으로 알려진 양 끝은 정답 시도와 겹칠 수 없으므로 정답 횟수에 더해진다** (PR #202
-  // Codex P2): `{correct:2, first:"fail", last:"pass"}` 는 정답 2회 + 오답인 첫 시도 = 최소 3회다.
-  // 이걸 안 더하면 attempts 가 2로 추론되고 아래 상한 클램프가 정답 하나를 지운다.
-  // 양 끝이 둘 다 오답일 때 서로 다른 시도인지는 정답이 하나라도 있어야 확정된다.
-  const failEnds = (rawFirst === "fail" ? 1 : 0) + (last === "fail" ? 1 : 0);
-  const countsFloor = knownCorrect + (failEnds === 2 && knownCorrect === 0 ? 1 : failEnds);
-  // 추론 하한(endsFloor·countsFloor)은 **stated 가 없을 때만** 쓴다 — 하나라도 바깥에 두면
-  // 살아 있는 attempts 를 덮어 규칙 1이 깨진다. `knownCorrect` 가 바깥에 있던 동안
-  // `{attempts:1, correct:3, first:"fail", last:"pass"}` 가 3회로 부풀고 거짓 첫 오답까지
-  // 살아남았다 (PR #202 Codex P2). stated 가 살아 있는데 누계와 모순이면 **누계 쪽을** 아래
-  // 클램프가 깎는다 — 서로 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 고정한다.
-  // 바깥에 남는 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다" 하나뿐이다 (아무것도 모르면 0).
-  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0);
-  // 시도 1회면 양 끝이 같은 시도다 — 알려진 쪽(마지막 결과 우선)으로 첫 결과를 채운다
-  const first = n === 1 ? (last ?? rawFirst) : rawFirst;
-  const endpoints = n === 1 ? [first] : [first, last];
-  const knownPass = endpoints.filter((r) => r === "pass").length;
-  const knownFail = endpoints.filter((r) => r === "fail").length;
-  return {
-    attempts: n,
-    correct: Math.min(Math.max(count(correct, 0), knownPass), Math.max(n - knownFail, 0)),
-    firstResult: first,
-  };
-}
-
 function repairQuestion(raw: unknown): QuestionRecord | undefined {
   if (!isRecord(raw)) return undefined;
-  const lastResult = raw.lastResult === "pass" || raw.lastResult === "fail" ? raw.lastResult : undefined;
-  if (lastResult === undefined || !isIsoInstant(raw.lastAt)) return undefined;
+  const lastResult =
+    raw.lastResult === "pass" || raw.lastResult === "fail" ? raw.lastResult : undefined;
+  const firstResult =
+    raw.firstResult === "pass" || raw.firstResult === "fail" ? raw.firstResult : undefined;
+  if (lastResult === undefined) return undefined;
+  if (raw.firstResult !== undefined && firstResult === undefined) return undefined;
+  if (!isIsoInstant(raw.lastAt)) return undefined;
+  if (!isCount(raw.attempts) || raw.attempts < 1) return undefined;
+  if (!isCount(raw.correct) || raw.correct > raw.attempts) return undefined;
+  // 시도가 1회면 양 끝이 같은 시도다 — 서로 다르면 있을 수 없는 기록이다
+  if (raw.attempts === 1 && firstResult !== undefined && firstResult !== lastResult) return undefined;
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3 — 구버전 세션이 신버전 필드를 지우지 않도록)
-    ...normalizeFacts(raw.attempts, raw.correct, raw.firstResult, lastResult),
+    attempts: raw.attempts,
+    correct: raw.correct,
     lastResult,
     lastAt: raw.lastAt,
+    firstResult: firstResult ?? (raw.attempts === 1 ? lastResult : undefined),
   };
 }
 
@@ -222,31 +178,6 @@ export function loadProgress(): Progress {
   return repair(readRaw());
 }
 
-/**
- * 원본 위에 고친 값을 얹는다 — **읽기가 삭제가 되지 않게 하는 자리다**.
- * `repair` 는 못 고친 항목을 집계에서 빼는데, 그 결과를 그대로 저장하면 무관한 문항 하나를
- * 채점한 것만으로 남의 기록이 영구히 사라진다. 원본을 먼저 깔면 못 고친 항목은 저장소에
- * 그대로 남고, 고친 항목만 정규화된 값으로 덮인다.
- */
-function mergeOverRaw<T>(raw: unknown, repaired: Record<string, T>): Record<string, T> {
-  // 원본 항목의 형은 모른다(그래서 못 고쳤다) — 저장 직전에만 쓰는 통과용 캐스트다
-  return isRecord(raw) ? { ...(raw as Record<string, T>), ...repaired } : repaired;
-}
-
-/**
- * 원본에서 그 문항의 못 고친 기록을 꺼낸다. `repair` 가 거절한 기록도 **시도 횟수·정답
- * 횟수·첫 결과·미지 필드**는 대개 멀쩡하다 — 거절 사유는 보통 `lastAt`·`lastResult` 하나다.
- * 그것들을 다시 쓸 수 있게 돌려주는 자리이고, 값의 정규화는 호출부가 한다.
- */
-function salvageQuestion(
-  rawQuestions: unknown,
-  gk: string,
-): Record<string, unknown> | undefined {
-  if (!isRecord(rawQuestions)) return undefined;
-  const entry = rawQuestions[gk];
-  return isRecord(entry) ? entry : undefined;
-}
-
 function save(data: Progress): void {
   if (typeof window === "undefined") return;
   try {
@@ -275,34 +206,21 @@ export function recordQuestionAttempt(
   // 아예 없앤다 (positional id 로 저장하면 원본 재정렬 때 진도가 조용히 엉뚱한 문항에 붙는다)
   const gk = globalQuestionKey(chapterId, stableQuestionId(question));
   const result = passed ? "pass" : "fail";
+  // 검사를 통과한 기록만 온다 — 말이 안 되는 기록은 repair 가 이미 버렸고, 아래 save 가
+  // 그 삭제를 저장소에 반영한다 (버리는 단위는 그 문항 하나다 — repairQuestion 참조)
   const prev = data.questions[gk];
-  // repair 가 이 기록을 거절했다면(예: lastAt 이 시각으로 안 읽힌다) 원본에서 **살릴 수 있는
-  // 사실만** 건진다. 거절 사유 하나 때문에 시도 횟수·첫 결과·미지 필드까지 버리면, 재응시
-  // 한 번이 과거 이력을 통째로 "처음 푸는 문항"으로 되돌린다 (PR #202 Codex P2).
-  // mergeOverRaw 로는 못 막는다 — 같은 키에서는 새로 쓴 항목이 원본을 이기기 때문이다.
-  const salvaged = prev === undefined ? salvageQuestion(raw.questions, gk) : undefined;
-  // 이전 상태를 사실 3종으로 환산한다. repair 가 살린 기록은 이미 정리돼 있고, 거절된 기록은
-  // **로드 경로와 같은 함수**로 환산한다 — 규칙을 여기 복제하지 않는 것이 요점이다.
-  const prior: AttemptFacts = prev
-    ? { attempts: prev.attempts, correct: prev.correct, firstResult: prev.firstResult }
-    : normalizeFacts(salvaged?.attempts, salvaged?.correct, salvaged?.firstResult, salvaged?.lastResult);
   data.questions[gk] = {
-    ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
-    attempts: prior.attempts + 1,
-    correct: prior.correct + (passed ? 1 : 0),
+    attempts: (prev?.attempts ?? 0) + 1,
+    correct: (prev?.correct ?? 0) + (passed ? 1 : 0),
     lastResult: result,
     lastAt: new Date().toISOString(),
-    // 이력이 하나도 없을 때만 이번 결과가 첫 결과다. 이력이 있는데 첫 결과를 모르는 경우
-    // (이 필드 이전에 저장된 다회 시도 기록)는 **모르는 채로 둔다** — 지금 결과를 첫 결과로
-    // 적으면 나중 시도가 첫 시도로 영구히 오기입되어 숙달 판정이 뒤집힌다
-    firstResult: prior.attempts === 0 ? result : prior.firstResult,
+    // 이력이 없을 때만 이번 결과가 첫 결과다. 이력은 있는데 첫 결과를 모르는 경우
+    // (firstResult 가 생기기 전에 저장된 기록)는 **모르는 채로 둔다** — 나중 시도를 첫 시도로
+    // 적으면 #86 의 숙달 판정("첫 시도 정답")이 뒤집힌다
+    firstResult: prev ? prev.firstResult : result,
   };
-  save({
-    ...data,
-    chapters: mergeOverRaw(raw.chapters, data.chapters),
-    questions: mergeOverRaw(raw.questions, data.questions),
-  });
+  save(data);
 }
 
 /**
