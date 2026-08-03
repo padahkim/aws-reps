@@ -67,7 +67,7 @@ export const selfQuiz: SelfQuizEntry[] = [
   // ── 06 Lambda Destinations ───────────────────────────────────────────
   {
     section: "06",
-    q: "비동기 호출의 “성공” 결과도 다른 서비스로 라우팅해야 한다 — DLQ와 Destinations 중 정답은?",
+    q: "비동기 호출의 “성공” 결과도 다른 서비스로 라우팅해야 한다 — DLQ와 Destinations 중 정답과 근거는?",
     a: "Destinations — DLQ는 비동기 호출의 실패만 다룬다. Destinations는 성공/실패 각각에 대상을 지정할 수 있다.",
   },
   {
@@ -110,8 +110,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   // ── 10 Lambda@Edge & CloudFront Functions ────────────────────────────
   {
     section: "10",
-    q: "“뷰어 단계에서 1ms 미만의 초경량 헤더 조작” — CloudFront Functions와 Lambda@Edge 중 정답은?",
-    a: "CloudFront Functions — JavaScript 전용, Viewer Request/Response만. 오리진 단계 개입·네트워크/바디 접근이 필요하면 Lambda@Edge.",
+    q: "“뷰어 단계에서 1ms 미만의 초경량 헤더 조작” — CloudFront Functions와 Lambda@Edge 중 정답과 근거는?",
+    a: "CloudFront Functions — 뷰어 단계(Viewer Request/Response) 전용의 초경량 JavaScript 실행 환경이라 1ms 미만 조작에 맞는다. 오리진 단계 개입·네트워크/바디 접근이 필요하면 Lambda@Edge.",
   },
   {
     section: "10",
@@ -242,7 +242,7 @@ export const selfQuiz: SelfQuizEntry[] = [
   },
   {
     section: "20",
-    q: "Lambda가 자기 자신을 직접·간접 호출하는 설계가 선택지에 있다 — 판단은?",
+    q: "Lambda가 자기 자신을 직접·간접 호출하는 설계가 선택지에 있다 — 판단과 근거는?",
     a: "항상 오답 — 재귀 호출은 호출이 눈덩이처럼 불어나 비용 폭탄이 된다.",
   },
 ];
