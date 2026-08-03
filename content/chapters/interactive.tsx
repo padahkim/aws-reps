@@ -222,6 +222,9 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
 
   // dismiss: 바깥 탭/클릭(document pointerdown — 리포 최초의 클릭아웃사이드) + Escape.
   // Escape 는 초점을 트리거로 되돌린다 — 팝오버 링크에 초점이 있던 채 닫히면 초점이 유실된다.
+  // 리사이즈/회전도 닫는다 (PR #213 라운드 5) — dx 는 열 때 한 번 계산하므로 열린 채
+  // 뷰포트가 바뀌면 낡은 클램프가 카드를 컬럼 밖으로 민다. 팝오버는 일시적 UI라
+  // 재계산(리스너 + 재측정)보다 닫기가 단순하고, 다시 탭하면 새 뷰포트 기준으로 열린다.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
@@ -233,11 +236,14 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
         btnRef.current?.focus();
       }
     };
+    const onResize = () => setOpen(false);
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
     };
   }, [open]);
 

@@ -532,6 +532,17 @@ expectTermCaught("동적 id 표현", srcFile("<Term id={termId}>리전</Term>"),
 expectTermCaught("id 속성 누락", srcFile("<Term>리전</Term>"), "TERM_REF_UNPARSEABLE");
 // 리터럴 id가 있어도 스프레드가 런타임에 덮어쓸 수 있다 (PR #213 Codex) — 표현식 일체 금지
 expectTermCaught("리터럴 id + 스프레드", srcFile('<Term id="region" {...props}>리전</Term>'), "TERM_REF_UNPARSEABLE");
+// 별칭·네임스페이스 import 는 <Term 스캔을 우회한다 (PR #213 Codex 라운드 5) — import 자체를 잡는다
+expectTermCaught(
+  "별칭 import",
+  srcFile('import { Term as GlossaryTerm } from "../../interactive";\n<GlossaryTerm id={x} />'),
+  "TERM_IMPORT_ALIASED"
+);
+expectTermCaught(
+  "네임스페이스 import",
+  srcFile('import * as I from "../../interactive";\n<I.Term id={x} />'),
+  "TERM_IMPORT_ALIASED"
+);
 expectTermCaught(
   "여러 참조 중 하나만 위반",
   srcFile('<Term id="region">리전</Term>과 <Term id="ghost">유령</Term>'),

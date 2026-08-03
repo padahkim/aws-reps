@@ -584,6 +584,11 @@ export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[])
  */
 const TERM_TAG = /<Term(?![A-Za-z0-9])([^>]*)/g;
 const TERM_ID_ATTR = /\bid="([^"]*)"/;
+// 별칭·네임스페이스 import 는 사용부가 <Term 이 아니게 되어 위 스캔에 안 보인다 —
+// import 자체를 위반으로 잡아 우회로를 막는다 (PR #213 Codex 라운드 5).
+// interactive 모듈의 네임스페이스 import(X.Term)도 같은 이유로 금지한다.
+const TERM_ALIAS_IMPORT = /import\s+(?:type\s+)?\{[^}]*\bTerm\s+as\b[^}]*\}/;
+const TERM_NS_IMPORT = /import\s*\*\s*as\s+\w+\s+from\s+["'][^"']*\binteractive\b["']/;
 
 /**
  * 본문 소스의 <Term id="..."> 참조 정적 검사 (#193) — 실존 용어집 id 만 통과.
@@ -598,6 +603,15 @@ export function validateTermRefs(
 
   for (const { path, source } of files) {
     const cid = /content\/chapters\/([^/]+)\//.exec(path)?.[1] ?? "content";
+
+    if (TERM_ALIAS_IMPORT.test(source) || TERM_NS_IMPORT.test(source)) {
+      problems.push({
+        chapterId: cid,
+        code: "TERM_IMPORT_ALIASED",
+        message: `${path}: Term 을 별칭·네임스페이스로 import 함 — 사용부가 <Term 이 아니게 되어 참조 검사가 못 본다. 직접 import { Term } 만 허용`,
+      });
+    }
+
     for (const tag of source.matchAll(TERM_TAG)) {
       const id = tag[1].includes("{") ? undefined : TERM_ID_ATTR.exec(tag[1])?.[1];
       if (id === undefined) {
