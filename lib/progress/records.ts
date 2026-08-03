@@ -82,32 +82,13 @@ function isIsoInstant(value: unknown): value is string {
   return Number.isFinite(t) && new Date(t).toISOString() === value;
 }
 
-/**
- * 0 이상의 **안전 정수**로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback.
- *
- * 안전 정수까지 요구하는 이유 (PR #202 Codex P2): `Number.MAX_SAFE_INTEGER` 를 넘는 값은
- * 유한하지만 `+ 1` 이 같은 수로 평가된다 — 그대로 통과시키면 재응시가 결과만 갱신하고
- * **시도 횟수는 영원히 안 늘어나는** 기록이 생긴다. 그 경우 손상으로 보고 fallback 을 쓴다.
- */
+/** 0 이상의 정수로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback. */
 function count(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return fallback;
-  const n = Math.floor(value);
-  return Number.isSafeInteger(n) ? n : fallback;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : fallback;
 }
 
-/** 증가값을 `count` 가 받아들이는 범위 안에 묶는다 — 쓰기가 자기 검증을 통과하도록. */
-function saturate(value: number): number {
-  return Math.min(value, Number.MAX_SAFE_INTEGER);
-}
-
-/**
- * 문항 기록 하나를 규약대로 고친다. 시도 사실을 복원할 수 없을 만큼 망가졌으면 undefined —
- * 그 항목은 **집계에서만** 빠진다 (저장에서 지우지는 않는다 — mergeOverRaw 참조).
- *
- * 누계(attempts·correct)와 마지막 결과가 모순이면 **lastResult 를 정본으로 삼는다** (PR #202
- * Codex P2): 배지·완료 판정이 직접 읽는 값이 lastResult 라, 여기서 어긋난 채 두면 화면이
- * 말하는 것과 누계가 따로 논다. 게다가 이후 채점이 이 값들을 그대로 증가시켜 모순이 굳는다.
- */
 /** 시도 사실 3종 — 저장된 값을 규약대로 정리한 결과. */
 interface AttemptFacts {
   attempts: number;
@@ -141,7 +122,7 @@ function normalizeFacts(
 ): AttemptFacts {
   const last = lastResult === "pass" || lastResult === "fail" ? lastResult : undefined;
   const rawFirst = firstResult === "pass" || firstResult === "fail" ? firstResult : undefined;
-  // count 와 같은 잣대를 쓴다 — 0·음수·NaN·안전 정수 밖은 "살아 있는 값"이 아니다
+  // count 와 같은 잣대를 쓴다 — 0·음수·NaN 은 "살아 있는 값"이 아니다
   const statedCount = count(attempts, 0);
   const stated = statedCount >= 1 ? statedCount : undefined;
   const knownCorrect = count(correct, 0);
@@ -164,10 +145,7 @@ function normalizeFacts(
   // 살아남았다 (PR #202 Codex P2). stated 가 살아 있는데 누계와 모순이면 **누계 쪽을** 아래
   // 클램프가 깎는다 — 서로 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 고정한다.
   // 바깥에 남는 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다" 하나뿐이다 (아무것도 모르면 0).
-  // 하한 계산에도 덧셈이 있으므로 여기서 포화시킨다 — **이 함수는 자기 검증(`count`)이
-  // 거절할 값을 내보내지 않는다**. 한 군데(반환 직전)에서 묶어야 안쪽 산술이 늘어나도
-  // 같은 구멍이 다시 생기지 않는다 (PR #202 Codex P2 — 11라운드 불변식을 추론 경로까지 확장).
-  const n = saturate(Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0));
+  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0);
   // 시도 1회면 양 끝이 같은 시도다 — 알려진 쪽(마지막 결과 우선)으로 첫 결과를 채운다
   const first = n === 1 ? (last ?? rawFirst) : rawFirst;
   const endpoints = n === 1 ? [first] : [first, last];
@@ -175,7 +153,7 @@ function normalizeFacts(
   const knownFail = endpoints.filter((r) => r === "fail").length;
   return {
     attempts: n,
-    correct: saturate(Math.min(Math.max(count(correct, 0), knownPass), Math.max(n - knownFail, 0))),
+    correct: Math.min(Math.max(count(correct, 0), knownPass), Math.max(n - knownFail, 0)),
     firstResult: first,
   };
 }
@@ -311,11 +289,8 @@ export function recordQuestionAttempt(
   data.questions[gk] = {
     ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
-    // **이 저장소는 자기 repair 가 거절할 값을 절대 쓰지 않는다** — 그 불변식이 깨지면 방금
-    // 쓴 기록을 다음 로드가 손상으로 보고 이력을 재구성해 버린다. `count` 가 안전 정수까지만
-    // 받으므로 증가도 거기서 멈춘다 (PR #202 Codex P2 — 상한에서 넘치는 대신 포화시킨다).
-    attempts: saturate(prior.attempts + 1),
-    correct: saturate(prior.correct + (passed ? 1 : 0)),
+    attempts: prior.attempts + 1,
+    correct: prior.correct + (passed ? 1 : 0),
     lastResult: result,
     lastAt: new Date().toISOString(),
     // 이력이 하나도 없을 때만 이번 결과가 첫 결과다. 이력이 있는데 첫 결과를 모르는 경우

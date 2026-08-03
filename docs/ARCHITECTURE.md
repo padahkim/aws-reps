@@ -192,7 +192,7 @@ flowchart TD
 
 챕터를 만들면 `content/registry.ts`에 **손으로 등록**한다(import 줄 + 배열 항목, **배열 순서 = 학습 순서**). 앱은 `lib/content.ts`로만 접근하고 `content/`를 직접 import하지 않는다.
 
-`lib/content.ts`가 제공하는 것: 타입 재노출(평행 타입·어댑터를 만들지 않는다) + `getAllChapters`·`getChapter`·`sectionCount`·`conceptsForSection`·`selfQuizForSection`·`groupByPhase`·`globalQuestionKey`. 여기에 더해 **`SelfQuiz` 컴포넌트도 이 파일이 통로 re-export**한다 — 앱이 `content/`를 직접 import하지 않는다는 원칙을 지키기 위해서다(`"use client"` 경계는 원 모듈에 남는다).
+`lib/content.ts`가 제공하는 것: 타입 재노출(평행 타입·어댑터를 만들지 않는다) + `getAllChapters`·`getChapter`·`sectionCount`·`conceptsForSection`·`selfQuizForSection`·`groupByPhase`. (전역 문항 키 `globalQuestionKey` 는 여기 없다 — 정본이 `lib/progress/keys.ts` 다. 이 파일은 서버 전용이라 채점하는 클라이언트가 값으로 import 할 수 없다, #66.) 여기에 더해 **`SelfQuiz` 컴포넌트도 이 파일이 통로 re-export**한다 — 앱이 `content/`를 직접 import하지 않는다는 원칙을 지키기 위해서다(`"use client"` 경계는 원 모듈에 남는다).
 
 > 이 경계의 **예외는 루트 `mdx-components.tsx` 하나**다. MDX 마크다운 프리미티브(`p`·`code` 등)를 챕터 팔레트에 매핑해야 해서 `content/chapters/ui`를 직접 import한다 — 데이터 통로가 아니라 렌더 통합 지점이라 갈라져 있다.
 
