@@ -134,6 +134,7 @@ function normalizeFacts(
     typeof attempts === "number" && Number.isFinite(attempts) && attempts >= 1
       ? Math.floor(attempts)
       : undefined;
+  const knownCorrect = count(correct, 0);
   // 양 끝이 서로 다르면 서로 다른 시도(≥2), 하나라도 알면 ≥1, 아무것도 모르면 0(= 이력 없음)
   const endsFloor =
     rawFirst !== undefined && last !== undefined && rawFirst !== last
@@ -141,10 +142,18 @@ function normalizeFacts(
       : rawFirst !== undefined || last !== undefined
         ? 1
         : 0;
-  // endsFloor 는 **stated 가 없을 때만** 쓴다 — 독립 하한으로 두면 살아 있는 attempts 를 덮어
-  // 규칙 1을 깨뜨린다 (`{attempts:1, first:"fail", last:"pass"}` 이 2회로 튄다).
+  // **오답으로 알려진 양 끝은 정답 시도와 겹칠 수 없으므로 정답 횟수에 더해진다** (PR #202
+  // Codex P2): `{correct:2, first:"fail", last:"pass"}` 는 정답 2회 + 오답인 첫 시도 = 최소 3회다.
+  // 이걸 안 더하면 attempts 가 2로 추론되고 아래 상한 클램프가 정답 하나를 지운다.
+  // 양 끝이 둘 다 오답일 때 서로 다른 시도인지는 정답이 하나라도 있어야 확정된다.
+  const failEnds = (rawFirst === "fail" ? 1 : 0) + (last === "fail" ? 1 : 0);
+  const countsFloor = knownCorrect + (failEnds === 2 && knownCorrect === 0 ? 1 : failEnds);
+  // 추론 하한(endsFloor·countsFloor)은 **stated 가 없을 때만** 쓴다 — 독립 하한으로 두면
+  // 살아 있는 attempts 를 덮어 규칙 1을 깨뜨린다 (`{attempts:1, first:"fail", last:"pass"}` 이
+  // 2회로 튄다). stated 가 살아 있는데 누계와 모순이면 누계 쪽을 아래 클램프가 깎는다 — 서로
+  // 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 stated 로 고정한다.
   // 마지막 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다"이고, 아무것도 모르면 0(이력 없음)이다.
-  const n = Math.max(stated ?? endsFloor, count(correct, 0), last !== undefined ? 1 : 0);
+  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), knownCorrect, last !== undefined ? 1 : 0);
   // 시도 1회면 양 끝이 같은 시도다 — 알려진 쪽(마지막 결과 우선)으로 첫 결과를 채운다
   const first = n === 1 ? (last ?? rawFirst) : rawFirst;
   const endpoints = n === 1 ? [first] : [first, last];
