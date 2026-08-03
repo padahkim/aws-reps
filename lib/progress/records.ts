@@ -164,7 +164,10 @@ function normalizeFacts(
   // 살아남았다 (PR #202 Codex P2). stated 가 살아 있는데 누계와 모순이면 **누계 쪽을** 아래
   // 클램프가 깎는다 — 서로 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 고정한다.
   // 바깥에 남는 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다" 하나뿐이다 (아무것도 모르면 0).
-  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0);
+  // 하한 계산에도 덧셈이 있으므로 여기서 포화시킨다 — **이 함수는 자기 검증(`count`)이
+  // 거절할 값을 내보내지 않는다**. 한 군데(반환 직전)에서 묶어야 안쪽 산술이 늘어나도
+  // 같은 구멍이 다시 생기지 않는다 (PR #202 Codex P2 — 11라운드 불변식을 추론 경로까지 확장).
+  const n = saturate(Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0));
   // 시도 1회면 양 끝이 같은 시도다 — 알려진 쪽(마지막 결과 우선)으로 첫 결과를 채운다
   const first = n === 1 ? (last ?? rawFirst) : rawFirst;
   const endpoints = n === 1 ? [first] : [first, last];
@@ -172,7 +175,7 @@ function normalizeFacts(
   const knownFail = endpoints.filter((r) => r === "fail").length;
   return {
     attempts: n,
-    correct: Math.min(Math.max(count(correct, 0), knownPass), Math.max(n - knownFail, 0)),
+    correct: saturate(Math.min(Math.max(count(correct, 0), knownPass), Math.max(n - knownFail, 0))),
     firstResult: first,
   };
 }
