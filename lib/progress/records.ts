@@ -5,7 +5,10 @@ import { globalQuestionKey, stableQuestionId, type QuestionIdentity } from "./ke
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` (#66 — 부모 에픽 #86의 첫 쓰기 경로).
- * 설계 정본: docs/design/LEARNING_LOOP_DRAFT.md §4. **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
+ * 소유권은 갈라져 있다 (#207): 정책·판정 기준·"왜 이 필드들인가"는
+ * docs/design/LEARNING_LOOP_DRAFT.md §4가 정본이고, **필드 목록의 정본은 이 파일**
+ * (`Progress`·`QuestionRecord`·`ChapterRecord`)이다 — 문서는 필드를 소유하지 않는다.
+ * **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
  *
  * 저장하는 것은 사실뿐이다 — 시도 횟수·정오·시각. 점수·정답률·약점 개념처럼 파생 가능한
  * 값은 저장하지 않고 읽는 쪽이 콘텐츠와 런타임 조인해서 낸다(§4-1). 목차의 "8/11" 배지도
