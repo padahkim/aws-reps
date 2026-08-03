@@ -6,11 +6,15 @@ import { applyAttempt, isRecord, repair, type Progress, type QuestionRecord } fr
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` 의 **브라우저 붙임** (#66 — 부모 에픽 #86의 첫 쓰기 경로).
- * 설계 정본: docs/design/LEARNING_LOOP_DRAFT.md §4. **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
+ * **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
  *
- * 저장된 값의 형과 규칙(read-repair·쓰기 누적)은 `records-core.ts` 에 있다 — 거기는 `window`
- * 도 react 도 모르는 순수 층이라 node 가 부를 수 있고, CI 가 회귀 테스트를 돌린다(#214).
- * 이 파일에는 그 규칙을 localStorage·React 에 붙이는 일만 남는다. 공개 API 는 여전히 여기다.
+ * 소유권은 셋으로 갈라져 있다 (#207 → #214): 정책·판정 기준·"왜 이 필드들인가"는
+ * docs/design/LEARNING_LOOP_DRAFT.md §4가 정본이고 — 문서는 필드를 소유하지 않는다 —,
+ * **필드 목록과 그 값을 다루는 규칙(read-repair·쓰기 누적)의 정본은 `records-core.ts`**
+ * (`Progress`·`QuestionRecord`·`ChapterRecord`)이며, **이 파일은 그것을 localStorage·React 에
+ * 붙이는 일만** 한다. 형을 여기서 옮긴 이유는 `"use client"` + react import 라 node 가 이
+ * 파일을 못 불러 CI 가 진도 로직을 한 줄도 실행하지 못했기 때문이다(#214) — 저쪽은 순수
+ * 층이라 회귀 테스트가 붙는다. 공개 API 는 여전히 여기서 나간다.
  *
  * 읽음 진도(`aws-reps.read.v1`)는 별개 키·별개 파일이다(lib/progress.ts). 강건성 규칙은
  * 그쪽과 같다: SSG 라 초기 렌더는 항상 빈 값이고(useEffect 로 채운다), 저장 실패는 조용히
