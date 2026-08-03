@@ -82,11 +82,17 @@ function isIsoInstant(value: unknown): value is string {
   return Number.isFinite(t) && new Date(t).toISOString() === value;
 }
 
-/** 0 이상의 정수로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback. */
+/**
+ * 0 이상의 **안전 정수**로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback.
+ *
+ * 안전 정수까지 요구하는 이유 (PR #202 Codex P2): `Number.MAX_SAFE_INTEGER` 를 넘는 값은
+ * 유한하지만 `+ 1` 이 같은 수로 평가된다 — 그대로 통과시키면 재응시가 결과만 갱신하고
+ * **시도 횟수는 영원히 안 늘어나는** 기록이 생긴다. 그 경우 손상으로 보고 fallback 을 쓴다.
+ */
 function count(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? Math.floor(value)
-    : fallback;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return fallback;
+  const n = Math.floor(value);
+  return Number.isSafeInteger(n) ? n : fallback;
 }
 
 /**
@@ -130,10 +136,9 @@ function normalizeFacts(
 ): AttemptFacts {
   const last = lastResult === "pass" || lastResult === "fail" ? lastResult : undefined;
   const rawFirst = firstResult === "pass" || firstResult === "fail" ? firstResult : undefined;
-  const stated =
-    typeof attempts === "number" && Number.isFinite(attempts) && attempts >= 1
-      ? Math.floor(attempts)
-      : undefined;
+  // count 와 같은 잣대를 쓴다 — 0·음수·NaN·안전 정수 밖은 "살아 있는 값"이 아니다
+  const statedCount = count(attempts, 0);
+  const stated = statedCount >= 1 ? statedCount : undefined;
   const knownCorrect = count(correct, 0);
   // 양 끝이 서로 다르면 서로 다른 시도(≥2), 하나라도 알면 ≥1, 아무것도 모르면 0(= 이력 없음)
   const endsFloor =
@@ -148,12 +153,13 @@ function normalizeFacts(
   // 양 끝이 둘 다 오답일 때 서로 다른 시도인지는 정답이 하나라도 있어야 확정된다.
   const failEnds = (rawFirst === "fail" ? 1 : 0) + (last === "fail" ? 1 : 0);
   const countsFloor = knownCorrect + (failEnds === 2 && knownCorrect === 0 ? 1 : failEnds);
-  // 추론 하한(endsFloor·countsFloor)은 **stated 가 없을 때만** 쓴다 — 독립 하한으로 두면
-  // 살아 있는 attempts 를 덮어 규칙 1을 깨뜨린다 (`{attempts:1, first:"fail", last:"pass"}` 이
-  // 2회로 튄다). stated 가 살아 있는데 누계와 모순이면 누계 쪽을 아래 클램프가 깎는다 — 서로
-  // 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 stated 로 고정한다.
-  // 마지막 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다"이고, 아무것도 모르면 0(이력 없음)이다.
-  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), knownCorrect, last !== undefined ? 1 : 0);
+  // 추론 하한(endsFloor·countsFloor)은 **stated 가 없을 때만** 쓴다 — 하나라도 바깥에 두면
+  // 살아 있는 attempts 를 덮어 규칙 1이 깨진다. `knownCorrect` 가 바깥에 있던 동안
+  // `{attempts:1, correct:3, first:"fail", last:"pass"}` 가 3회로 부풀고 거짓 첫 오답까지
+  // 살아남았다 (PR #202 Codex P2). stated 가 살아 있는데 누계와 모순이면 **누계 쪽을** 아래
+  // 클램프가 깎는다 — 서로 모순인 두 손상값 중 하나를 골라야 하고, 규칙 1이 그 선택을 고정한다.
+  // 바깥에 남는 하한은 "마지막 결과를 안다 = 최소 1회 채점됐다" 하나뿐이다 (아무것도 모르면 0).
+  const n = Math.max(stated ?? Math.max(endsFloor, countsFloor), last !== undefined ? 1 : 0);
   // 시도 1회면 양 끝이 같은 시도다 — 알려진 쪽(마지막 결과 우선)으로 첫 결과를 채운다
   const first = n === 1 ? (last ?? rawFirst) : rawFirst;
   const endpoints = n === 1 ? [first] : [first, last];
