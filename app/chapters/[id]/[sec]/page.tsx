@@ -124,9 +124,14 @@ export default async function SectionPage({
       )}
 
       {isSession ? (
-        <ChapterSession diagram={session?.diagram} quiz={quiz} pool={mixedPool(entry)} />
+        <ChapterSession
+          chapterId={id}
+          diagram={session?.diagram}
+          quiz={quiz}
+          pool={mixedPool(entry)}
+        />
       ) : isQuiz ? (
-        <ChapterQuiz quiz={quiz} />
+        <ChapterQuiz chapterId={id} quiz={quiz} />
       ) : (
         <Body section={n - 1} afterSection={afterSection} beforeBody={beforeBody} />
       )}
