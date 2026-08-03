@@ -185,6 +185,11 @@ export function Switch({
  * 팝오버 내부는 전부 span 이다 — 트리거가 MDX 문단(p) 안에 놓이므로 div/p 를 쓰면
  * HTML 중첩 위반으로 hydration 이 흔들린다. 카드 색은 배경·글자 쌍 고정(규약 색 박스
  * 규정 — C.card/C.ink), 트리거 자체는 본문 텍스트라 앱 테마에 순응(.term-trigger).
+ *
+ * 배치 제약 (PR #213 Codex 지적): 본문 프로즈 전용이다 — Table 셀처럼 overflow 를 가진
+ * 조상 안에서는 absolute 팝오버가 잘린다. 포털로 탈출하는 건 "정밀 포지셔닝 없음" 전제를
+ * 깨므로 하지 않는다 — 표 안 용어는 Term 없이 두고, 같은 용어의 프로즈 등장 지점에 건다
+ * (#194 전면 적용 시 이 규칙을 따른다).
  */
 export function Term({ id, children }: { id: string; children?: ReactNode }) {
   const t = glossary.find((g) => g.id === id);
@@ -240,7 +245,19 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
   if (!t) return <>{children ?? id}</>;
 
   return (
-    <span ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
+    <span
+      ref={wrapRef}
+      style={{ position: "relative", display: "inline-block" }}
+      // 키보드 초점이 밖으로 나가면 닫는다 (PR #213 Codex 지적) — Tab으로 옆 용어 트리거에
+      // 옮겨 열면 pointerdown이 없어 이전 팝오버가 남아 겹친다. relatedTarget이 null인
+      // focusout(팝오버 안 비초점 영역 클릭 등)은 닫지 않는다 — 바깥 클릭은 어차피
+      // document pointerdown 리스너가 맡고 있고, 여기서 null까지 닫으면 팝오버 본문을
+      // 클릭(텍스트 선택)하는 순간 닫혀 버린다.
+      onBlur={(e) => {
+        const to = e.relatedTarget as Node | null;
+        if (to && !wrapRef.current?.contains(to)) setOpen(false);
+      }}
+    >
       <button
         ref={btnRef}
         type="button"
