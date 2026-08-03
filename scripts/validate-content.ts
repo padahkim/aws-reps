@@ -575,9 +575,12 @@ export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[])
 }
 
 /**
- * Term 팝오버 참조 규칙 (#193) — id 는 **리터럴 문자열 속성**으로만 쓴다.
+ * Term 팝오버 참조 규칙 (#193) — id 는 **리터럴 문자열 속성**으로만, 다른 속성 없이 쓴다.
  * id={expr} 동적 표현은 정적으로 검증할 수 없으므로 존재 자체를 위반으로 잡는다(fail-closed) —
- * "검증 불가능한 참조를 허용하지 않는 구조"가 이 검사의 계약이다.
+ * "검증 불가능한 참조를 허용하지 않는 구조"가 이 검사의 계약이다. 속성부의 JSX 표현식(`{`)도
+ * 전부 위반이다 — `<Term id="region" {...props}>` 는 리터럴 추출은 되지만 스프레드가 런타임에
+ * id 를 덮어쓸 수 있어 계약을 우회한다 (PR #213 Codex 지적). Term 의 적법 속성은 id 뿐이므로
+ * 표현식 금지로 잃는 표현이 없다.
  */
 const TERM_TAG = /<Term(?![A-Za-z0-9])([^>]*)/g;
 const TERM_ID_ATTR = /\bid="([^"]*)"/;
@@ -596,12 +599,12 @@ export function validateTermRefs(
   for (const { path, source } of files) {
     const cid = /content\/chapters\/([^/]+)\//.exec(path)?.[1] ?? "content";
     for (const tag of source.matchAll(TERM_TAG)) {
-      const id = TERM_ID_ATTR.exec(tag[1])?.[1];
+      const id = tag[1].includes("{") ? undefined : TERM_ID_ATTR.exec(tag[1])?.[1];
       if (id === undefined) {
         problems.push({
           chapterId: cid,
           code: "TERM_REF_UNPARSEABLE",
-          message: `${path}: <Term> 에 리터럴 id="..." 속성이 없음 — 동적 id 는 검증할 수 없으므로 금지`,
+          message: `${path}: <Term> 는 리터럴 id="..." 하나만 허용 — 동적 표현·스프레드는 id 를 덮어쓸 수 있어 검증할 수 없다`,
         });
       } else if (!termIds.has(id)) {
         problems.push({

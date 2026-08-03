@@ -530,6 +530,8 @@ console.log("\n── Term 참조: 검출되어야 하는 위반 ──");
 expectTermCaught("없는 id 참조", srcFile('<Term id="ghost">유령</Term>'), "TERM_REF_UNKNOWN");
 expectTermCaught("동적 id 표현", srcFile("<Term id={termId}>리전</Term>"), "TERM_REF_UNPARSEABLE");
 expectTermCaught("id 속성 누락", srcFile("<Term>리전</Term>"), "TERM_REF_UNPARSEABLE");
+// 리터럴 id가 있어도 스프레드가 런타임에 덮어쓸 수 있다 (PR #213 Codex) — 표현식 일체 금지
+expectTermCaught("리터럴 id + 스프레드", srcFile('<Term id="region" {...props}>리전</Term>'), "TERM_REF_UNPARSEABLE");
 expectTermCaught(
   "여러 참조 중 하나만 위반",
   srcFile('<Term id="region">리전</Term>과 <Term id="ghost">유령</Term>'),
