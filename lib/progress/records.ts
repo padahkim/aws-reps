@@ -101,19 +101,25 @@ function repairQuestion(raw: unknown): QuestionRecord | undefined {
   if (!isRecord(raw)) return undefined;
   const lastResult = raw.lastResult === "pass" || raw.lastResult === "fail" ? raw.lastResult : undefined;
   if (lastResult === undefined || !isIsoInstant(raw.lastAt)) return undefined;
-  // lastResult 가 있다는 건 최소 1회 채점됐다는 뜻. correct 가 살아 있으면 attempts 는 최소
-  // 그만큼이다 — 반대로 잡으면 멀쩡한 correct 를 클램프가 깎아 버린다
-  const attempts = Math.max(count(raw.attempts, 1), count(raw.correct, 0), 1);
+  const rawFirst = raw.firstResult === "pass" || raw.firstResult === "fail" ? raw.firstResult : undefined;
+  // attempts 는 **살아 있으면 그 값을 믿고, 망가졌을 때만 추론한다**. 순서가 중요하다 (PR #202
+  // Codex P2): 살아 있는 값을 증거로 덮으면 일어나지 않은 시도를 지어내고, 반대로 망가진 값을
+  // 1로 떨어뜨리면 아래 firstResult 분기가 알려진 첫 결과를 lastResult 로 덮어 버린다.
+  // 추론의 근거: ① 정답 횟수만큼은 시도했다 ② 유효한 양 끝이 서로 다르면 서로 다른 시도다(≥2).
+  const statedAttempts =
+    typeof raw.attempts === "number" && Number.isFinite(raw.attempts) && raw.attempts >= 1
+      ? Math.floor(raw.attempts)
+      : undefined;
+  const attempts = Math.max(
+    statedAttempts ?? (rawFirst !== undefined && rawFirst !== lastResult ? 2 : 1),
+    count(raw.correct, 0),
+    1,
+  );
   // 시도가 1회면 첫 결과 = 마지막 결과다. 저장값이 그와 다르면 **불가능한 이력**이므로
   // lastResult 를 정본으로 덮어쓴다. 없으면 이걸로 복원되고(§4-3 "누락 필드 기본값 주입"),
   // 2회 이상이면 복원할 근거가 없어 비워 둔다 — **모르는 것은 모르는 채로 둔다**.
   // 여기서 아무 값이나 채우면 §2-1 숙달 판정이 오염된다.
-  const firstResult =
-    attempts === 1
-      ? lastResult
-      : raw.firstResult === "pass" || raw.firstResult === "fail"
-        ? raw.firstResult
-        : undefined;
+  const firstResult = attempts === 1 ? lastResult : rawFirst;
   // 누계는 **알려진 양 끝**이 하한과 상한을 정한다 (PR #202 Codex P2). lastResult 만 보던
   // 예전 규칙은 `{attempts:2, correct:2, firstResult:"fail", lastResult:"pass"}`(첫 시도가
   // 오답인데 전부 정답)나 `{attempts:2, correct:1, 양끝 모두 pass}`(정답 2회를 아는데 1회)
