@@ -35,6 +35,10 @@ jobs:
 
       - run: npm run validate:test
 
+      # 진도 저장소 규칙 회귀 (#214) — lib/progress/repair.ts 는 값을 조용히 틀리게 바꾸는
+      # 결함이 나는 자리이고, 다른 단계는 이 파일을 한 줄도 실행하지 않는다.
+      - run: npm run progress:test
+
       # 문서 신선도 게이트 (#117) — docs/ARCHITECTURE.md 의 사실 블록이
       # 코드(registry·schema·CURRICULUM·package.json)와 어긋나면 PR을 깬다.
       - run: node scripts/gen-arch-facts.ts --check
