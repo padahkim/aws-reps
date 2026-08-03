@@ -95,6 +95,11 @@ function count(value: unknown, fallback: number): number {
   return Number.isSafeInteger(n) ? n : fallback;
 }
 
+/** 증가값을 `count` 가 받아들이는 범위 안에 묶는다 — 쓰기가 자기 검증을 통과하도록. */
+function saturate(value: number): number {
+  return Math.min(value, Number.MAX_SAFE_INTEGER);
+}
+
 /**
  * 문항 기록 하나를 규약대로 고친다. 시도 사실을 복원할 수 없을 만큼 망가졌으면 undefined —
  * 그 항목은 **집계에서만** 빠진다 (저장에서 지우지는 않는다 — mergeOverRaw 참조).
@@ -303,8 +308,11 @@ export function recordQuestionAttempt(
   data.questions[gk] = {
     ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
-    attempts: prior.attempts + 1,
-    correct: prior.correct + (passed ? 1 : 0),
+    // **이 저장소는 자기 repair 가 거절할 값을 절대 쓰지 않는다** — 그 불변식이 깨지면 방금
+    // 쓴 기록을 다음 로드가 손상으로 보고 이력을 재구성해 버린다. `count` 가 안전 정수까지만
+    // 받으므로 증가도 거기서 멈춘다 (PR #202 Codex P2 — 상한에서 넘치는 대신 포화시킨다).
+    attempts: saturate(prior.attempts + 1),
+    correct: saturate(prior.correct + (passed ? 1 : 0)),
     lastResult: result,
     lastAt: new Date().toISOString(),
     // 이력이 하나도 없을 때만 이번 결과가 첫 결과다. 이력이 있는데 첫 결과를 모르는 경우
