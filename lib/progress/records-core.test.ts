@@ -16,6 +16,7 @@ import {
   applyAttempt,
   isCount,
   isIsoInstant,
+  isRecord,
   repair,
   repairChapter,
   repairQuestion,
@@ -220,6 +221,11 @@ expectSame("questions 가 배열", repair({ questions: [] }), { v: V, chapters: 
 expectSame("questions 가 문자열", repair({ questions: "x" }), { v: V, chapters: {}, questions: {} });
 expectSame("chapters 가 배열", repair({ chapters: [] }), { v: V, chapters: {}, questions: {} });
 
+// **빈** 배열은 이 규칙을 고정하지 못한다 — 루프 본문이 어차피 안 돈다. 배열 거부가 실제로
+// 사는지 보려면 말이 되는 기록을 담은 배열이어야 한다. 거부가 풀리면 인덱스가 문항 키가 된다.
+expectSame("questions 가 유효 기록을 담은 배열", repair({ questions: [rec()] }), { v: V, chapters: {}, questions: {} });
+expectSame("chapters 가 유효 기록을 담은 배열", repair({ chapters: [{ visitedAt: AT }] }), { v: V, chapters: {}, questions: {} });
+
 {
   const before = store({ [GK]: rec({ box: 9 }) }, { mystery: 1 });
   const snapshot = show(before);
@@ -250,15 +256,26 @@ expectTrue("visitedAt 없음 → 버림", repairChapter({ completedAt: AT }) ===
 expectTrue("visitedAt 이 비문자열 → 버림", repairChapter({ visitedAt: 5 }) === undefined);
 expectTrue("항목이 문자열 → 버림", repairChapter("x") === undefined);
 
+// 값까지 대조한다 — 키만 세면 `repair` 의 챕터 루프가 `repairChapter` 의 반환값을 깎아도(예:
+// visitedAt 만 남기고 completedAt·미지 필드를 떨궈도) 통과한다. #86 이 완료 배지를 쓰기 시작하면
+// 그 손실은 로드마다 반복되고 다음 save 가 영구화한다 — 화면엔 "완료 표시가 가끔 풀린다"로만 보인다.
 expectSame(
-  "망가진 챕터만 버리고 이웃 챕터는 생존",
-  Object.keys(repair({ chapters: { "1-1": { visitedAt: AT }, "1-2": { note: "시각 없음" } } }).chapters),
-  ["1-1"],
+  "망가진 챕터만 버리고 이웃 챕터는 값 그대로 생존",
+  repair({ chapters: { "1-1": { visitedAt: AT, completedAt: AT2, box: 9 }, "1-2": { note: "시각 없음" } } })
+    .chapters,
+  { "1-1": { visitedAt: AT, completedAt: AT2, box: 9 } },
 );
 
 // ── 5. 형식 술어 ──────────────────────────────────────────────────────────
 
 console.log("\n── 형식 술어 ──");
+
+// `typeof [] === "object"` 라 배열 거부는 명시 가드로만 산다 — 그 가드가 사라지면 배열이
+// 기록 묶음으로 읽히고, readRaw 도 배열 최상위를 더는 거르지 않는다
+expectTrue("isRecord: 객체는 참", isRecord({}));
+expectTrue("isRecord: 배열은 거짓", !isRecord([]));
+expectTrue("isRecord: null 은 거짓", !isRecord(null));
+expectTrue("isRecord: 문자열은 거짓", !isRecord("x"));
 
 expectTrue("isIsoInstant: toISOString 형식", isIsoInstant(AT));
 expectTrue("isIsoInstant: 새로 만든 시각", isIsoInstant(new Date(0).toISOString()));
