@@ -5,6 +5,9 @@
  * 실행: `npm run validate` (build 앞에 자동 연결됨).
  * 순수 함수 validateChapters()를 export 해 픽스처(*.test.ts)가 직접 먹인다.
  */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ChapterData, GlossaryTerm } from "../content/schema.ts";
 // 저장 키 규칙의 정본을 그대로 쓴다 — 여기서 규칙을 베끼면 게이트가 실물과 어긋난다.
 import { stableQuestionId } from "../lib/progress/keys.ts";
@@ -611,16 +614,92 @@ export function validateGlossary(terms: GlossaryTerm[], chapters: ChapterData[])
   return problems;
 }
 
+/**
+ * Term 팝오버 참조 규칙 (#193) — id 는 **리터럴 문자열 속성**으로만, 다른 속성 없이 쓴다.
+ * id={expr} 동적 표현은 정적으로 검증할 수 없으므로 존재 자체를 위반으로 잡는다(fail-closed) —
+ * "검증 불가능한 참조를 허용하지 않는 구조"가 이 검사의 계약이다. 속성부의 JSX 표현식(`{`)도
+ * 전부 위반이다 — `<Term id="region" {...props}>` 는 리터럴 추출은 되지만 스프레드가 런타임에
+ * id 를 덮어쓸 수 있어 계약을 우회한다 (PR #213 Codex 지적). Term 의 적법 속성은 id 뿐이므로
+ * 표현식 금지로 잃는 표현이 없다.
+ */
+const TERM_TAG = /<Term(?![A-Za-z0-9])([^>]*)/g;
+const TERM_ID_ATTR = /\bid="([^"]*)"/;
+// 별칭·네임스페이스 import 는 사용부가 <Term 이 아니게 되어 위 스캔에 안 보인다 —
+// import 자체를 위반으로 잡아 우회로를 막는다 (PR #213 Codex 라운드 5).
+// interactive 모듈의 네임스페이스 import(X.Term)도 같은 이유로 금지한다.
+const TERM_ALIAS_IMPORT = /import\s+(?:type\s+)?\{[^}]*\bTerm\s+as\b[^}]*\}/;
+const TERM_NS_IMPORT = /import\s*\*\s*as\s+\w+\s+from\s+["'][^"']*\binteractive\b["']/;
+
+/**
+ * 본문 소스의 <Term id="..."> 참조 정적 검사 (#193) — 실존 용어집 id 만 통과.
+ * 소스는 문자열로 받는다 (fs 순회는 main 담당 — validateChapters 와 같은 순수 함수 패턴).
+ * Problem.chapterId 는 경로에서 챕터 디렉터리명을 뽑아 쓴다 (content/chapters/<cid>/...).
+ */
+export function validateTermRefs(
+  files: { path: string; source: string }[],
+  termIds: Set<string>
+): Problem[] {
+  const problems: Problem[] = [];
+
+  for (const { path, source } of files) {
+    const cid = /content\/chapters\/([^/]+)\//.exec(path)?.[1] ?? "content";
+
+    if (TERM_ALIAS_IMPORT.test(source) || TERM_NS_IMPORT.test(source)) {
+      problems.push({
+        chapterId: cid,
+        code: "TERM_IMPORT_ALIASED",
+        message: `${path}: Term 을 별칭·네임스페이스로 import 함 — 사용부가 <Term 이 아니게 되어 참조 검사가 못 본다. 직접 import { Term } 만 허용`,
+      });
+    }
+
+    for (const tag of source.matchAll(TERM_TAG)) {
+      const id = tag[1].includes("{") ? undefined : TERM_ID_ATTR.exec(tag[1])?.[1];
+      if (id === undefined) {
+        problems.push({
+          chapterId: cid,
+          code: "TERM_REF_UNPARSEABLE",
+          message: `${path}: <Term> 는 리터럴 id="..." 하나만 허용 — 동적 표현·스프레드는 id 를 덮어쓸 수 있어 검증할 수 없다`,
+        });
+      } else if (!termIds.has(id)) {
+        problems.push({
+          chapterId: cid,
+          code: "TERM_REF_UNKNOWN",
+          message: `${path}: <Term id="${id}"> 는 용어집(content/glossary.ts)에 없는 id`,
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
 /** 이 파일이 직접 실행됐는지 (import 되었는지 아닌지) — ESM 판별. */
 function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
+}
+
+/** content/chapters 아래 본문 소스(.mdx·.tsx) 전수 — Term 참조 스캔 대상. */
+function collectChapterSources(): { path: string; source: string }[] {
+  const root = fileURLToPath(new URL("../content/chapters", import.meta.url));
+  return fs
+    .readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((rel) => rel.endsWith(".mdx") || rel.endsWith(".tsx"))
+    .map((rel) => {
+      const abs = path.join(root, rel);
+      // Problem 메시지·챕터 추출용 경로는 리포 루트 기준 통일 표기(슬래시)로
+      return { path: `content/chapters/${rel.split(path.sep).join("/")}`, source: fs.readFileSync(abs, "utf8") };
+    });
 }
 
 async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
   const { glossary } = await import("../content/glossary.ts");
   const chapters = registry.map((entry) => entry.data);
-  const problems = [...validateChapters(chapters), ...validateGlossary(glossary, chapters)];
+  const problems = [
+    ...validateChapters(chapters),
+    ...validateGlossary(glossary, chapters),
+    ...validateTermRefs(collectChapterSources(), new Set(glossary.map((t) => t.id))),
+  ];
 
   if (problems.length === 0) {
     console.log(`✓ content 검사 통과 (챕터 ${chapters.length}개 · 용어 ${glossary.length}개)`);

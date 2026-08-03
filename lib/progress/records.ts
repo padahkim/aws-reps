@@ -6,7 +6,10 @@ import { applyAttempt, repair, type Progress, type QuestionRecord } from "./repa
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` 의 **브라우저 접점** (#66 — 부모 에픽 #86의 첫 쓰기 경로).
- * 설계 정본: docs/design/LEARNING_LOOP_DRAFT.md §4. **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
+ * 소유권은 갈라져 있다 (#207): 정책·판정 기준·"왜 이 필드들인가"는
+ * docs/design/LEARNING_LOOP_DRAFT.md §4가 정본이고, **필드 목록의 정본은 코드**
+ * (`Progress`·`QuestionRecord`·`ChapterRecord` — 아래에서 re-export 하는 `repair.ts` 의 형)다
+ * — 문서는 필드를 소유하지 않는다. **이 키의 쓰기는 전부 이 파일을 거친다**(§4-1).
  *
  * 값을 판단하는 규칙(검사·보정·병합)은 여기 없다 — `repair.ts` 가 소유하고 CI 가 회귀 테스트로
  * 잠근다(#214). 여기 남은 것은 localStorage 입출력과 React 결선뿐이다.
