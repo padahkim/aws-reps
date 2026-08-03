@@ -300,22 +300,27 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
               </span>
             )}
           </span>
-          <span style={{ display: "block", margin: "4px 0 8px" }}>{t.short}</span>
-          {/* next/link 가 아니라 일반 a — Link 클라이언트 전환은 hash 만 바꾸고 브라우저의
+          <span style={{ display: "block", margin: t.detail ? "4px 0 8px" : "4px 0 0" }}>{t.short}</span>
+          {/* 링크는 detail 이 있는 용어에만 — 팝오버가 이미 term·full·short 전부를 보여주므로,
+              detail 없는 항목은 용어집이 더 줄 게 없어 "자세히"가 과대 약속이 된다 (실기기 검수
+              피드백). detail 이 채워지면(#215) 링크가 자동으로 살아난다.
+              next/link 가 아니라 일반 a — Link 클라이언트 전환은 hash 만 바꾸고 브라우저의
               :target 상태를 갱신하지 않아, /glossary 의 대상 항목 하이라이트(#192,
               .glossary-item:target)가 켜지지 않는다. 실제 내비게이션이어야 :target 이 계산된다. */}
-          <a
-            href={`/glossary#${t.id}`}
-            style={{
-              // 카드가 색 고정이므로 링크색도 고정 팔레트(C.blue) — var(--accent)는 다크에서 안 읽힌다
-              color: C.blue,
-              fontSize: "0.78rem",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
-            }}
-          >
-            용어집에서 자세히 →
-          </a>
+          {t.detail && (
+            <a
+              href={`/glossary#${t.id}`}
+              style={{
+                // 카드가 색 고정이므로 링크색도 고정 팔레트(C.blue) — var(--accent)는 다크에서 안 읽힌다
+                color: C.blue,
+                fontSize: "0.78rem",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+              }}
+            >
+              용어집에서 자세히 →
+            </a>
+          )}
         </span>
       )}
     </span>
