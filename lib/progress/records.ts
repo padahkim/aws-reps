@@ -63,6 +63,25 @@ function emptyProgress(): Progress {
   return { v: V, chapters: {}, questions: {} };
 }
 
+/**
+ * 정규 ISO 순간(`new Date().toISOString()` 이 내는 그 형식)인가.
+ *
+ * `Date.parse` 가 유한한지만 보면 부족하다 (PR #202 Codex P2): `Date.parse("0")` 은 2000년으로
+ * 통과하고, `"2024-02-30"` 은 존재하지 않는 날짜인데 조용히 3월 1일이 된다. 게다가 규격 밖
+ * 문자열의 해석은 **브라우저마다 다르다** — 같은 저장값이 기기마다 다른 시각이 되는 셈이다.
+ * 그 값들이 통과하면 간격 반복(§1-2 dueAt)과 연체 정렬(§1-3)이 날조된 시각 위에서 돈다.
+ *
+ * 판정은 **왕복 동일성**으로 한다: 파싱한 순간을 다시 직렬화해 원본과 같아야 한다. 이 저장소는
+ * `toISOString()` 으로만 쓰므로 그 형식이 곧 정본이고, 달력값 검증도 여기에 딸려 온다
+ * (2024-02-30 은 3월 1일로 되돌아와 불일치한다). 형식이 다른 값은 손상으로 보고 집계에서
+ * 빼지만 **저장에서 지우지는 않는다** — 재응시 시 salvage 가 누계·첫 결과를 도로 살린다.
+ */
+function isIsoInstant(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const t = Date.parse(value);
+  return Number.isFinite(t) && new Date(t).toISOString() === value;
+}
+
 /** 0 이상의 정수로 정규화. 숫자가 아니거나 음수·NaN 이면 fallback. */
 function count(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
@@ -81,11 +100,7 @@ function count(value: unknown, fallback: number): number {
 function repairQuestion(raw: unknown): QuestionRecord | undefined {
   if (!isRecord(raw)) return undefined;
   const lastResult = raw.lastResult === "pass" || raw.lastResult === "fail" ? raw.lastResult : undefined;
-  // lastAt 은 파싱 가능한 시각이어야 한다 — 문자열이기만 하면 통과시키면 간격 반복(§1-2 dueAt)과
-  // 연체 정렬(§1-3)이 이 값을 Date 로 읽는 순간 조용히 깨진다
-  if (lastResult === undefined || typeof raw.lastAt !== "string" || !Number.isFinite(Date.parse(raw.lastAt))) {
-    return undefined;
-  }
+  if (lastResult === undefined || !isIsoInstant(raw.lastAt)) return undefined;
   // lastResult 가 있다는 건 최소 1회 채점됐다는 뜻. correct 가 살아 있으면 attempts 는 최소
   // 그만큼이다 — 반대로 잡으면 멀쩡한 correct 를 클램프가 깎아 버린다
   const attempts = Math.max(count(raw.attempts, 1), count(raw.correct, 0), 1);
@@ -233,17 +248,33 @@ export function recordQuestionAttempt(
     (salvaged?.firstResult === "pass" || salvaged?.firstResult === "fail"
       ? salvaged.firstResult
       : undefined);
-  // 구제한 기록의 시도 횟수도 **하한을 추론해서** 잡는다 — repairQuestion 이 쓰는 규칙과
-  // 같아야 한다 (PR #202 Codex P2). attempts 만 망가진 기록에서 0으로 떨어뜨리면 아래 클램프가
-  // 살아남은 correct 를 전부 0으로 깎고, prevAttempts === 0 이 첫 결과까지 이번 답으로 덮는다.
-  // 정답 횟수와 "첫 결과가 있다"는 사실은 각각 시도가 최소 그만큼 있었다는 증거다.
+  // 구제한 기록의 하한은 **알려진 양 끝을 모두** 근거로 잡는다 — repairQuestion 의 endpoints
+  // 규칙과 같아야 한다 (PR #202 Codex P2). 첫 결과만 보고 마지막 결과를 버리면, 둘이 서로
+  // 다를 때(= 서로 다른 시도라는 증거) 과거 한 회와 그 정답이 통째로 사라진다.
+  // attempts 가 0으로 떨어지는 것도 위험하다 — 아래 클램프가 살아남은 correct 를 깎고,
+  // prevAttempts === 0 이 "처음 푸는 문항"으로 읽혀 첫 결과까지 이번 답으로 덮는다.
+  const salvagedLast =
+    salvaged?.lastResult === "pass" || salvaged?.lastResult === "fail"
+      ? salvaged.lastResult
+      : undefined;
+  // 양 끝이 서로 다르면 서로 다른 시도이므로 최소 2회, 같거나 한쪽만 알면 최소 1회다
+  const knownEnds =
+    prevFirst !== undefined && salvagedLast !== undefined && prevFirst !== salvagedLast
+      ? [prevFirst, salvagedLast]
+      : [prevFirst ?? salvagedLast].filter((r) => r !== undefined);
   const salvagedAttempts = Math.max(
     count(salvaged?.attempts, 0),
     count(salvaged?.correct, 0),
-    prevFirst !== undefined ? 1 : 0,
+    knownEnds.length,
   );
   const prevAttempts = prev?.attempts ?? salvagedAttempts;
-  const prevCorrect = Math.min(prev?.correct ?? count(salvaged?.correct, 0), prevAttempts);
+  const prevCorrect = Math.min(
+    Math.max(
+      prev?.correct ?? count(salvaged?.correct, 0),
+      knownEnds.filter((r) => r === "pass").length,
+    ),
+    prevAttempts,
+  );
   data.questions[gk] = {
     ...salvaged,   // 못 고친 기록의 미지 필드 보존 (아래에서 아는 필드는 전부 덮어쓴다)
     ...prev,
