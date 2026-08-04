@@ -35,8 +35,9 @@ jobs:
 
       - run: npm run validate:test
 
-      # 진도 저장소 회귀 픽스처 (#214) — lib/progress/records-core.ts 의 read-repair·쓰기
-      # 누적. 타입도 화면도 멀쩡한 채 저장값만 틀리는 결함은 다른 단계가 못 잡는다.
+      # 학습 상태 저장소 회귀 픽스처 — 진도(#214, records-core.ts 의 read-repair·쓰기 누적)와
+      # 오답 노트(#219, review-core.ts 의 Leitner 상자 전이·기한 계산). 타입도 화면도 멀쩡한 채
+      # 저장값만 틀리는 결함은 다른 단계가 못 잡는다 — 상자·기한은 며칠 뒤에야 증상이 나온다.
       - run: npm run progress:test
 
       # 문서 신선도 게이트 (#117) — docs/ARCHITECTURE.md 의 사실 블록이

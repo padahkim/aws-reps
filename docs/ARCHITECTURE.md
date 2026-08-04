@@ -117,7 +117,10 @@ flowchart TD
   sec -->|"afterSection 슬롯"| learn
   prog -->|"읽음 진도"| ls["localStorage<br/>'aws-reps.read.v1'"]
   learn -->|"채점 사실"| ps["localStorage<br/>'dva.progress.v1'"]
+  learn -->|"상자·기한"| rs["localStorage<br/>'dva.review.v1'"]
   toc -->|"점수 배지(런타임 집계)"| ps
+  review["/review 오답 노트<br/>(due 정렬·재출제·셔플)"] --> rs
+  review -->|"같은 QuizItem 재사용"| learn
 ```
 
 **섹션 페이지가 조립되는 방식**(`app/chapters/[id]/[sec]/page.tsx`)이 이 앱에서 가장 밀도 높은 지점이다:
@@ -248,23 +251,27 @@ flowchart LR
 
 ## 6. 상태·진도
 
-localStorage 키가 **둘**이고, 각각 파일 하나가 소유한다. 다른 어떤 코드도 이 키들을 직접 만지지 않는다.
+localStorage 키가 **셋**이고, 각각 파일 하나가 소유한다. 다른 어떤 코드도 이 키들을 직접 만지지 않는다.
 
 | 키 | 소유 모듈 | 담는 것 |
 |---|---|---|
 | `"aws-reps.read.v1"` | `lib/progress.ts` | 읽음 진도 — `{ [chapterId]: 읽은 섹션 번호[] }`(1-based, 마무리 페이지 포함) |
 | `"dva.progress.v1"` | `lib/progress/records.ts` (쓰기 진입점)<br/>`lib/progress/records-core.ts` (필드·규칙) | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
+| `"dva.review.v1"` | `lib/progress/review.ts` (입출력)<br/>`lib/progress/review-core.ts` (필드·규칙) | 오답 노트 — 문항별 Leitner 상태 `{ [전역 문항 키]: { box, dueAt, graduatedAt? } }` (#219) |
+
+> **키는 셋인데 채점 진입점은 하나다**(#219). `recordQuestionAttempt`(records.ts)가 진도와 오답 노트를 **같은 시각으로** 함께 갱신한다 — 두 저장소가 서로 다른 순간에서 계산되면 "방금 푼 문항인데 기한이 어제"처럼 앞뒤 안 맞는 상태가 생긴다. 덕분에 채점이 어느 화면에서 일어나든(챕터 퀴즈·오답 노트) 상자 규칙이 저절로 적용된다 — "틀리면 어디서든 상자 1로"(설계 §1-2)가 구현으로도 성립하는 이유다.
 
 > **필드 목록의 정본은 문서가 아니라 코드다**(#207) — `records-core.ts`의 `Progress`·`QuestionRecord`·`ChapterRecord`이고, 설계 문서(§4)가 지키는 것은 "왜 이 필드들인가"다. 그 형이 `records.ts`가 아니라 옆 파일에 있는 이유는 #214다: `records.ts`는 `"use client"` + react import라 node가 못 불러 **CI가 진도 로직을 한 줄도 실행하지 못했다**. 순수 층을 갈라 회귀 테스트(`npm run progress:test`)를 붙였고, 앱은 여전히 `records.ts`만 import한다.
 
 - **전역 문항 키**는 `lib/progress/keys.ts`가 `` `${chapterId}:${slug ?? id}` ``로 합성한다. `q.id`를 쓰지 않는 이유: `drills.ts`는 생성물이고 임포터가 id를 위치대로(`q1`…) 발급해, 원본에 문항이 하나 끼어들면 그 뒤 id가 전부 밀려 **진도가 조용히 엉뚱한 문항에 붙는다**(#69의 선별 결정을 진도 키까지 확대 — PR #202). 저장 데이터가 콘텐츠 규약에 거는 **유일한 하드 의존**이라(설계 §4-2), 검증기가 **해석된 키**의 유일성과 `:` 미포함을 강제한다(`QUESTION_KEY_DUP`·`QUESTION_KEY_DELIMITER`).
-- `firstResult`는 첫 채점에만 쓰이고 고정된다 — §2-1의 숙달 판정("첫 시도 정답")이 재응시 뒤에는 복원 불가능하기 때문이다. 읽는 코드는 아직 없고 #86에서 쓴다.
+- `firstResult`는 첫 채점에만 쓰이고 고정된다 — §2-1의 숙달 판정("첫 시도 정답")이 재응시 뒤에는 복원 불가능하기 때문이다. 읽는 코드는 아직 없고 #86 잔여(숙달 판정·완료 배지)에서 쓴다.
+- **Leitner 상자**(`dva.review.v1`)는 상자 3개·간격 1/3/7일이다(설계 §1-2). 오답이면 **어디서 틀렸든** 상자 1·기한 +1일, 기한이 된 문항을 맞히면 한 칸 승급, 상자 3에서 맞히면 졸업(`graduatedAt`)이고 졸업 문항도 다시 틀리면 상자 1로 재진입한다. **기한 전의 정답은 승급시키지 않는다**(설계 D2) — 그 한 줄이 없으면 같은 자리에서 연타해 상자를 통과할 수 있어 간격 반복이 무력화된다. 시도 횟수·정오 이력은 이 키가 복제하지 않는다(진도 키 소관).
 - **점수는 저장하지 않는다**. 목차의 "8/11" 배지는 `scope === "final"` 문항의 `lastResult`를 런타임 집계해서 낸다 — 파생 가능한 값을 저장하지 않는다는 설계 원칙(§4-1) 때문이고, 덕분에 재응시가 자동 반영된다.
 - **구조 버전**: 키 접미 `.v1`이 메이저, 내부 `v` 필드가 마이너다. 로드 시 read-repair(누락 필드 기본값 주입, 미지 필드 보존)를 하고, **모르는 상위 `v`는 낮추지 않는다**.
 - **말이 안 되는 기록은 고치지 않고 버린다** — 앞뒤 안 맞는 값(응시 1회에 맞힘 3회 등)을 살려내려면 "둘 중 어느 쪽이 진짜인가"를 정하는 판단 규칙이 계속 늘어나는데, **이 저장소에는 그런 값을 만드는 경로가 없다**(쓰는 곳이 한 군데뿐이고 항상 정합한 값만 쓴다). 그런 기록은 사람이 저장소를 손으로 고친 것이다. 버리는 단위는 **문항 하나**이고(전체 초기화가 아니다 — 한 글자 때문에 전 챕터 진도가 날아가면 안 된다), 삭제는 다음 저장 때 반영된다.
 - **로그인 없음 · 기기 로컬** — 계정·서버 저장이 없다. 다른 기기와 동기화되지 않는다.
 - **SSG hydration 처리**: 정적 HTML은 항상 "빈 진도"로 렌더되고, 마운트 후 `useEffect`(`useReadSections`·`useQuestionRecords`)로 localStorage에서 채운다(불일치 방지). 파싱/스토리지 실패(프라이빗 모드 등)는 삼켜서 빈 진도로 강건하게 degrade한다.
-- **아직 안 하는 것**(사실 기술, 평가 아님): `dva.progress.v1`의 `chapters`(열람·완료 스냅샷)는 **형만 있고 쓰는 코드가 없다**. 개념 카드·셀프 퀴즈는 여전히 `useState`로만 살아서 결과가 저장되지 않는다. 오답노트(`dva.review.v1`)·Leitner·숙달 판정·진도 초기화 UI 없음 — 전부 에픽 #86 잔여. (부채·개선 우선순위 판단은 `아키텍처점검.md` 몫.)
+- **아직 안 하는 것**(사실 기술, 평가 아님): `dva.progress.v1`의 `chapters`(열람·완료 스냅샷)는 **형만 있고 쓰는 코드가 없다**. 개념 카드·셀프 퀴즈는 여전히 `useState`로만 살아서 결과가 저장되지 않는다. 숙달 판정·완료 배지·진도 대시보드(전체 진행률·도메인 커버리지)·진도 초기화 UI 없음 — 에픽 #86 잔여. 선택지 셔플도 `/review`에만 적용돼 있다(챕터 퀴즈는 원본 순서 — SSG 선렌더 HTML과의 hydration 때문, #219). (부채·개선 우선순위 판단은 `아키텍처점검.md` 몫.)
 
 ---
 
@@ -323,7 +330,7 @@ flowchart TD
 
 **더 읽기**: [`docs/README.md`](README.md) (문서 지도) · [`CLAUDE.md`](../CLAUDE.md) (규칙 전문) · [`docs/CURRICULUM.md`](CURRICULUM.md) (커리큘럼 도면·24챕터 트리) · [`docs/design/APP_ARCHITECTURE_DRAFT.md`](design/APP_ARCHITECTURE_DRAFT.md) (초기 *제안* — 구현물 아님, 아래 주의) · 진단은 자매 문서 [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md).
 
-> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델 중에서는 `dva.progress.v1`만 #66에서 들어왔고(`lib/progress/records.ts`, 설계 정본은 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §4), `dva.review.v1`은 아직 없다. 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
+> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델은 `dva.progress.v1`(#66)에 이어 `dva.review.v1`(#219)까지 들어왔고, `app/review/`도 생겼다 — 단 설계 정본은 그 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §1·§4다(초안의 `{addedAt, clearedAt?}` 대신 Leitner 상태를 담는다). 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
 
 ---
 
