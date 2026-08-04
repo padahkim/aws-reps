@@ -118,11 +118,15 @@ export function Sec({
 /**
  * 다른 챕터로의 인라인 상호 참조 — 아직 안 배운 개념이 먼저 등장할 때 상세 챕터로 잇는다.
  * (규약이 금지하는 "자체 내비게이션"은 목차·페이저류 UI — 본문 속 개념 링크는 해당 없음.)
+ *
+ * `sec`를 주면 챕터 목차가 아니라 그 섹션 페이지로 바로 간다 (#230 Codex 지적) — 링크 문구가
+ * "ch0-1 §01"처럼 섹션을 가리키는데 목차로 떨어지면 약속과 도착지가 어긋난다. 값은 섹션 페이지
+ * URL 번호(1-based, 규약 v2)이지 섹션의 `num`이 아니다 — §00이 있는 챕터는 §01이 2번이다.
  */
-export function ChLink({ id, children }: { id: string; children: ReactNode }) {
+export function ChLink({ id, sec, children }: { id: string; sec?: number; children: ReactNode }) {
   return (
     <Link
-      href={`/chapters/${id}`}
+      href={sec === undefined ? `/chapters/${id}` : `/chapters/${id}/${sec}`}
       style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 3 }}
     >
       {children}
