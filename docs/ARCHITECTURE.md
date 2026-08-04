@@ -138,14 +138,14 @@ flowchart TD
 | `app/_source/` | dev·프리뷰 전용 **원본 검수 도구**. 레거시 `.jsx`를 문자열로 읽어 브라우저 Babel로 렌더(§7). |
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
-| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `records.ts`(브라우저 붙임)·`records-core.ts`(순수 규칙)+`.test.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
+| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress/`(진도 저장소 **둘** — `read.ts` 읽음 · `records.ts`+`records-core.ts`(+`.test.ts`) 채점 · `keys.ts` 문항 키) · `reading-time.ts`(예상 소요, 서버 전용). |
 | `scripts/` | 빌드·검증·하네스 — `validate-content.ts`·`gen-source-routes.mjs`·`gen-arch-facts.ts`·`import-drills.ts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
 | 루트 | `next.config.ts`(output:export+MDX)·`tsconfig.json`·`mdx-components.tsx`·`package.json`·`.nvmrc`. |
 
-> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records-core.ts`(필드·규칙) + `records.ts`(쓰기 진입점).
+> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress/read.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records-core.ts`(필드·규칙) + `records.ts`(쓰기 진입점).
 
 ---
 
@@ -252,7 +252,7 @@ localStorage 키가 **둘**이고, 각각 파일 하나가 소유한다. 다른 
 
 | 키 | 소유 모듈 | 담는 것 |
 |---|---|---|
-| `"aws-reps.read.v1"` | `lib/progress.ts` | 읽음 진도 — `{ [chapterId]: 읽은 섹션 번호[] }`(1-based, 마무리 페이지 포함) |
+| `"aws-reps.read.v1"` | `lib/progress/read.ts` | 읽음 진도 — `{ [chapterId]: 읽은 섹션 번호[] }`(1-based, 마무리 페이지 포함) |
 | `"dva.progress.v1"` | `lib/progress/records.ts` (쓰기 진입점)<br/>`lib/progress/records-core.ts` (필드·규칙) | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
 
 > **필드 목록의 정본은 문서가 아니라 코드다**(#207) — `records-core.ts`의 `Progress`·`QuestionRecord`·`ChapterRecord`이고, 설계 문서(§4)가 지키는 것은 "왜 이 필드들인가"다. 그 형이 `records.ts`가 아니라 옆 파일에 있는 이유는 #214다: `records.ts`는 `"use client"` + react import라 node가 못 불러 **CI가 진도 로직을 한 줄도 실행하지 못했다**. 순수 층을 갈라 회귀 테스트(`npm run progress:test`)를 붙였고, 앱은 여전히 `records.ts`만 import한다.
@@ -323,7 +323,7 @@ flowchart TD
 
 **더 읽기**: [`docs/README.md`](README.md) (문서 지도) · [`CLAUDE.md`](../CLAUDE.md) (규칙 전문) · [`docs/CURRICULUM.md`](CURRICULUM.md) (커리큘럼 도면·24챕터 트리) · [`docs/design/APP_ARCHITECTURE_DRAFT.md`](design/APP_ARCHITECTURE_DRAFT.md) (초기 *제안* — 구현물 아님, 아래 주의) · 진단은 자매 문서 [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md).
 
-> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델 중에서는 `dva.progress.v1`만 #66에서 들어왔고(`lib/progress/records.ts`, 설계 정본은 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §4), `dva.review.v1`은 아직 없다. 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
+> ⚠ **`design/APP_ARCHITECTURE_DRAFT.md`는 옛 설계 제안이라 현행과 다르다.** 그 초안의 `lib/contract/` 어댑터·`app/review/`·공용 `Quiz`+`ChapterProvider`는 **구현되지 않았다.** 2키 진도 모델 중에서는 `dva.progress.v1`만 #66에서 들어왔고(`lib/progress/records.ts`, 설계 정본은 초안이 아니라 `design/LEARNING_LOOP_DRAFT.md` §4), `dva.review.v1`은 아직 없다. 현행 정본은 `schema.ts` + `registry.ts` + `lib/content.ts` + `lib/progress/` + `app/` 실제 트리다. `docs/_frozen/`도 폐기 보관본이다.
 
 ---
 
