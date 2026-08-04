@@ -81,6 +81,33 @@ export function recordReviewResult(
 }
 
 /**
+ * due 를 세는 데 쓰는 **현재 시각** (#219 → 공용화 #224). `null` 이면 아직 셀 수 없다는 뜻이다
+ * — 서버·첫 렌더에서는 시각을 잡을 수 없다(잡으면 hydration 이 어긋난다).
+ *
+ * 마운트 때 한 번만 잡으면 **화면을 열어 둔 채 자정을 넘겼을 때 기한이 된 복습이 안 뜬다**
+ * (PR #221 리뷰 지적) — 배지가 하려는 일이 바로 그걸 알리는 것인데. 탭으로 돌아올 때 다시 잡는
+ * 것으로 충분하다: 이 화면을 몇 시간째 **보고 있는** 경우까지 타이머로 쫓는 건 알림 없는
+ * 설계(§1-3)에 견줘 과하다.
+ *
+ * 홈의 "복습 N" 배지(`ReviewLink`)와 챕터 완료 배지의 "복습 n" 병기(#224)가 같이 쓴다 —
+ * 두 곳이 각자 시각을 잡으면 같은 화면에서 기준 시각이 갈릴 수 있다.
+ */
+export function useNow(): string | null {
+  const [now, setNow] = useState<string | null>(null);
+  useEffect(() => {
+    const read = () => setNow(new Date().toISOString());
+    read();
+    window.addEventListener("focus", read);
+    document.addEventListener("visibilitychange", read);
+    return () => {
+      window.removeEventListener("focus", read);
+      document.removeEventListener("visibilitychange", read);
+    };
+  }, []);
+  return now;
+}
+
+/**
  * 마운트 후 오답 노트를 읽는다 — SSG HTML 은 항상 "복습 없음"으로 렌더되므로 useEffect 로
  * 채워야 hydration 불일치가 없다 (`useQuestionRecords` 와 같은 규칙).
  *

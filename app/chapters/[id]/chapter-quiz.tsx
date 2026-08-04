@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
 import { recordQuestionAttempt } from "@/lib/progress/attempt";
+import { captureChapterCompletion } from "@/lib/progress/completion";
 
 /**
  * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
@@ -374,12 +375,18 @@ export function QuizItem({
 export default function ChapterQuiz({
   chapterId,
   quiz,
+  finalKeys = [],
   gated = false,
   header,
   onExplainedChange,
 }: {
   chapterId: string;              // 채점 기록의 전역 문항 키 접두 (#66) — 필수: 빠뜨린 경로는 조용히 기록을 잃는다
   quiz: Question[];
+  /**
+   * 이 챕터 finalQ 의 전역 키 (#224) — 채점 직후 완료 조건을 그 자리에서 본다.
+   * 배지가 뜰 때만 보면 "80%를 넘겼다가 다시 풀기로 도로 깨진" 구간을 놓친다 (completion.ts 주석).
+   */
+  finalKeys?: string[];
   // ── 세션 모드 (#59) — 실전 스테이션이 이 컴포넌트를 재사용할 때만 쓴다 ──
   gated?: boolean;                // 채점 후 해설을 자기설명 체크포인트 뒤로 미룬다
   header?: ReactNode;             // 기본 헤더(챕터 퀴즈 h2+안내)를 통째로 교체하는 슬롯
@@ -404,6 +411,8 @@ export default function ChapterQuiz({
           question={q}
           gated={gated}
           onExplainedChange={onExplainedChange}
+          // 채점 하나하나가 완료 조건을 넘길 수 있다 — 넘긴 그 순간을 여기서 잡는다 (#224)
+          onGraded={() => captureChapterCompletion(chapterId, finalKeys)}
         />
       ))}
     </section>

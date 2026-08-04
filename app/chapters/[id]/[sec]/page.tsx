@@ -11,6 +11,7 @@ import {
   sectionCount,
   selfQuizForSection,
 } from "@/lib/content";
+import { chapterQuestionKeys } from "@/lib/question-bank";
 import ChapterQuiz from "../chapter-quiz";
 import ChapterSession from "../chapter-session";
 import MarkRead from "./mark-read";
@@ -52,6 +53,10 @@ export default async function SectionPage({
 
   // 마무리 페이지(세션/퀴즈)에는 본문 섹션 장치가 없다 — 아래 분기들의 공통 판별
   const isFinal = isSession || isQuiz;
+
+  // 완료 판정의 finalQ 분모 (#224) — 채점하는 화면이 그 자리에서 조건 충족을 보게 넘긴다.
+  // 목차·홈과 **같은 함수**에서 받는다 (lib/question-bank.ts `chapterQuestionKeys`).
+  const finalKeys = isFinal ? (chapterQuestionKeys()[id]?.final ?? []) : [];
 
   // 개념 인출 카드 — 본문 섹션 페이지에만, 그 섹션(num)에 매핑된 카드가 있을 때만.
   // body 의 afterSection 슬롯으로 넘겨 본문과 아웃트로 "사이"에 놓는다 (규약 v3 섹션 규약).
@@ -128,10 +133,11 @@ export default async function SectionPage({
           chapterId={id}
           diagram={session?.diagram}
           quiz={quiz}
+          finalKeys={finalKeys}
           pool={mixedPool(entry)}
         />
       ) : isQuiz ? (
-        <ChapterQuiz chapterId={id} quiz={quiz} />
+        <ChapterQuiz chapterId={id} quiz={quiz} finalKeys={finalKeys} />
       ) : (
         <Body section={n - 1} afterSection={afterSection} beforeBody={beforeBody} />
       )}

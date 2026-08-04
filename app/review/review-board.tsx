@@ -10,6 +10,7 @@ import {
   type ReviewEntry,
 } from "@/lib/progress/review-core";
 import type { BankEntry } from "@/lib/question-bank";
+import { captureChapterCompletion } from "@/lib/progress/completion";
 import { QuizItem } from "../chapters/[id]/chapter-quiz";
 
 /**
@@ -115,7 +116,18 @@ function Outcome({
   );
 }
 
-export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
+export function ReviewBoard({
+  bank,
+  chapterKeys,
+}: {
+  bank: BankEntry[];
+  /**
+   * 챕터별 문항 키 색인 (#224) — 여기서 쓰는 것은 `final` 뿐이다. 오답 노트에서 마지막 오답을
+   * 바로잡아 완료 조건을 넘기는 경로가 실재하므로, 그 순간을 이 화면도 잡아야 한다
+   * (`completion.ts` 주석 — 넘겼다가 곧 다시 틀리면 배지가 영영 안 붙는다).
+   */
+  chapterKeys: Record<string, { final: string[] }>;
+}) {
   const { review, refresh } = useReview();
   const byKey = new Map(bank.map((e) => [e.gk, e]));
 
@@ -224,6 +236,11 @@ export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
                   onGraded={(passed) => {
                     const before = review.items[entry.gk] ?? entry.item;
                     setGraded((prev) => ({ ...prev, [entry.gk]: { passed, before } }));
+                    // 이 채점이 그 챕터의 완료 조건을 넘겼을 수 있다 (#224)
+                    captureChapterCompletion(
+                      bankEntry.chapterId,
+                      chapterKeys[bankEntry.chapterId]?.final ?? [],
+                    );
                     refresh();
                   }}
                 />

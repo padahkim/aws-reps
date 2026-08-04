@@ -9,7 +9,7 @@ import {
   hasSessionFinale,
   mixedPool,
 } from "@/lib/content";
-import { stableQuestionId } from "@/lib/progress/keys";
+import { chapterQuestionKeys } from "@/lib/question-bank";
 import { ChapterOrientation } from "./chapter-orientation";
 import { SectionToc, type TocGroup, type TocItem } from "./section-toc";
 
@@ -66,16 +66,17 @@ export default async function ChapterPage({
       ].filter(Boolean)
     : [];
   // 점수 배지가 셀 문항 (#66) — 챕터 종합(final)만 센다. 본문 인라인(mini)은 챕터 완료 판정의
-  // 대상이 아니다 (설계 §2-3 finalQ). 배지 계산 자체는 클라이언트 몫이라 여기서는 식별자만
-  // 넘기는데, 그 식별자는 저장 키와 같은 **안정 id** 여야 한다 (positional q.id 가 아니다).
-  const finalQuizIds = quiz.filter((q) => q.scope === "final").map(stableQuestionId);
+  // 대상이 아니다 (설계 §2-3 finalQ). 계산은 클라이언트 몫이라 여기서는 전역 키만 넘긴다.
+  // 그 키를 여기서 합성하지 않고 `chapterQuestionKeys` 에서 받는 이유 (#224): 완료 배지의
+  // finalQ 분모와 **같은 집합**이어야 하고, 홈 화면도 같은 함수에서 받는다.
+  const keys = chapterQuestionKeys()[meta.id] ?? { all: [], final: [] };
   const quizItem: TocItem | undefined =
     finale || quiz.length > 0
       ? {
           sec: sections.length + 1,
           num: "Q",
           title: finale ? "마무리 세션" : "챕터 퀴즈",
-          quizIds: finalQuizIds,
+          quizKeys: keys.final,
           sub: [
             finale ? `${stationNames.join(" · ")} — 전 섹션 종합` : `${quiz.length}문항 · 전 섹션 종합`,
             parts.length > 0 && estimate ? `약 ${estimate.finale}분` : null,
@@ -143,7 +144,12 @@ export default async function ChapterPage({
           partCount={parts.length}
         />
       )}
-      <SectionToc chapterId={meta.id} groups={groups} />
+      <SectionToc
+        chapterId={meta.id}
+        groups={groups}
+        finalKeys={keys.final}
+        chapterKeys={keys.all}
+      />
       {/* 빈출 별점의 근거 (#185) — 툴팁이 없는 모바일에서도 이 줄이 항상 보인다 */}
       {items.some((item) => item.freq) && (
         <p style={{ marginTop: "1rem", fontSize: "0.78rem", color: "var(--muted)" }}>

@@ -367,11 +367,13 @@ export default function ChapterSession({
   chapterId,
   diagram,
   quiz,
+  finalKeys = [],
   pool,
 }: {
   chapterId: string;              // 실전 스테이션의 채점 기록용 (#66) — <ChapterQuiz> 로 그대로 넘긴다
   diagram?: SessionDiagram;
   quiz: Question[];
+  finalKeys?: string[];           // 완료 판정의 finalQ 분모 (#224) — 역시 그대로 넘긴다
   pool: MixedPoolItem[];
 }) {
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
@@ -458,6 +460,7 @@ export default function ChapterSession({
         <ChapterQuiz
           chapterId={chapterId}
           quiz={quiz}
+          finalKeys={finalKeys}
           gated
           header={
             <StationHeader

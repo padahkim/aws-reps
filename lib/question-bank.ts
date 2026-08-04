@@ -35,3 +35,32 @@ export function questionBank(): BankEntry[] {
 export function questionKeys(): string[] {
   return questionBank().map((entry) => entry.gk);
 }
+
+/** 챕터 하나가 소유한 문항 키 (#224). 완료 판정과 "복습 n" 이 서로 다른 모집단을 쓴다. */
+export interface ChapterQuestionKeys {
+  /** 그 챕터의 **전 문항** — "복습 n" 병기가 세는 모집단(오답은 mini 에서도 난다). */
+  all: string[];
+  /** `scope === "final"` 만 — 챕터 완료 판정의 분모다 (설계 §2-3 finalQ · §4-2). */
+  final: string[];
+}
+
+/**
+ * 챕터별 문항 키 색인 (#224) — 완료 배지가 홈과 챕터 목차 **양쪽**에서 같은 집합을 보게 하는
+ * 단일 출처다. 두 화면이 각자 `scope === "final"` 을 걸면 언젠가 한쪽만 고쳐진다.
+ *
+ * **퀴즈가 없는 챕터도 빈 항목으로 들어간다** — 그게 "열람 완료"(D4)가 되는 챕터이고,
+ * 호출부가 `?? {all: [], final: []}` 같은 폴백을 각자 쓰지 않아도 되게 여기서 채운다.
+ */
+export function chapterQuestionKeys(): Record<string, ChapterQuestionKeys> {
+  const index: Record<string, ChapterQuestionKeys> = {};
+  for (const entry of getAllChapters()) {
+    index[entry.data.chapterMeta.id] = { all: [], final: [] };
+  }
+  for (const entry of questionBank()) {
+    const slot = index[entry.chapterId];
+    if (!slot) continue;   // 레지스트리에 없는 챕터의 문항은 있을 수 없다 — 있으면 무시한다
+    slot.all.push(entry.gk);
+    if (entry.question.scope === "final") slot.final.push(entry.gk);
+  }
+  return index;
+}

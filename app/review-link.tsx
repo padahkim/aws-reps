@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useReview } from "@/lib/progress/review";
+import { useNow, useReview } from "@/lib/progress/review";
 import { dueCount } from "@/lib/progress/review-core";
 
 /**
@@ -18,24 +17,9 @@ import { dueCount } from "@/lib/progress/review-core";
  */
 export function ReviewLink({ knownKeys }: { knownKeys: string[] }) {
   const { review } = useReview();
-  // 개수는 시각에 달렸다 — 서버·첫 렌더에서는 셀 수 없으므로 마운트 후에만 센다
-  const [now, setNow] = useState<string | null>(null);
-  useEffect(() => {
-    const read = () => setNow(new Date().toISOString());
-    read();
-    /**
-     * 시각을 마운트 때 한 번만 잡으면, 홈을 열어 둔 채 자정을 넘겼을 때 **복습이 기한이 됐는데
-     * 배지가 안 뜬다** (PR #221 리뷰 지적) — 배지가 하려는 일이 바로 그걸 알리는 것인데.
-     * 탭으로 돌아올 때 다시 잡는 것으로 충분하다: 이 화면을 몇 시간째 **보고 있는** 경우까지
-     * 타이머로 쫓는 건 알림 없는 설계(§1-3)에 견줘 과하다.
-     */
-    window.addEventListener("focus", read);
-    document.addEventListener("visibilitychange", read);
-    return () => {
-      window.removeEventListener("focus", read);
-      document.removeEventListener("visibilitychange", read);
-    };
-  }, []);
+  // 개수는 시각에 달렸다 — 서버·첫 렌더에서는 셀 수 없으므로 마운트 후에만 센다.
+  // 잡는 규칙(포커스 복귀 때 다시 잡기)은 챕터 완료 배지의 "복습 n" 과 공유한다 (#224)
+  const now = useNow();
   // 오답 노트 화면이 그리는 집합과 **같은 것**을 센다 (lib/question-bank.ts 주석 참조)
   const due = now === null ? 0 : dueCount(review, now, new Set(knownKeys));
 

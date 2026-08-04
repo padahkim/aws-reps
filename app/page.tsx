@@ -9,11 +9,15 @@ import {
   sectionCount,
 } from "@/lib/content";
 import { HomeProgress } from "./home-progress";
-import { questionKeys } from "@/lib/question-bank";
+import { chapterQuestionKeys, questionKeys } from "@/lib/question-bank";
+import { CompletionBadge } from "./completion-badge";
 import { ReviewLink } from "./review-link";
 
 export default function Home() {
   const chapters = getAllChapters();
+  // 챕터별 문항 키 (#224) — 완료 배지의 finalQ 분모와 "복습 n" 의 모집단. 키 문자열만 실으므로
+  // 문항 본문은 클라이언트로 가지 않는다 (lib/question-bank.ts 주석 참조)
+  const keys = chapterQuestionKeys();
 
   return (
     <>
@@ -69,9 +73,27 @@ export default function Home() {
                       {meta.domain} · 출제빈도 {meta.examWeight}/5
                       {minutes !== undefined && ` · 약 ${minutes}분`}
                     </span>
-                    {/* 읽음 진도 (이슈 #7 확정: 진도 바 + % 병기) */}
-                    <div style={{ marginTop: 2 }}>
+                    {/*
+                      읽음 진도 (이슈 #7 확정: 진도 바 + % 병기) + 완료 배지 (#224).
+                      나란히 두는 것이 요점이다 — 진도 바는 "본문을 어디까지 봤나", 배지는
+                      "챕터를 끝냈나"라 서로 다른 사실이고, 붙어 있어야 그 차이가 읽힌다.
+                    */}
+                    <div
+                      style={{
+                        marginTop: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <HomeProgress chapterId={meta.id} total={sectionCount(entry)} />
+                      <CompletionBadge
+                        chapterId={meta.id}
+                        sectionTotal={sectionCount(entry)}
+                        finalKeys={keys[meta.id]?.final ?? []}
+                        chapterKeys={keys[meta.id]?.all ?? []}
+                      />
                     </div>
                   </li>
                 );

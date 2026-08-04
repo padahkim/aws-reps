@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { questionBank } from "@/lib/question-bank";
+import { chapterQuestionKeys, questionBank } from "@/lib/question-bank";
 import { ReviewBoard } from "./review-board";
 
 export const metadata: Metadata = {
@@ -17,5 +17,7 @@ export const metadata: Metadata = {
  * 챕터가 늘어 부담이 되면 그때 챕터별 청크로 쪼갠다 — 저장 구조는 그대로다.
  */
 export default function ReviewPage() {
-  return <ReviewBoard bank={questionBank()} />;
+  // chapterKeys 는 챕터 완료 판정용 finalQ 색인 (#224) — 여기서 바로잡은 오답이 완료 조건을
+  // 넘길 수 있어, 그 순간을 이 화면도 잡는다. 키 문자열뿐이라 페이로드는 무시할 만하다.
+  return <ReviewBoard bank={questionBank()} chapterKeys={chapterQuestionKeys()} />;
 }
