@@ -51,6 +51,11 @@ function concept(over: Partial<SessionConcept> = {}): SessionConcept {
   return { id: "c1", section: "01", q: "질문?", a: "답", ...over };
 }
 
+/** 셀프 퀴즈 항목 (#231 — slug 가 필수라 기본값을 준다. 키 검사는 slug 를 덮어써서 한다). */
+function selfq(over: Partial<SelfQuizEntry> = {}): SelfQuizEntry {
+  return { slug: "sq-a", section: "01", q: "되나?", a: "안 된다", ...over };
+}
+
 /** 도식 노드 — role·name 쌍 (#59). 테스트에서는 이름 하나로 둘 다 채운다. */
 function dnode(name: string) {
   return { role: `${name} 역할`, name };
@@ -319,13 +324,47 @@ expectCaught(
 // 셀프 퀴즈 yn (#150 — 판정형 표시는 "예"|"아니오"만. TS 밖 데이터 유입 대비 런타임 검사)
 expectCaught(
   "selfQuiz yn 허용 밖 값",
-  [ch(meta("1-1"), [], [section()], undefined, [{ section: "01", q: "되나?", a: "안 된다", yn: "no" as SelfQuizEntry["yn"] }])],
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ yn: "no" as SelfQuizEntry["yn"] })])],
   "SELFQUIZ_YN_INVALID"
 );
 expectCaught(
   "selfQuiz yn 빈 문자열",
-  [ch(meta("1-1"), [], [section()], undefined, [{ section: "01", q: "되나?", a: "안 된다", yn: "" as SelfQuizEntry["yn"] }])],
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ yn: "" as SelfQuizEntry["yn"] })])],
   "SELFQUIZ_YN_INVALID"
+);
+
+// 셀프 퀴즈 slug (#231 — 진도 저장 키의 뒷부분이라 형식·유일성이 곧 기록의 정합성이다)
+expectCaught(
+  "selfQuiz slug 에 sq- 접두 없음",
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ slug: "s3-basics" })])],
+  "SELFQUIZ_SLUG_FORMAT"
+);
+expectCaught(
+  "selfQuiz slug 에 대문자·공백",
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ slug: "sq-S3 basics" })])],
+  "SELFQUIZ_SLUG_FORMAT"
+);
+expectCaught(
+  "selfQuiz slug 에 전역 키 구분자(:)",
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ slug: "sq-a:b" })])],
+  "SELFQUIZ_SLUG_FORMAT"
+);
+expectCaught(
+  "selfQuiz slug 비어 있음",
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ slug: "" })])],
+  "SELFQUIZ_SLUG_FORMAT"
+);
+expectCaught(
+  "selfQuiz slug 가 챕터 내 중복",
+  [ch(meta("1-1"), [], [section()], undefined, [selfq({ slug: "sq-a" }), selfq({ slug: "sq-a" })])],
+  "QUESTION_KEY_DUP"
+);
+// 이 케이스가 이 이슈의 핵심 회귀다: quiz 와 selfQuiz 는 `${챕터 id}:${안정 식별자}` 라는
+// **한 이름공간**을 쓰므로, 출처가 달라도 키가 겹치면 두 문항이 진도 기록 하나를 덮어쓴다.
+expectCaught(
+  "selfQuiz slug 가 같은 챕터 quiz 의 안정 식별자와 충돌",
+  [ch(meta("1-1"), [question({ slug: "sq-a" })], [section()], undefined, [selfq({ slug: "sq-a" })])],
+  "QUESTION_KEY_DUP"
 );
 
 console.log("\n── 통과해야 하는 적법 입력 ──");
@@ -333,9 +372,9 @@ console.log("\n── 통과해야 하는 적법 입력 ──");
 // 셀프 퀴즈: yn 태깅·미태깅 혼재는 적법 (#150 — yn 은 optional, 없으면 서술형)
 expectClean("정상 selfQuiz(yn 태깅+미태깅 혼재)", [
   ch(meta("1-1"), [], [section()], undefined, [
-    { section: "01", q: "되나?", a: "안 된다", yn: "아니오" },
-    { section: "01", q: "가능한가?", a: "가능하다", yn: "예" },
-    { section: "01", q: "무엇인가?", a: "이것" },
+    selfq({ slug: "sq-a", yn: "아니오" }),
+    selfq({ slug: "sq-b", q: "가능한가?", a: "가능하다", yn: "예" }),
+    selfq({ slug: "sq-c", q: "무엇인가?", a: "이것" }),
   ]),
 ]);
 

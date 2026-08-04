@@ -1,8 +1,8 @@
 "use client";
 
-import { earnsCompletion } from "./completion-core";
-import { getReadSections } from "./read";
-import { loadProgress, markChapterCompleted } from "./records";
+import { earnsCompletion } from "./completion-core.ts";
+import { getReadSections } from "./read.ts";
+import { loadProgress, markChapterCompleted } from "./records.ts";
 
 /**
  * 완료 조건을 **지금** 충족했으면 스냅샷을 남긴다 (#224) — 판정(`completion-core.ts`)과 저장

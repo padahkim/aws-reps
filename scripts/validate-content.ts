@@ -528,6 +528,27 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
             message: `selfQuiz[${i}] (section "${e.section}"): q 또는 a 가 비어 있음`,
           });
         }
+        // slug = 진도 저장 키의 뒷부분 (#231). 형식 검사가 곧 구분자(":") 금지도 겸한다 —
+        // 전역 키 `${챕터 id}:${slug}` 합성이 단사여야 하기 때문 (lib/progress/keys.ts).
+        if (!SELFQUIZ_SLUG_FORMAT.test(e.slug)) {
+          problems.push({
+            chapterId: cid,
+            code: "SELFQUIZ_SLUG_FORMAT",
+            message: `selfQuiz[${i}] (section "${e.section}"): slug ${JSON.stringify(e.slug)} — "sq-" 로 시작하는 소문자 케밥 케이스여야 함`,
+          });
+        }
+        // **quiz 와 같은 이름공간**을 본다: 둘 다 `${cid}:${안정 식별자}` 로 저장되므로 겹치면
+        // 챕터 퀴즈 문항과 셀프 퀴즈 문항이 진도 기록 하나를 나눠 쓰며 서로를 덮어쓴다.
+        // 그래서 위 quiz 루프가 채운 Set 을 그대로 이어 쓴다 ("sq-" 접두가 이 충돌을 사실상
+        // 막지만, 막는 것과 검사하는 것은 다르다 — 접두 규약이 깨져도 여기서 걸린다).
+        else if (qKeySeen.has(e.slug)) {
+          problems.push({
+            chapterId: cid,
+            code: "QUESTION_KEY_DUP",
+            message: `selfQuiz[${i}] (section "${e.section}"): 진도 저장 키 "${e.slug}" 가 챕터 내에서 중복 — 두 문항이 한 기록을 공유하게 됨`,
+          });
+        }
+        qKeySeen.add(e.slug);
         // yn(판정형 표시, #150): 있으면 "예"|"아니오"만 — 그 외 값(빈 문자열 포함)이면
         // 위젯의 어느 버튼과도 매칭되지 않아 그 문항은 항상 오답 처리된다.
         if (e.yn !== undefined && e.yn !== "예" && e.yn !== "아니오") {
@@ -543,6 +564,13 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
 
   return problems;
 }
+
+/**
+ * 셀프 퀴즈 slug — `sq-` 접두 + 소문자 케밥 케이스. schema.ts SelfQuizEntry.slug 참조.
+ * 접두를 형식에 박아 두는 이유: 이 값은 같은 챕터 quiz[] 의 안정 식별자와 **한 이름공간**을
+ * 쓰므로, 접두가 갈라져 있으면 두 출처가 서로의 진도 기록을 덮어쓸 일이 애초에 없다.
+ */
+const SELFQUIZ_SLUG_FORMAT = /^sq-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** 용어집 id — URL 앵커(/glossary#<id>)로 쓰이므로 소문자 케밥 케이스만. schema.ts GlossaryTerm.id 참조. */
 const GLOSSARY_ID_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

@@ -44,3 +44,25 @@ export function stableQuestionId(question: QuestionIdentity): string {
 export function globalQuestionKey(chapterId: string, stableId: string): string {
   return `${chapterId}:${stableId}`;
 }
+
+/**
+ * 셀프 퀴즈 문항의 안정 식별자 접두 (#231). 규약은 content/schema.ts 의 `SelfQuizEntry.slug`,
+ * 강제는 검증기의 `SELFQUIZ_SLUG_FORMAT` 이다 — 여기서는 읽기만 한다.
+ */
+const SELF_QUIZ_PREFIX = "sq-";
+
+/**
+ * 이 전역 키가 섹션 셀프 퀴즈 문항인가 (#231).
+ *
+ * 셀프 퀴즈와 챕터 퀴즈는 진도 저장소에서 **한 이름공간**을 쓴다. 대부분의 코드는 그 둘을
+ * 구분할 필요가 없지만(둘 다 "이 문항을 맞혔나"라는 같은 사실이다), **오답 노트는 다르다**:
+ * 그 화면은 선택지가 있는 문항의 재출제를 전제로 만들어져 있어서 셀프 퀴즈를 렌더할 수 없다.
+ * 그래서 상자에 들이는 경로가 이 술어로 셀프 퀴즈를 걸러 낸다 (`seedFromHistory`).
+ *
+ * 접두로 판별하는 것이 안전한 이유: 접두는 관례가 아니라 **검증기가 강제하는 형식**이고,
+ * 같은 챕터의 챕터 퀴즈 slug 는 이 접두를 쓸 수 없다(쓰면 키 충돌로 걸린다).
+ */
+export function isSelfQuizKey(globalKey: string): boolean {
+  const sep = globalKey.indexOf(":");
+  return sep !== -1 && globalKey.slice(sep + 1).startsWith(SELF_QUIZ_PREFIX);
+}

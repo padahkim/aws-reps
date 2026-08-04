@@ -296,6 +296,21 @@ export interface SessionData {
  * 렌더는 content/chapters/interactive.tsx 의 SelfQuiz (섹션당 1~3문항 소형 덱, #82 상호작용).
  */
 export interface SelfQuizEntry {
+  /**
+   * 이 문항의 **안정 식별자**이자 진도 저장의 전역 문항 키 뒷부분 (`${챕터 id}:${slug}`, #231).
+   * 형식은 `sq-` + 소문자 케밥 (검증기 SELFQUIZ_SLUG_FORMAT 이 강제).
+   *
+   * 왜 optional 이 아닌가: 폴백할 id 자체가 이 규약에 없다. 빠지면 그 문항의 채점 결과가
+   * 갈 곳이 없고, 형만 optional 로 두면 "언젠가 채우면 되는 것"으로 읽혀 조용히 비는 문항이
+   * 생긴다 — 그러면 챕터 집계가 문항 수를 못 맞춘다.
+   *
+   * `sq-` 접두가 규약인 이유: 진도 키의 이름공간을 같은 챕터의 `quiz[]`(drills 원본 slug)와
+   * **공유**한다. 겹치면 두 문항이 기록 하나를 나눠 쓰며 서로를 덮어쓰므로 검증기가 합집합
+   * 유일성을 강제하는데(QUESTION_KEY_DUP), 접두가 갈라져 있으면 그 충돌이 애초에 안 난다.
+   *
+   * 값은 한 번 정하면 바꾸지 않는다 — 바꾸면 그 문항에 쌓인 학습 이력이 끊긴다.
+   */
+  slug: string;
   section: string;                // 붙을 섹션의 SectionMeta.num ("01") — 실존해야 함
   q: string;
   a: string;
