@@ -251,6 +251,8 @@ export const glossary: GlossaryTerm[] = [
     term: "CloudTrail",
     full: "AWS CloudTrail",
     short: "계정의 API 호출을 기록하는 감사 로그 서비스(\"누가 언제 무엇을 했나\") — 관리 이벤트는 기본 기록되고, S3 객체 접근 같은 데이터 이벤트는 따로 켜야 남는다.",
+    detail:
+      "콘솔의 이벤트 히스토리는 최근 90일치 관리 이벤트만 보여 준다. 더 오래 보관하거나 분석하려면 트레일을 만들어 S3 버킷(필요하면 CloudWatch Logs까지)으로 계속 내보내야 한다.\n\nS3 객체 읽기·쓰기나 Lambda 호출 같은 데이터 이벤트는 양이 많아 기본적으로 꺼져 있고 켜면 추가 과금된다 — 사고 뒤에 \"누가 이 객체를 지웠나\"가 안 남아 있는 흔한 원인이다.\n\n쓰임이 CloudWatch와 갈린다: 누가 어떤 API를 불렀나(감사)는 CloudTrail, 얼마나 느리고 얼마나 실패했나(운영 지표)는 CloudWatch다.",
   },
   {
     id: "access-analyzer",
@@ -290,6 +292,8 @@ export const glossary: GlossaryTerm[] = [
     term: "Secrets Manager",
     full: "AWS Secrets Manager",
     short: "DB 비밀번호 같은 시크릿을 저장하고 자동 교체(rotation)까지 해 주는 관리 서비스다.",
+    detail:
+      "값은 KMS 키로 암호화해 저장하고, 교체용 Lambda를 붙여 비밀번호를 주기적으로 자동 교체한다 — RDS처럼 교체 함수가 준비된 대상도 있다.\n\n대신 시크릿마다 월정액과 API 호출 요금이 붙는다. 그래서 시험의 판단 기준은 자동 교체가 필요한지다 — 필요하면 Secrets Manager, 단순 저장이면 Parameter Store 표준 계층(무료)이 정답이다.\n\n호출할 때마다 새로 조회하면 지연과 요금이 함께 늘기 때문에, 받아 온 값을 실행 환경에 캐시해 재사용하는 쪽을 권한다.",
   },
   {
     id: "ssm",
@@ -378,6 +382,8 @@ export const glossary: GlossaryTerm[] = [
     term: "CloudFront",
     full: "Amazon CloudFront",
     short: "AWS의 CDN(콘텐츠 전송 네트워크) — 전 세계 엣지 로케이션에 콘텐츠를 캐시해 사용자 가까운 곳에서 빠르게 전달한다.",
+    detail:
+      "오리진(S3 버킷·ALB·아무 HTTP 서버)을 뒤에 두고 엣지에서 응답을 캐시한다. S3를 오리진으로 둘 때는 버킷을 비공개로 잠그고 OAC(구 OAI)로 CloudFront에만 읽기를 허용하는 것이 정석이다.\n\n무엇을 캐시 키로 삼고 얼마나 보관할지는 캐시 정책이 정하고, 배포 직후 옛 콘텐츠를 밀어내야 하면 무효화(invalidation)를 건다.\n\n유료·비공개 콘텐츠는 CloudFront 서명된 URL(파일 하나)이나 서명된 쿠키(여러 파일)로 막는다 — 이름이 닮은 S3 presigned URL과 헷갈리기 쉬운데, 엣지 캐시 앞단에서 막는 쪽이 CloudFront다. HTTPS용 인증서는 us-east-1의 ACM에서 발급받아야 붙는다.",
   },
 
   // ── 컴퓨팅·서버리스 ───────────────────────────────────────────────────
@@ -425,6 +431,8 @@ export const glossary: GlossaryTerm[] = [
     term: "콜드 스타트",
     full: "Cold Start",
     short: "Lambda가 새 실행 환경을 띄울 때 생기는 첫 요청 지연 — 코드 로드와 초기화에 걸리는 시간이다.",
+    detail:
+      "실행 환경 수명 주기의 INIT 단계에서 일어난다 — 런타임을 띄우고 배포 패키지를 내려받아 핸들러 바깥의 초기화 코드까지 돌리는 시간이다. 뒤이은 호출은 데워진 환경을 재사용하므로 이 비용을 다시 내지 않는다.\n\n줄이는 수단은 셋이다. 프로비저닝된 동시성으로 환경을 미리 초기화해 두거나, 배포 패키지·의존성을 줄여 로드를 짧게 하거나, SDK 클라이언트·DB 연결을 핸들러 밖에서 한 번만 만들어 재사용하는 것이다.\n\n마지막 항목은 콜드 스타트만이 아니라 웜 호출의 지연도 함께 줄이기 때문에 시험에서 특히 자주 정답이 된다.",
     chapterId: "ch1-2",
   },
   {
@@ -432,6 +440,8 @@ export const glossary: GlossaryTerm[] = [
     term: "동시성",
     full: "Concurrency",
     short: "같은 순간 실행 중인 Lambda 실행 환경의 수 — Reserved(상한 예약)와 Provisioned(미리 데워 두기)로 제어한다.",
+    detail:
+      "계정·리전당 기본 한도는 1,000이고 필요하면 증설을 요청한다. 대략 초당 요청 수 × 평균 실행 시간(초)이 동시성이라, 100ms짜리 함수를 초당 100번 부르면 동시성은 10 남짓이다.\n\n예약된 동시성은 특정 함수 몫을 떼어 두는 것이다 — 그 함수는 항상 그만큼 쓸 수 있지만 동시에 그것이 상한이 되고, 떼어 낸 만큼 다른 함수가 쓸 몫은 줄어든다. 0으로 두면 함수를 사실상 정지시키는 데도 쓴다.\n\n프로비저닝된 동시성은 성격이 다르다 — 미리 초기화해 둔 환경을 유지해 콜드 스타트를 없애는 유료 기능이다. 한도를 넘어선 동기 호출은 429로 스로틀된다.",
     chapterId: "ch1-2",
   },
   {
@@ -439,6 +449,8 @@ export const glossary: GlossaryTerm[] = [
     term: "스로틀링",
     full: "Throttling",
     short: "요청이 한도를 넘을 때 AWS가 요청을 거절하는 것 — Lambda 동기 호출에서는 429 오류로 나타나며, 백오프 재시도로 대응한다.",
+    detail:
+      "서비스마다 신호가 다르다 — Lambda 동기 호출과 API Gateway는 429, DynamoDB는 ProvisionedThroughputExceededException, S3는 503 Slow Down, KMS는 ThrottlingException으로 알린다.\n\n대응의 정답 패턴은 지수 백오프에 지터(무작위 지연)를 더한 재시도다. 지터가 없으면 밀린 요청들이 같은 순간에 다시 몰려들어 스로틀이 반복되기 때문이며, AWS SDK에는 이 재시도가 기본으로 들어 있다.\n\n재시도로도 못 버티면 원인을 고친다 — 한도 증설 요청, DynamoDB 용량 모드·파티션 키 재설계, Lambda 동시성 조정이 그 자리에 온다.",
     chapterId: "ch1-2",
   },
   {
@@ -459,6 +471,8 @@ export const glossary: GlossaryTerm[] = [
     term: "ESM",
     full: "Event Source Mapping",
     short: "이벤트 소스 매핑 — SQS·Kinesis 같은 소스에서 Lambda가 직접 폴링해 레코드를 가져오게 하는 연결 설정이다.",
+    detail:
+      "내 함수가 아니라 Lambda 서비스가 소스를 폴링해 레코드를 모아 함수에 넘긴다 — SQS·Kinesis·DynamoDB Streams·MSK가 대상이다. 배치 크기와 배치 윈도로 몇 개씩, 얼마나 기다렸다 넘길지 정한다.\n\nSQS에서는 배치 처리가 실패하면 메시지가 큐로 돌아가 가시성 제한 시간이 지난 뒤 다시 배달되고, 반복 실패는 큐에 걸어 둔 DLQ가 받아 낸다.\n\n스트림(Kinesis·DynamoDB Streams)은 샤드 안의 순서를 지켜야 해서 실패한 레코드 하나가 뒤를 통째로 막을 수 있다. 그래서 부분 배치 응답(실패한 레코드만 보고)·재시도 횟수·레코드 최대 수명·실패 대상 설정으로 막힘을 푼다.",
     chapterId: "ch1-2",
   },
   {
@@ -473,6 +487,8 @@ export const glossary: GlossaryTerm[] = [
     term: "DLQ",
     full: "Dead Letter Queue",
     short: "처리에 계속 실패한 메시지·이벤트를 따로 보내 두는 실패 목적지 — Lambda 비동기 호출에서는 SQS 큐뿐 아니라 SNS 토픽도 지정할 수 있다.",
+    detail:
+      "층이 셋이라 헷갈리기 쉽다. Lambda 비동기 호출의 DLQ는 자동 재시도(기본 2회)까지 실패한 이벤트를 SQS 큐나 SNS 토픽으로 보낸다 — 담기는 건 원래 이벤트 페이로드뿐이고 오류 문맥은 없다.\n\n같은 자리를 대체하는 최신 수단이 Destinations다. 실패만이 아니라 성공도 보낼 수 있고 호출 응답·오류 정보까지 함께 실어 주므로, 새로 만든다면 이쪽이 권장 경로다.\n\nSQS 큐 자체의 DLQ는 층이 다르다 — 큐에 건 리드라이브 정책의 maxReceiveCount만큼 소비에 실패한 메시지를 다른 큐로 옮기는 것으로, Lambda 설정이 아니라 큐 설정이다.",
     chapterId: "ch1-2",
   },
   {
@@ -520,6 +536,8 @@ export const glossary: GlossaryTerm[] = [
     term: "API Gateway",
     full: "Amazon API Gateway",
     short: "백엔드 앞에 세우는 관리형 API 관문 — HTTP 요청을 받아 Lambda 등으로 라우팅하고 인증·스로틀링을 대신 처리한다.",
+    detail:
+      "REST API와 HTTP API 두 종류가 있다. HTTP API는 더 싸고 빠르지만 기능이 적고, API 키·사용량 계획·응답 캐싱·요청 검증 같은 장치는 REST API 쪽이다 — 시험은 \"이 기능이 필요하다\"로 둘을 가른다.\n\n인증은 IAM(SigV4)·Cognito User Pool·직접 만든 Lambda 권한 부여자 중에 고른다. Lambda 프록시 통합을 쓰면 요청 전체가 event 객체로 넘어오고, 응답은 statusCode·headers·body 형식을 지켜야 한다.\n\n배포 단위는 스테이지(dev·prod)다 — 변경은 스테이지에 배포해야 반영되고, 캐싱·스로틀 한도도 스테이지 단위로 건다. 스테이지 변수를 쓰면 같은 API가 스테이지마다 다른 Lambda 별칭을 가리키게 할 수 있다.",
   },
   {
     id: "rie",
@@ -543,18 +561,24 @@ export const glossary: GlossaryTerm[] = [
     term: "ECS",
     full: "Amazon Elastic Container Service",
     short: "AWS의 컨테이너 오케스트레이션 서비스 — 컨테이너의 배포·운영을 관리한다.",
+    detail:
+      "컨테이너 실행 명세는 태스크 정의에 적는다(이미지·CPU/메모리·포트·환경 변수). 이걸 실행한 한 벌이 태스크이고, 태스크 개수를 유지하고 로드 밸런서에 연결해 주는 것이 서비스다.\n\n역할이 두 개라는 점이 시험 단골이다 — 태스크 역할은 컨테이너 안의 내 코드가 AWS API를 부를 때 쓰는 권한이고, 태스크 실행 역할은 ECS가 ECR에서 이미지를 받아오고 로그를 CloudWatch로 보낼 때 쓰는 권한이다. 앱이 S3에 못 쓰면 태스크 역할, 이미지를 못 받아오면 실행 역할을 본다.\n\n실행 인프라는 EC2 시작 유형(내가 띄운 인스턴스 위)과 Fargate(서버리스) 중에 고른다.",
   },
   {
     id: "ecr",
     term: "ECR",
     full: "Amazon Elastic Container Registry",
     short: "컨테이너 이미지를 저장하는 AWS의 레지스트리 — Docker Hub의 AWS판이다.",
+    detail:
+      "프라이빗 레지스트리라 push·pull 전에 인증이 필요하다 — aws ecr get-login-password로 받은 토큰(12시간 유효)을 docker login에 넘기는 것이 표준 절차다.\n\n이미지가 쌓이면 저장 비용이 늘어나므로 수명 주기 정책으로 오래된·태그 없는 이미지를 자동 정리하고, 이미지 스캔으로 알려진 취약점을 확인한다.\n\nLambda 컨테이너 이미지도 여기서 가져오는데, 함수와 같은 리전의 리포지토리여야 한다.",
   },
   {
     id: "fargate",
     term: "Fargate",
     full: "AWS Fargate",
     short: "서버(EC2) 관리 없이 컨테이너를 실행하는 서버리스 컨테이너 엔진 — ECS·EKS 위에서 쓴다.",
+    detail:
+      "태스크마다 vCPU·메모리 조합만 고르면 되고 인스턴스를 띄우거나 패치할 일이 없다. 반대로 EC2 시작 유형은 컨테이너를 올릴 인스턴스를 직접 준비하고 남는 용량도 직접 관리한다.\n\n과금 단위도 다르다 — Fargate는 태스크가 요청한 vCPU·메모리를 태스크가 돈 시간만큼 내고, EC2 시작 유형은 태스크가 몇 개든 인스턴스 요금을 낸다. 띄엄띄엄 도는 워크로드는 Fargate가, 인스턴스를 빽빽이 채워 쓸 수 있으면 EC2 쪽이 유리한 편이다.\n\n대신 호스트에 직접 손대야 하는 일부 기능은 EC2 시작 유형에서만 된다.",
   },
   {
     id: "alb",
@@ -568,6 +592,8 @@ export const glossary: GlossaryTerm[] = [
     term: "SAM",
     full: "AWS Serverless Application Model",
     short: "서버리스 앱 전용 IaC 프레임워크 — CloudFormation을 서버리스용으로 줄인 문법과 로컬 테스트 CLI를 제공한다.",
+    detail:
+      "템플릿 맨 위의 Transform 선언이 SAM 문법을 CloudFormation으로 펼친다 — 배포되는 실체는 결국 CloudFormation 스택이다. AWS::Serverless::Function 한 덩어리가 함수·실행 역할·로그 그룹·트리거를 한꺼번에 만들어 준다.\n\nsam build로 의존성을 묶고 sam deploy로 배포하며, sam local invoke·sam local start-api는 도커로 함수를 로컬에서 돌려 본다.\n\n함수에 AutoPublishAlias와 DeploymentPreference를 적으면 CodeDeploy가 붙어 별칭 트래픽을 카나리·선형으로 옮긴다 — SAM이 무중단 배포를 다루는 지점이다.",
     chapterId: "ch1-2",
   },
   {
@@ -575,12 +601,16 @@ export const glossary: GlossaryTerm[] = [
     term: "CloudFormation",
     full: "AWS CloudFormation",
     short: "인프라를 코드(템플릿)로 정의해 생성·갱신하는 IaC 서비스다.",
+    detail:
+      "템플릿은 Parameters(입력)·Mappings(조회 표)·Conditions(조건)·Resources(만들 리소스)·Outputs(내보낼 값)으로 구성되고, 실제로 필수인 건 Resources뿐이다. 리소스끼리 값을 주고받을 때는 !Ref(주로 이름·ID)와 !GetAtt(그 밖의 속성)를 쓴다.\n\n스택을 고칠 때는 변경 세트를 만들어 무엇이 바뀌고 무엇이 통째로 교체되는지 먼저 보는 것이 안전한 경로다. 업데이트가 실패하면 이전 상태로 롤백되고, 스택 밖에서 손으로 바꾼 부분은 드리프트 감지로 찾는다.",
   },
   {
     id: "codedeploy",
     term: "CodeDeploy",
     full: "AWS CodeDeploy",
     short: "배포 자동화 서비스 — Lambda에서는 별칭의 트래픽 전환(카나리·선형)을 자동화한다.",
+    detail:
+      "Lambda에서는 별칭이 가리키는 트래픽을 새 버전으로 옮기는 일을 맡는다. 전환 속도는 배포 구성이 정하는데 Canary10Percent5Minutes(10%를 5분 지켜본 뒤 전량)·Linear10PercentEvery1Minute(1분마다 10%씩)·AllAtOnce가 대표 선지다.\n\n절차는 AppSpec 파일이 정의한다. Lambda 배포에는 BeforeAllowTraffic(전환 전)·AfterAllowTraffic(전환 후) 훅을 걸어 검증 함수를 돌릴 수 있고, 훅이 실패하거나 연결해 둔 CloudWatch 경보가 울리면 자동으로 이전 버전으로 롤백한다.\n\nEC2를 대상으로 하면 인플레이스와 블루/그린으로 갈리고 훅 이름도 BeforeInstall·ApplicationStart·ValidateService 등으로 달라진다.",
     chapterId: "ch1-2",
   },
   {
@@ -588,12 +618,16 @@ export const glossary: GlossaryTerm[] = [
     term: "CodePipeline",
     full: "AWS CodePipeline",
     short: "빌드→테스트→배포 흐름을 잇는 CI/CD 파이프라인 서비스다.",
+    detail:
+      "파이프라인은 스테이지(소스→빌드→배포…)로 나뉘고, 각 스테이지가 만든 결과물은 아티팩트로 S3 버킷을 거쳐 다음 스테이지에 전달된다 — 스테이지 사이의 연결 고리가 이 아티팩트다.\n\n빌드는 보통 CodeBuild가 맡고, 무엇을 어떻게 빌드할지는 리포 루트의 buildspec.yml에 단계별 명령으로 적는다. 배포 단계는 CodeDeploy·CloudFormation·ECS 등으로 이어진다.\n\n스테이지가 실패하면 파이프라인은 거기서 멈추고 다음으로 넘어가지 않는다. 사람의 확인을 끼우고 싶으면 수동 승인 액션을 넣는다.",
   },
   {
     id: "eventbridge",
     term: "EventBridge",
     full: "Amazon EventBridge",
     short: "이벤트 버스 서비스 — 서비스 이벤트나 스케줄 규칙(서버리스 크론)으로 Lambda 등을 트리거한다.",
+    detail:
+      "규칙에 이벤트 패턴을 적어 두면 조건에 맞는 이벤트만 대상(Lambda·SQS·Step Functions 등)으로 보낸다. AWS 서비스가 스스로 내는 이벤트(EC2 상태 변화·S3 객체 생성 등)를 받을 수 있다는 점이 SNS와의 큰 차이다.\n\n규칙은 스케줄로도 쓴다 — cron·rate 식을 걸면 서버 없는 크론이 되어 정해진 시각에 Lambda를 깨운다.\n\n같은 \"알림\"이라도 역할이 갈린다: 정해진 구독자에게 그대로 밀어 주는 건 SNS, 이벤트 내용을 보고 어디로 보낼지 고르는 라우팅이면 EventBridge다(예전 이름은 CloudWatch Events).",
     chapterId: "ch1-2",
   },
   {
@@ -601,6 +635,8 @@ export const glossary: GlossaryTerm[] = [
     term: "X-Ray",
     full: "AWS X-Ray",
     short: "분산 추적 서비스 — 요청이 여러 서비스를 거쳐 가는 경로와 병목 구간을 시각화한다.",
+    detail:
+      "요청 하나가 지나간 자취를 세그먼트(서비스 단위)와 서브세그먼트(그 안의 호출 단위)로 기록해 서비스 맵과 지연 분포를 그려 준다 — 어디서 느려졌는지를 찾는 도구다.\n\n추적에 값을 붙일 때 어노테이션은 색인되어 필터 검색에 쓸 수 있고, 메타데이터는 남기만 할 뿐 검색되지 않는다. 트래픽이 많으면 샘플링 규칙(기본은 초당 1건에 나머지의 5%)으로 비용을 조절한다.\n\n켜는 방법은 환경마다 다르다 — Lambda는 활성 추적을 켜고 실행 역할에 X-Ray 쓰기 권한을 주면 되고, EC2·ECS에서는 X-Ray 데몬을 함께 띄워 SDK가 보낸 세그먼트를 중계하게 한다.",
     chapterId: "ch1-2",
   },
   {
@@ -608,6 +644,8 @@ export const glossary: GlossaryTerm[] = [
     term: "CloudWatch",
     full: "Amazon CloudWatch",
     short: "AWS의 모니터링 서비스 — 지표(메트릭)·로그(CloudWatch Logs)·경보를 한곳에 모은다.",
+    detail:
+      "셋을 구분해서 본다. 지표는 숫자 시계열이고(네임스페이스·차원으로 구분, 표준 1분·고해상도 1초 단위), 로그는 로그 그룹과 스트림에 쌓이는 텍스트이며, 경보는 지표가 임계값을 넘을 때 OK·ALARM·INSUFFICIENT_DATA로 상태를 바꾸며 SNS 알림 등을 발동시킨다.\n\n앱 고유의 값(주문 수 등)은 PutMetricData로 사용자 지정 지표를 올리거나, 로그에 EMF 형식으로 심어 지표로 자동 추출되게 한다.\n\nLambda 로그가 안 보이는 흔한 원인은 실행 역할에 로그 기록 권한이 없는 것이다. 쌓인 로그를 뒤질 때는 Logs Insights로 질의한다.",
     chapterId: "ch1-2",
   },
 
@@ -706,6 +744,8 @@ export const glossary: GlossaryTerm[] = [
     id: "presigned-url",
     term: "Presigned URL",
     short: "서명을 미리 담은 임시 URL — AWS 자격 증명이 없는 사람도 그 객체에 접근하게 해 주며, 유효 기간은 URL에 적은 기한과 서명에 쓴 자격 증명의 수명 중 짧은 쪽이다.",
+    detail:
+      "URL은 만든 사람의 권한을 그대로 빌려준다 — 서명한 주체가 못 하는 일은 그 URL로도 못 하고, 반대로 버킷이 비공개여도 URL을 받은 사람은 그 객체에 접근한다.\n\n다운로드(GET)뿐 아니라 업로드(PUT)용으로도 만들 수 있어서, 브라우저가 서버를 거치지 않고 S3에 직접 올리게 하는 시나리오의 표준 답이 된다.\n\n기한은 서명 방식(SigV4) 상한이 7일이지만, 역할로 받은 임시 자격 증명으로 서명했다면 그 세션이 만료되는 순간 URL도 함께 죽는다.",
     chapterId: "ch1-1",
   },
   {
@@ -775,6 +815,8 @@ export const glossary: GlossaryTerm[] = [
     term: "DynamoDB",
     full: "Amazon DynamoDB",
     short: "AWS의 완전관리형 NoSQL 키-값 데이터베이스 — 서버리스 조합의 단골 저장소다.",
+    detail:
+      "테이블마다 파티션 키(항목을 나눠 담는 기준)를 정하고, 필요하면 정렬 키를 더해 두 값의 조합으로 항목 하나를 짚는다. 이 키로 찾는 Query는 싸고 빠르지만 키 없이 전체를 훑는 Scan은 느리고 비싸다 — 시험은 대개 Scan을 오답 쪽에 둔다.\n\n키가 아닌 속성으로 찾아야 하면 인덱스를 만든다. GSI는 다른 파티션 키를 쓰고 언제든 추가할 수 있지만 읽기가 최종 일관성뿐이고, LSI는 파티션 키가 같고 정렬 키만 다르며 테이블을 만들 때만 붙일 수 있다.\n\n용량은 온디맨드(쓴 만큼)와 프로비저닝(RCU·WCU를 미리 잡고 Auto Scaling) 중 고른다. 한도를 넘으면 ProvisionedThroughputExceededException이 나고, 항목 변경을 이벤트로 흘려 Lambda를 깨우려면 DynamoDB Streams를 켠다.",
   },
   {
     id: "rds",
@@ -787,6 +829,8 @@ export const glossary: GlossaryTerm[] = [
     term: "ElastiCache",
     full: "Amazon ElastiCache",
     short: "Redis·Memcached를 관리형으로 제공하는 인메모리 캐시 서비스다.",
+    detail:
+      "캐시를 채우는 방식이 시험의 축이다. Lazy loading(캐시에 없을 때만 DB에서 읽어 채움)은 실제로 쓰는 데이터만 캐시되지만 첫 요청이 느리고 값이 오래될 수 있다. Write-through(쓸 때 캐시도 같이 갱신)는 늘 최신이지만 읽히지 않을 데이터까지 쌓인다 — 보통 TTL을 함께 걸어 절충한다.\n\n엔진은 둘 중에 고른다. 복제·자동 페일오버·영속성·정렬 자료구조가 필요하면 Redis, 단순 키-값 캐시를 여러 노드에 나눠 담으면 충분하면 Memcached다. 세션 저장소와 읽기 부하가 큰 DB 앞단이 대표 시나리오다.",
   },
 
   // ── 메시징·통합 ───────────────────────────────────────────────────────
@@ -795,18 +839,24 @@ export const glossary: GlossaryTerm[] = [
     term: "SQS",
     full: "Amazon Simple Queue Service",
     short: "완전관리형 메시지 큐 — 생산자와 소비자를 분리(디커플링)해 비동기 처리를 만든다.",
+    detail:
+      "표준 큐는 처리량이 사실상 무제한이지만 순서를 보장하지 않고 같은 메시지가 두 번 올 수 있다 — 소비자를 멱등하게(같은 메시지를 여러 번 처리해도 결과가 같게) 만드는 것이 전제다. 순서와 중복 제거가 필요하면 이름이 .fifo로 끝나는 FIFO 큐를 쓰되 처리량이 기본 초당 300건(배치 시 3,000건)으로 제한된다.\n\n소비자가 메시지를 받으면 가시성 제한 시간(기본 30초, 최대 12시간) 동안 다른 소비자에게 숨겨진다. 이 시간 안에 삭제하지 못하면 메시지가 되살아나 중복 처리가 되므로, 처리가 오래 걸리면 값을 늘리거나 처리 중에 연장한다.\n\n메시지는 기본 4일(최대 14일) 보관되고 크기는 최대 256KB다. 빈 응답에 돈을 쓰지 않으려면 롱 폴링(최대 20초 대기)을 켠다.",
   },
   {
     id: "sns",
     term: "SNS",
     full: "Amazon Simple Notification Service",
     short: "게시/구독(pub/sub) 알림 서비스 — 한 메시지를 여러 구독자에게 동시에 밀어 보낸다.",
+    detail:
+      "대표 패턴은 팬아웃이다 — 토픽 하나에 SQS 큐 여러 개를 구독시켜 같은 메시지를 여러 처리 계통에 동시에 흘린다. 구독자는 SQS·Lambda·HTTP(S)·이메일·SMS 등이 될 수 있다.\n\n구독마다 필터 정책을 걸면 메시지 속성이 맞는 것만 받아, 소비자 쪽에서 걸러 버리는 낭비를 없앤다. 순서·중복 제거가 필요하면 FIFO 토픽을 쓰는데 이때 구독 대상은 SQS FIFO 큐로 제한된다.\n\n푸시(SNS)와 폴링(SQS)의 차이가 시험 선지의 갈림길이다 — 여러 곳에 즉시 알리는 건 SNS, 처리 속도를 소비자에게 맡기고 쌓아 두는 건 SQS다.",
   },
   {
     id: "kinesis",
     term: "Kinesis",
     full: "Amazon Kinesis",
     short: "실시간 스트리밍 데이터 서비스 — 스트림 처리는 Kinesis Data Streams가 담당하고, 적재를 맡던 Firehose는 현재 Amazon Data Firehose로 이름이 바뀌어 분리됐다.",
+    detail:
+      "스트림은 샤드로 나뉘고 처리량이 샤드 수에 비례한다 — 샤드당 쓰기 초당 1MB·1,000레코드, 읽기 초당 2MB다. 레코드의 파티션 키가 어느 샤드로 갈지를 정하므로 키가 한쪽으로 쏠리면 그 샤드만 뜨거워진다.\n\n소비자가 여럿이면 기본 모드에서는 샤드의 읽기 대역을 나눠 쓰고, 향상된 팬아웃을 켜면 소비자마다 초당 2MB를 따로 받는다. 데이터는 기본 24시간(최대 365일) 남아 있어 같은 구간을 여러 번 다시 읽을 수 있다.\n\n이 \"읽어도 사라지지 않는다\"가 SQS와의 분기점이다 — 작업을 하나씩 꺼내 처리하고 지우면 SQS, 같은 스트림을 여러 계통이 각자 읽고 재처리까지 해야 하면 Kinesis다.",
   },
   {
     id: "msk",
@@ -819,12 +869,16 @@ export const glossary: GlossaryTerm[] = [
     term: "Step Functions",
     full: "AWS Step Functions",
     short: "여러 Lambda·서비스 호출을 상태 머신(워크플로)으로 잇는 오케스트레이션 서비스다.",
+    detail:
+      "워크플로는 ASL이라는 JSON 문법으로 쓴다. 상태 유형은 Task(작업 실행)·Choice(분기)·Parallel(병렬)·Map(반복)·Wait(대기) 등이고, 상태마다 Retry(재시도)와 Catch(오류 분기)를 선언할 수 있다 — 재시도·분기 로직을 Lambda 코드에서 걷어내는 것이 이 서비스의 값이다.\n\n종류는 둘이다. Standard는 최대 1년까지 돌고 실행 이력이 남으며 각 단계가 정확히 한 번 실행된다. Express는 최대 5분이지만 훨씬 싸서 고빈도 처리에 쓰고, 대신 같은 단계가 두 번 실행될 수 있다.",
   },
   {
     id: "cognito",
     term: "Cognito",
     full: "Amazon Cognito",
     short: "앱 사용자의 인증·회원 관리 서비스 — 소셜 로그인과 AWS 자격 증명 교환(페더레이션)을 대신해 준다.",
+    detail:
+      "두 축을 가르는 것이 핵심이다. User Pool은 사용자 디렉터리로 회원가입·로그인·MFA·소셜 로그인을 대신 처리하고, 성공하면 JWT(ID 토큰·액세스 토큰)를 발급한다 — 내 앱의 로그인이다.\n\nIdentity Pool(페더레이티드 자격 증명)은 그 토큰이나 구글 같은 외부 IdP 토큰을 받아 AWS 임시 자격 증명으로 바꿔 준다 — 앱이 S3·DynamoDB를 직접 호출해야 할 때 쓴다.\n\n그래서 \"사용자를 로그인시켜라\"는 User Pool, \"로그인한 사용자가 AWS 리소스에 직접 접근하게 하라\"는 Identity Pool이 답이다.",
   },
 
   // ── 시험·과금 ─────────────────────────────────────────────────────────
@@ -833,6 +887,8 @@ export const glossary: GlossaryTerm[] = [
     term: "ARN",
     full: "Amazon Resource Name",
     short: "AWS 리소스의 전역 고유 주소 — arn:<파티션>:<서비스>:<리전>:<계정>:<리소스> 형식이며, 일반 계정의 파티션은 aws다(예: arn:aws:…).",
+    detail:
+      "정책의 Resource 칸에 들어가는 것이 이 주소다. 서비스에 따라 리전·계정 칸이 비기도 한다 — S3 버킷은 이름이 전역 유일이라 arn:aws:s3:::my-bucket처럼 두 칸이 비고, IAM 리소스는 리전 칸이 빈다.\n\n와일드카드(*)로 범위를 넓히는데, 버킷 자체와 그 안의 객체가 다른 ARN이라는 점이 시험 함정이다 — 객체 작업(GetObject)은 arn:aws:s3:::my-bucket/*, 버킷 작업(ListBucket)은 arn:aws:s3:::my-bucket이라, 목록 조회와 다운로드를 둘 다 허용하려면 두 ARN을 함께 적어야 한다.",
     chapterId: "ch0-2",
   },
   {
