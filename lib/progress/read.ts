@@ -3,9 +3,24 @@
 import { useEffect, useState } from "react";
 
 /**
- * 읽음 진도 저장소 (이슈 #7) — localStorage 단일 키에 { [chapterId]: 읽은 섹션 번호[] }.
+ * **읽음** 진도 저장소 (이슈 #7) — localStorage 단일 키에 { [chapterId]: 읽은 섹션 번호[] }.
  * 섹션 번호는 URL과 같은 1-based (퀴즈 섹션 포함). 로그인 없음 — 기기 로컬로만 유지되고,
  * 진도 초기화 UI는 범위 외(필요 시 별도 이슈).
+ *
+ * **이 디렉터리에는 진도 저장소가 둘 있다 — 헷갈리지 않게 여기 적어 둔다** (#203):
+ *
+ * | 파일 | 키 | 담는 것 |
+ * |---|---|---|
+ * | `read.ts` (이 파일) | `aws-reps.read.v1` | **어디까지 읽었나** — 챕터별 읽은 섹션 번호 |
+ * | `records.ts` + `records-core.ts` | `dva.progress.v1` | **뭘 맞히고 틀렸나** — 문항별 채점 사실 |
+ *
+ * 둘은 키도 모델도 별개이고 서로를 읽지 않는다. 공통 규칙만 같다: SSG 라 초기 렌더는 항상
+ * 빈 값이고(`useEffect` 로 채운다 — hydration 불일치 방지), 파싱·저장 실패는 조용히 삼켜
+ * "진도 없음"으로 degrade 한다(프라이빗 모드에서도 학습 자체는 굴러가야 한다).
+ *
+ * 이 파일은 규칙이 단순해 전용 회귀 테스트가 없다 — 저장하는 게 숫자 배열 하나뿐이고
+ * read-repair 도 `getReadSections` 의 필터 한 줄이다. 옆 저장소는 규칙이 많아 붙어 있다
+ * (`npm run progress:test`, #214).
  */
 const KEY = "aws-reps.read.v1";
 
