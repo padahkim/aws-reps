@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -46,7 +46,11 @@ export function FigZoom({
   const stageRef = useRef<HTMLDivElement>(null); // 변환 대상 (클론 SVG 컨테이너)
   const overlayRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const [lb, setLb] = useState<Lightbox | null>(null);
+  // 푸터(캡션+힌트) 실측 높이 — 긴 캡션이 여러 줄로 감기면 고정 예약(4.25rem)을 넘어
+  // 도식 하단과 겹친다 (#229 R2). 열 때·리사이즈 때 재고 프레임 하단을 그만큼 비운다.
+  const [footerH, setFooterH] = useState(0);
 
   // 제스처 상태는 리렌더 없이 ref + 직접 스타일로 다룬다 — pointermove 는 60~120Hz 로 온다
   const view = useRef({ s: 1, tx: 0, ty: 0 }); // stage transform: translate(tx,ty) scale(s), origin 0 0
@@ -147,6 +151,18 @@ export function FigZoom({
     return px < x0 - pad || px > x0 + w * v.s + pad || py < y0 - pad || py > y0 + h * v.s + pad;
   };
 
+  // 푸터 측정은 페인트 전에 — 측정 전 프레임(bottom 임시값)이 화면에 뜨지 않게 한다
+  useLayoutEffect(() => {
+    if (!lb) {
+      setFooterH(0);
+      return;
+    }
+    const measure = () => setFooterH(footerRef.current?.offsetHeight ?? 0);
+    measure();
+    window.addEventListener("resize", measure); // 회전 시 캡션 줄 수가 달라진다
+    return () => window.removeEventListener("resize", measure);
+  }, [lb]);
+
   // 열림 동안: 초점 이동·배경 스크롤 잠금·ESC·휠 줌·리사이즈(회전) 시 맞춤 복귀
   useEffect(() => {
     if (!lb) return;
@@ -156,11 +172,39 @@ export function FigZoom({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         close();
-      } else if (e.key === "Tab") {
+        return;
+      }
+      if (e.key === "Tab") {
         // 단일 포커스 트랩 — 오버레이의 포커스 가능 요소는 닫기 버튼 하나라, Tab/Shift+Tab이
         // 배경 콘텐츠로 새지 않게 버튼에 고정한다 (aria-modal 은 의미론일 뿐 강제하지 않는다)
         e.preventDefault();
         closeRef.current?.focus();
+        return;
+      }
+      // 키보드 줌·팬 (#229 R2) — 포인터 없이도 확대·이동이 가능해야 라이트박스가 성립한다.
+      // 줌은 프레임 중심 기준, 화살표는 누른 방향으로 시야가 이동한다 (= 콘텐츠는 반대로).
+      const rect = frameRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.25);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, 0.8);
+      } else if (e.key === "0") {
+        e.preventDefault();
+        reset();
+      } else if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        const v = view.current;
+        if (v.s > 1.001) {
+          const step = 60;
+          if (e.key === "ArrowLeft") v.tx += step;
+          else if (e.key === "ArrowRight") v.tx -= step;
+          else if (e.key === "ArrowUp") v.ty += step;
+          else if (e.key === "ArrowDown") v.ty -= step;
+          apply();
+        }
       }
     };
     const onResize = () => reset(); // 맞춤 배치가 뷰포트 함수라 회전 시 변환 잔여가 어긋난다 — 맞춤으로 복귀
@@ -319,8 +363,18 @@ export function FigZoom({
               cursor: "grab",
             }}
           >
-            {/* frame = 닫기 버튼·캡션을 피한 안전 영역. 변환은 그 안 stage 에만 건다 */}
-            <div ref={frameRef} style={{ position: "absolute", inset: "3.25rem 0.75rem 4.25rem" }}>
+            {/* frame = 닫기 버튼·캡션을 피한 안전 영역. 변환은 그 안 stage 에만 건다.
+                하단은 푸터 실측 높이(useLayoutEffect)로 비운다 — 측정 전 한 프레임은 페인트되지 않는다 */}
+            <div
+              ref={frameRef}
+              style={{
+                position: "absolute",
+                top: "3.25rem",
+                left: "0.75rem",
+                right: "0.75rem",
+                bottom: footerH + 8,
+              }}
+            >
               {/* __html 은 이 문서가 방금 렌더한 자사 SVG(리포 커밋 콘텐츠)의 직렬화 + 리터럴
                   id 치환 결과다 — 외부 입력이 끼어드는 경로가 없어 새니타이저 대상이 아니다 */}
               <div
@@ -364,6 +418,7 @@ export function FigZoom({
               </svg>
             </button>
             <div
+              ref={footerRef}
               style={{
                 position: "absolute",
                 left: "50%",
@@ -378,7 +433,7 @@ export function FigZoom({
             >
               {caption ? <div style={{ fontSize: "0.8rem" }}>{caption}</div> : null}
               <div style={{ fontFamily: tokens.mono, fontSize: "0.66rem", marginTop: 4, opacity: 0.75 }}>
-                핀치·휠·더블탭 = 확대 / 빈 곳 탭·ESC = 닫기
+                핀치·휠·더블탭·+/− = 확대 · 화살표 = 이동 · 빈 곳 탭·ESC = 닫기
               </div>
             </div>
           </div>,
