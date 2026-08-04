@@ -41,6 +41,7 @@ npm run dev
 | `npm run dev` | 개발 서버 (predev로 /_source 라우트 생성 후 `next dev`) |
 | `npm run validate` | 콘텐츠 값 수준 계약 검사 + 사실 블록 신선도 (`validate-content.ts` → `gen-arch-facts.ts --check` 연쇄, #137) |
 | `npm run validate:test` | 검사기 자체의 회귀 테스트 (CI 전용) |
+| `npm run progress:test` | 진도 저장소 순수 로직(read-repair·쓰기 누적)의 회귀 픽스처 (CI 전용, #214) |
 | `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.ts`; `--check`는 validate 연쇄·CI 게이트) |
 | `npm run typecheck` | `tsc --noEmit` 타입 검사 |
 | `npm run build` | 정적 빌드 (`prebuild`가 validate + 라우트 생성 선행 → `next build`) |
@@ -137,14 +138,14 @@ flowchart TD
 | `app/_source/` | dev·프리뷰 전용 **원본 검수 도구**. 레거시 `.jsx`를 문자열로 읽어 브라우저 Babel로 렌더(§7). |
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
-| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `records.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
+| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `records.ts`(브라우저 붙임)·`records-core.ts`(순수 규칙)+`.test.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
 | `scripts/` | 빌드·검증·하네스 — `validate-content.ts`·`gen-source-routes.mjs`·`gen-arch-facts.ts`·`import-drills.ts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
 | 루트 | `next.config.ts`(output:export+MDX)·`tsconfig.json`·`mdx-components.tsx`·`package.json`·`.nvmrc`. |
 
-> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records.ts`.
+> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records-core.ts`(필드·규칙) + `records.ts`(쓰기 진입점).
 
 ---
 
@@ -252,7 +253,9 @@ localStorage 키가 **둘**이고, 각각 파일 하나가 소유한다. 다른 
 | 키 | 소유 모듈 | 담는 것 |
 |---|---|---|
 | `"aws-reps.read.v1"` | `lib/progress.ts` | 읽음 진도 — `{ [chapterId]: 읽은 섹션 번호[] }`(1-based, 마무리 페이지 포함) |
-| `"dva.progress.v1"` | `lib/progress/records.ts` | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
+| `"dva.progress.v1"` | `lib/progress/records.ts` (쓰기 진입점)<br/>`lib/progress/records-core.ts` (필드·규칙) | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
+
+> **필드 목록의 정본은 문서가 아니라 코드다**(#207) — `records-core.ts`의 `Progress`·`QuestionRecord`·`ChapterRecord`이고, 설계 문서(§4)가 지키는 것은 "왜 이 필드들인가"다. 그 형이 `records.ts`가 아니라 옆 파일에 있는 이유는 #214다: `records.ts`는 `"use client"` + react import라 node가 못 불러 **CI가 진도 로직을 한 줄도 실행하지 못했다**. 순수 층을 갈라 회귀 테스트(`npm run progress:test`)를 붙였고, 앱은 여전히 `records.ts`만 import한다.
 
 - **전역 문항 키**는 `lib/progress/keys.ts`가 `` `${chapterId}:${slug ?? id}` ``로 합성한다. `q.id`를 쓰지 않는 이유: `drills.ts`는 생성물이고 임포터가 id를 위치대로(`q1`…) 발급해, 원본에 문항이 하나 끼어들면 그 뒤 id가 전부 밀려 **진도가 조용히 엉뚱한 문항에 붙는다**(#69의 선별 결정을 진도 키까지 확대 — PR #202). 저장 데이터가 콘텐츠 규약에 거는 **유일한 하드 의존**이라(설계 §4-2), 검증기가 **해석된 키**의 유일성과 `:` 미포함을 강제한다(`QUESTION_KEY_DUP`·`QUESTION_KEY_DELIMITER`).
 - `firstResult`는 첫 채점에만 쓰이고 고정된다 — §2-1의 숙달 판정("첫 시도 정답")이 재응시 뒤에는 복원 불가능하기 때문이다. 읽는 코드는 아직 없고 #86에서 쓴다.
@@ -272,6 +275,7 @@ localStorage 키가 **둘**이고, 각각 파일 하나가 소유한다. 다른 
 - `scripts/validate-content.ts` (`npm run validate`) — TypeScript가 못 잡는 **값 수준 계약**을 검사한다: 챕터 id 전역 유일, 섹션 ≥1·제목 비지 않음·`num` 챕터 내 유일, `prerequisites`가 실존 챕터 참조, 문항의 `concept` ≥1·`choices` ≥2·`answer` 범위·중복 없음·`choiceExplanations` 길이 일치, 인출 세션 id 유일(concepts·mixed 한 이름공간)·카드 `section`이 실존·도식 `edges = nodes-1`, 셀프 퀴즈 규칙(#98). `prebuild`와 CI 양쪽이 돌린다.
 - `scripts/gen-source-routes.mjs` — `/_source` 검수 라우트 코드생성. 손으로 쓴 소스는 `app/_source/`(언더스코어 = Next private 폴더라 라우팅 안 됨, 커밋됨)이고, 실제 라우트 `app/%5Fsource/`는 100% 생성물이라 gitignore다. `predev`는 그냥, `prebuild`는 `--build`로 호출 — **Vercel 프리뷰에서만 라우트를 유지**하고 프로덕션·로컬 빌드에선 통째로 제외한다(실유저 배포본에 9MB 날것 원본이 안 실리게).
 - `scripts/gen-arch-facts.ts` (`npm run docs:facts`) — **이 문서의 사실 블록 생성기**. `<!-- BEGIN GENERATED: … -->` 마커 사이만 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`package.json`·`.nvmrc`·`content/` 파일 목록에서 다시 쓰고, 마커 밖 서술은 건드리지 않는다. `--check`는 생성 결과가 파일과 다르면 diff를 찍고 실패한다 — CI가 이걸 돌려 **문서가 낡으면 PR이 깨진다**(#117), 그리고 #137부터 `npm run validate`가 끝에 연쇄 실행해 로컬·`prebuild`에서도 잡힌다. 도입 이유는 손으로 베낀 인벤토리가 두 번 연속 낡은 채 발견된 것(#109).
+- `scripts/validate-content.test.ts` (`npm run validate:test`) · `lib/progress/records-core.test.ts` (`npm run progress:test`) — **픽스처 회귀 테스트 2종**. 러너를 들이지 않고 node가 직접 실행하며(24의 타입 스트리핑), 어긋나면 종료 코드 1로 CI를 깬다. 앞은 *검사기 자신*이 규칙을 여전히 잡는지, 뒤는 *진도 저장소*가 저장값을 여전히 옳게 고치고 누적하는지 본다(#214 — 그 파일은 화면이 아니라 **학습 이력의 영속 계층**이라 틀린 값이 조용히 쌓인다).
 - `scripts/import-drills.ts` — 별도 리포의 문항 JSON → `drills.ts` 변환 어댑터(§5-2).
 - `scripts/git_guard.py` — `.claude/settings.json`에 등록된 **PreToolUse 훅**. gh CLI를 **기본 차단**(fail-closed)하고 홈 마커 + 개인 계정(padahkim) 두 조건을 모두 만족할 때만 허용하며, 파괴적 명령(`rm -rf`, `git push --force`, `git reset --hard` 등)을 막는다.
 
@@ -284,7 +288,7 @@ flowchart TD
   end
 
   subgraph ci["GitHub Actions (develop 만)"]
-    push["push / PR → develop"] --> verify["npm ci · typecheck · validate · validate:test<br/>· docs:facts --check (문서 신선도)<br/>(next build 안 함)"]
+    push["push / PR → develop"] --> verify["npm ci · typecheck · validate<br/>· validate:test · progress:test (픽스처)<br/>· docs:facts --check (문서 신선도)<br/>(next build 안 함)"]
   end
 
   subgraph vercel["Vercel"]
@@ -293,7 +297,7 @@ flowchart TD
   end
 ```
 
-주의: `prebuild`에는 typecheck·validate:test가 **없다**(CI 전용). `docs:facts --check`는 #137부터 `validate` 연쇄로 **포함된다** — 문서가 낡으면 로컬·Vercel 빌드도 깨진다(구조 드리프트를 CI 전에 로컬에서 잡는 게 의도). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
+주의: `prebuild`에는 typecheck·validate:test·progress:test가 **없다**(CI 전용). `docs:facts --check`는 #137부터 `validate` 연쇄로 **포함된다** — 문서가 낡으면 로컬·Vercel 빌드도 깨진다(구조 드리프트를 CI 전에 로컬에서 잡는 게 의도). CI는 develop만 트리거하고 빌드는 Vercel이 한다.
 
 ---
 
