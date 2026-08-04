@@ -383,7 +383,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon CloudFront",
     short: "AWS의 CDN(콘텐츠 전송 네트워크) — 전 세계 엣지 로케이션에 콘텐츠를 캐시해 사용자 가까운 곳에서 빠르게 전달한다.",
     detail:
-      "오리진(S3 버킷·ALB·아무 HTTP 서버)을 뒤에 두고 엣지에서 응답을 캐시한다. S3를 오리진으로 둘 때는 버킷을 비공개로 잠그고 OAC(구 OAI)로 CloudFront에만 읽기를 허용하는 것이 정석이다.\n\n무엇을 캐시 키로 삼고 얼마나 보관할지는 캐시 정책이 정하고, 배포 직후 옛 콘텐츠를 밀어내야 하면 무효화(invalidation)를 건다.\n\n유료·비공개 콘텐츠는 CloudFront 서명된 URL(파일 하나)이나 서명된 쿠키(여러 파일)로 막는다 — 이름이 닮은 S3 presigned URL과 헷갈리기 쉬운데, 엣지 캐시 앞단에서 막는 쪽이 CloudFront다. HTTPS용 인증서는 us-east-1의 ACM에서 발급받아야 붙는다.",
+      "오리진(S3 버킷·ALB·아무 HTTP 서버)을 뒤에 두고 엣지에서 응답을 캐시한다. S3를 오리진으로 둘 때는 버킷을 비공개로 잠그고 OAC(구 OAI)로 CloudFront에만 읽기를 허용하는 것이 정석이다.\n\n무엇을 캐시 키로 삼고 얼마나 보관할지는 캐시 정책이 정하고, 배포 직후 옛 콘텐츠를 밀어내야 하면 무효화(invalidation)를 건다.\n\n유료·비공개 콘텐츠는 CloudFront 서명된 URL(파일 하나)이나 서명된 쿠키(여러 파일)로 막는다 — 이름이 닮은 S3 presigned URL과 헷갈리기 쉬운데, 엣지 캐시 앞단에서 막는 쪽이 CloudFront다. 배포에 내 도메인을 붙일 때 쓰는 뷰어 쪽 인증서는 us-east-1의 ACM이어야 한다 — 오리진과의 HTTPS는 별개라, 예컨대 ALB 오리진은 그 ALB가 있는 리전의 인증서를 쓴다.",
   },
 
   // ── 컴퓨팅·서버리스 ───────────────────────────────────────────────────
@@ -432,7 +432,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Cold Start",
     short: "Lambda가 새 실행 환경을 띄울 때 생기는 첫 요청 지연 — 코드 로드와 초기화에 걸리는 시간이다.",
     detail:
-      "실행 환경 수명 주기의 INIT 단계에서 일어난다 — 런타임을 띄우고 배포 패키지를 내려받아 핸들러 바깥의 초기화 코드까지 돌리는 시간이다. 뒤이은 호출은 데워진 환경을 재사용하므로 이 비용을 다시 내지 않는다.\n\n줄이는 수단은 셋이다. 프로비저닝된 동시성으로 환경을 미리 초기화해 두거나, 배포 패키지·의존성을 줄여 로드를 짧게 하거나, SDK 클라이언트·DB 연결을 핸들러 밖에서 한 번만 만들어 재사용하는 것이다.\n\n마지막 항목은 콜드 스타트만이 아니라 웜 호출의 지연도 함께 줄이기 때문에 시험에서 특히 자주 정답이 된다.",
+      "실행 환경 수명 주기의 INIT 단계에서 일어난다 — 런타임을 띄우고 배포 패키지를 내려받아 핸들러 바깥의 초기화 코드까지 돌리는 시간이다. 뒤이은 호출이 그 데워진 환경에 도착하면 이 비용을 다시 내지 않는다 — 다만 재사용은 보장이 아니다. 동시 호출이 늘어 환경이 더 필요해지거나, 오래 놀아 환경이 회수되거나, 함수 설정을 바꾸면 새 환경이 떠서 다시 겪는다.\n\n줄이는 수단은 셋이다. 프로비저닝된 동시성으로 환경을 미리 초기화해 두거나, 배포 패키지·의존성을 줄여 로드를 짧게 하거나, SDK 클라이언트·DB 연결을 핸들러 밖에서 한 번만 만들어 재사용하는 것이다.\n\n마지막 항목은 콜드 스타트만이 아니라 웜 호출의 지연도 함께 줄이기 때문에 시험에서 특히 자주 정답이 된다.",
     chapterId: "ch1-2",
   },
   {
@@ -472,7 +472,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Event Source Mapping",
     short: "이벤트 소스 매핑 — SQS·Kinesis 같은 소스에서 Lambda가 직접 폴링해 레코드를 가져오게 하는 연결 설정이다.",
     detail:
-      "내 함수가 아니라 Lambda 서비스가 소스를 폴링해 레코드를 모아 함수에 넘긴다 — SQS·Kinesis·DynamoDB Streams·MSK가 대상이다. 배치 크기와 배치 윈도로 몇 개씩, 얼마나 기다렸다 넘길지 정한다.\n\nSQS에서는 배치 처리가 실패하면 메시지가 큐로 돌아가 가시성 제한 시간이 지난 뒤 다시 배달되고, 반복 실패는 큐에 걸어 둔 DLQ가 받아 낸다.\n\n스트림(Kinesis·DynamoDB Streams)은 샤드 안의 순서를 지켜야 해서 실패한 레코드 하나가 뒤를 통째로 막을 수 있다. 그래서 부분 배치 응답(실패한 레코드만 보고)·재시도 횟수·레코드 최대 수명·실패 대상 설정으로 막힘을 푼다.",
+      "내 함수가 아니라 Lambda 서비스가 소스를 폴링해 레코드를 모아 함수에 넘긴다 — SQS·Kinesis·DynamoDB Streams·MSK가 대표적이고, 자체 관리 Kafka·Amazon MQ·DocumentDB 변경 스트림도 같은 방식으로 붙는다. 배치 크기와 배치 윈도로 몇 개씩, 얼마나 기다렸다 넘길지 정한다.\n\nSQS에서는 배치 처리가 실패하면 메시지가 큐로 돌아가 가시성 제한 시간이 지난 뒤 다시 배달되고, 반복 실패는 큐에 걸어 둔 DLQ가 받아 낸다.\n\n스트림(Kinesis·DynamoDB Streams)은 샤드 안의 순서를 지켜야 해서 실패한 레코드 하나가 뒤를 통째로 막을 수 있다. 그래서 부분 배치 응답(실패한 레코드만 보고)·재시도 횟수·레코드 최대 수명·실패 대상 설정으로 막힘을 푼다.",
     chapterId: "ch1-2",
   },
   {
@@ -488,7 +488,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Dead Letter Queue",
     short: "처리에 계속 실패한 메시지·이벤트를 따로 보내 두는 실패 목적지 — Lambda 비동기 호출에서는 SQS 큐뿐 아니라 SNS 토픽도 지정할 수 있다.",
     detail:
-      "층이 셋이라 헷갈리기 쉽다. Lambda 비동기 호출의 DLQ는 자동 재시도(기본 2회)까지 실패한 이벤트를 SQS 큐나 SNS 토픽으로 보낸다 — 담기는 건 원래 이벤트 페이로드뿐이고 오류 문맥은 없다.\n\n같은 자리를 대체하는 최신 수단이 Destinations다. 실패만이 아니라 성공도 보낼 수 있고 호출 응답·오류 정보까지 함께 실어 주므로, 새로 만든다면 이쪽이 권장 경로다.\n\nSQS 큐 자체의 DLQ는 층이 다르다 — 큐에 건 리드라이브 정책의 maxReceiveCount만큼 소비에 실패한 메시지를 다른 큐로 옮기는 것으로, Lambda 설정이 아니라 큐 설정이다.",
+      "층이 셋이라 헷갈리기 쉽다. Lambda 비동기 호출의 DLQ는 자동 재시도(기본 2회)까지 실패한 이벤트를 SQS 큐나 SNS 토픽으로 보낸다 — 본문은 원래 이벤트이고 오류 쪽은 RequestID·ErrorCode·ErrorMessage가 메시지 속성으로 붙는 정도라, 함수의 응답까지 담은 구조화된 호출 기록은 없다.\n\n같은 자리를 대체하는 최신 수단이 Destinations다. 실패만이 아니라 성공도 보낼 수 있고 호출 응답·오류 정보까지 함께 실어 주므로, 새로 만든다면 이쪽이 권장 경로다.\n\nSQS 큐 자체의 DLQ는 층이 다르다 — 큐에 건 리드라이브 정책의 maxReceiveCount만큼 소비에 실패한 메시지를 다른 큐로 옮기는 것으로, Lambda 설정이 아니라 큐 설정이다.",
     chapterId: "ch1-2",
   },
   {
@@ -537,7 +537,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon API Gateway",
     short: "백엔드 앞에 세우는 관리형 API 관문 — HTTP 요청을 받아 Lambda 등으로 라우팅하고 인증·스로틀링을 대신 처리한다.",
     detail:
-      "REST API와 HTTP API 두 종류가 있다. HTTP API는 더 싸고 빠르지만 기능이 적고, API 키·사용량 계획·응답 캐싱·요청 검증 같은 장치는 REST API 쪽이다 — 시험은 \"이 기능이 필요하다\"로 둘을 가른다.\n\n인증은 IAM(SigV4)·Cognito User Pool·직접 만든 Lambda 권한 부여자 중에 고른다. Lambda 프록시 통합을 쓰면 요청 전체가 event 객체로 넘어오고, 응답은 statusCode·headers·body 형식을 지켜야 한다.\n\n배포 단위는 스테이지(dev·prod)다 — 변경은 스테이지에 배포해야 반영되고, 캐싱·스로틀 한도도 스테이지 단위로 건다. 스테이지 변수를 쓰면 같은 API가 스테이지마다 다른 Lambda 별칭을 가리키게 할 수 있다.",
+      "API 유형은 REST·HTTP·WebSocket 셋이고(WebSocket은 양방향 실시간 통신용), 시험에서 자주 갈리는 건 앞의 둘이다. HTTP API는 더 싸고 빠르지만 기능이 적고, API 키·사용량 계획·응답 캐싱·요청 검증 같은 장치는 REST API 쪽이다 — 시험은 \"이 기능이 필요하다\"로 둘을 가른다.\n\n인증은 IAM(SigV4)·Cognito User Pool·직접 만든 Lambda 권한 부여자 중에 고른다. Lambda 프록시 통합을 쓰면 요청 전체가 event 객체로 넘어오고, 응답은 statusCode·headers·body 형식을 지켜야 한다.\n\n배포 단위는 스테이지(dev·prod)다 — 변경은 스테이지에 배포해야 반영되고, 캐싱·스로틀 한도도 스테이지 단위로 건다. 스테이지 변수를 쓰면 같은 API가 스테이지마다 다른 Lambda 별칭을 가리키게 할 수 있다.",
   },
   {
     id: "rie",
@@ -593,7 +593,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS Serverless Application Model",
     short: "서버리스 앱 전용 IaC 프레임워크 — CloudFormation을 서버리스용으로 줄인 문법과 로컬 테스트 CLI를 제공한다.",
     detail:
-      "템플릿 맨 위의 Transform 선언이 SAM 문법을 CloudFormation으로 펼친다 — 배포되는 실체는 결국 CloudFormation 스택이다. AWS::Serverless::Function 한 덩어리가 함수·실행 역할·로그 그룹·트리거를 한꺼번에 만들어 준다.\n\nsam build로 의존성을 묶고 sam deploy로 배포하며, sam local invoke·sam local start-api는 도커로 함수를 로컬에서 돌려 본다.\n\n함수에 AutoPublishAlias와 DeploymentPreference를 적으면 CodeDeploy가 붙어 별칭 트래픽을 카나리·선형으로 옮긴다 — SAM이 무중단 배포를 다루는 지점이다.",
+      "템플릿 맨 위의 Transform 선언이 SAM 문법을 CloudFormation으로 펼친다 — 배포되는 실체는 결국 CloudFormation 스택이다. AWS::Serverless::Function 한 덩어리가 함수·실행 역할·트리거를 한꺼번에 만들어 준다 — 로그 그룹은 여기 없다(Lambda가 첫 호출 때 런타임에 만든다).\n\nsam build로 의존성을 묶고 sam deploy로 배포하며, sam local invoke·sam local start-api는 도커로 함수를 로컬에서 돌려 본다.\n\n함수에 AutoPublishAlias와 DeploymentPreference를 적으면 CodeDeploy가 붙어 별칭 트래픽을 카나리·선형으로 옮긴다 — SAM이 무중단 배포를 다루는 지점이다.",
     chapterId: "ch1-2",
   },
   {
@@ -830,7 +830,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon ElastiCache",
     short: "Redis·Memcached를 관리형으로 제공하는 인메모리 캐시 서비스다.",
     detail:
-      "캐시를 채우는 방식이 시험의 축이다. Lazy loading(캐시에 없을 때만 DB에서 읽어 채움)은 실제로 쓰는 데이터만 캐시되지만 첫 요청이 느리고 값이 오래될 수 있다. Write-through(쓸 때 캐시도 같이 갱신)는 늘 최신이지만 읽히지 않을 데이터까지 쌓인다 — 보통 TTL을 함께 걸어 절충한다.\n\n엔진은 둘 중에 고른다. 복제·자동 페일오버·영속성·정렬 자료구조가 필요하면 Redis, 단순 키-값 캐시를 여러 노드에 나눠 담으면 충분하면 Memcached다. 세션 저장소와 읽기 부하가 큰 DB 앞단이 대표 시나리오다.",
+      "캐시를 채우는 방식이 시험의 축이다. Lazy loading(캐시에 없을 때만 DB에서 읽어 채움)은 실제로 쓰는 데이터만 캐시되지만 첫 요청이 느리고 값이 오래될 수 있다. Write-through(쓸 때 캐시도 같이 갱신)는 늘 최신이지만 읽히지 않을 데이터까지 쌓인다 — 보통 TTL을 함께 걸어 절충한다.\n\n엔진은 Redis 계열과 Memcached 중에 고른다. 복제·자동 페일오버·영속성·정렬 자료구조가 필요하면 Redis 계열(현재는 Redis OSS와 그 호환 오픈소스인 Valkey 중에 고르고, AWS는 Valkey를 권한다), 단순 키-값 캐시를 여러 노드에 나눠 담으면 충분하면 Memcached다. 세션 저장소와 읽기 부하가 큰 DB 앞단이 대표 시나리오다.",
   },
 
   // ── 메시징·통합 ───────────────────────────────────────────────────────
@@ -848,7 +848,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon Simple Notification Service",
     short: "게시/구독(pub/sub) 알림 서비스 — 한 메시지를 여러 구독자에게 동시에 밀어 보낸다.",
     detail:
-      "대표 패턴은 팬아웃이다 — 토픽 하나에 SQS 큐 여러 개를 구독시켜 같은 메시지를 여러 처리 계통에 동시에 흘린다. 구독자는 SQS·Lambda·HTTP(S)·이메일·SMS 등이 될 수 있다.\n\n구독마다 필터 정책을 걸면 메시지 속성이 맞는 것만 받아, 소비자 쪽에서 걸러 버리는 낭비를 없앤다. 순서·중복 제거가 필요하면 FIFO 토픽을 쓰는데 이때 구독 대상은 SQS FIFO 큐로 제한된다.\n\n푸시(SNS)와 폴링(SQS)의 차이가 시험 선지의 갈림길이다 — 여러 곳에 즉시 알리는 건 SNS, 처리 속도를 소비자에게 맡기고 쌓아 두는 건 SQS다.",
+      "대표 패턴은 팬아웃이다 — 토픽 하나에 SQS 큐 여러 개를 구독시켜 같은 메시지를 여러 처리 계통에 동시에 흘린다. 구독자는 SQS·Lambda·HTTP(S)·이메일·SMS 등이 될 수 있다.\n\n구독마다 필터 정책을 걸면 메시지 속성이 맞는 것만 받아, 소비자 쪽에서 걸러 버리는 낭비를 없앤다. 순서·중복 제거가 필요하면 FIFO 토픽을 쓰는데, 이때 구독자는 SQS 큐로 제한된다 — 표준 큐도 구독할 수 있지만 순서와 중복 제거를 끝까지 지키려면 SQS FIFO 큐를 붙여야 한다.\n\n푸시(SNS)와 폴링(SQS)의 차이가 시험 선지의 갈림길이다 — 여러 곳에 즉시 알리는 건 SNS, 처리 속도를 소비자에게 맡기고 쌓아 두는 건 SQS다.",
   },
   {
     id: "kinesis",
@@ -870,7 +870,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS Step Functions",
     short: "여러 Lambda·서비스 호출을 상태 머신(워크플로)으로 잇는 오케스트레이션 서비스다.",
     detail:
-      "워크플로는 ASL이라는 JSON 문법으로 쓴다. 상태 유형은 Task(작업 실행)·Choice(분기)·Parallel(병렬)·Map(반복)·Wait(대기) 등이고, 상태마다 Retry(재시도)와 Catch(오류 분기)를 선언할 수 있다 — 재시도·분기 로직을 Lambda 코드에서 걷어내는 것이 이 서비스의 값이다.\n\n종류는 둘이다. Standard는 최대 1년까지 돌고 실행 이력이 남으며 각 단계가 정확히 한 번 실행된다. Express는 최대 5분이지만 훨씬 싸서 고빈도 처리에 쓰고, 대신 같은 단계가 두 번 실행될 수 있다.",
+      "워크플로는 ASL이라는 JSON 문법으로 쓴다. 상태 유형은 Task(작업 실행)·Choice(분기)·Parallel(병렬)·Map(반복)·Wait(대기) 등이고, 상태마다 Retry(재시도)와 Catch(오류 분기)를 선언할 수 있다 — 재시도·분기 로직을 Lambda 코드에서 걷어내는 것이 이 서비스의 값이다.\n\n종류는 둘이다. Standard는 최대 1년까지 돌고 실행 이력이 남으며 워크플로가 정확히 한 번 실행된다(선언해 둔 Retry로 다시 도는 것은 별개다). Express는 최대 5분이지만 훨씬 싸서 고빈도 처리에 쓰는데, 비동기로 시작하면 같은 작업이 두 번 실행될 수 있고 동기로 시작하면 반대로 재시도가 없어 한 번을 넘지 않는다.",
   },
   {
     id: "cognito",
