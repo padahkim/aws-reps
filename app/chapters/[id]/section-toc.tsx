@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useReadSections } from "@/lib/progress";
+import { useReadSections } from "@/lib/progress/read";
 import { globalQuestionKey } from "@/lib/progress/keys";
 import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/records";
 import { ProgressBar } from "../../progress-bar";

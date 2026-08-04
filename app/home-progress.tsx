@@ -1,6 +1,6 @@
 "use client";
 
-import { useReadSections } from "@/lib/progress";
+import { useReadSections } from "@/lib/progress/read";
 import { ProgressBar } from "./progress-bar";
 
 /** 홈 챕터 목록의 챕터별 읽음 진도 — localStorage 기반이라 마운트 후에 채워진다. */
