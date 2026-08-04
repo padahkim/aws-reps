@@ -15,33 +15,50 @@ import { chipBtn, SimFrame, Switch } from "../interactive";
 export function GlobalInfraSvg() {
   const az = (x: number, code: string, name: string) => (
     <>
-      <rect x={x} y={130} width={120} height={200} rx={10} fill="#FFFFFF" stroke={C.teal} strokeWidth={2} />
+      <rect x={x} y={130} width={120} height={230} rx={10} fill="#FFFFFF" stroke={C.teal} strokeWidth={2} />
       <text x={x + 60} y={158} fontSize={13} fontWeight={900} fill={C.teal} textAnchor="middle">
         {name}
       </text>
       <text x={x + 60} y={176} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
         {code}
       </text>
-      <rect x={x + 16} y={192} width={88} height={34} rx={6} fill={C.tealSoft} />
-      <text x={x + 60} y={214} fontSize={11} textAnchor="middle" fill={C.teal}>
+      <rect x={x + 16} y={190} width={88} height={30} rx={6} fill={C.tealSoft} />
+      <text x={x + 60} y={210} fontSize={11} textAnchor="middle" fill={C.teal}>
         데이터센터 🏢
       </text>
-      <rect x={x + 16} y={234} width={88} height={34} rx={6} fill={C.tealSoft} />
-      <text x={x + 60} y={256} fontSize={11} textAnchor="middle" fill={C.teal}>
+      <rect x={x + 16} y={224} width={88} height={30} rx={6} fill={C.tealSoft} />
+      <text x={x + 60} y={244} fontSize={11} textAnchor="middle" fill={C.teal}>
         데이터센터 🏢
       </text>
     </>
   );
 
+  /**
+   * VPC·서브넷 겹 (#230) — 물리 계층(리전 ⊃ AZ ⊃ 데이터센터) 위에 겹쳐 그린다.
+   * 새 도식을 만들지 않고 여기 얹는 이유는 "리전 안에 내가 그은 네트워크"라는 **포함 관계**가
+   * 한 그림에서 보여야 하기 때문 — VPC 띠는 AZ 경계를 가로지르고(여러 AZ에 걸침),
+   * 서브넷 칩은 AZ 박스 안에 들어간다(AZ 하나에 매임).
+   * 색은 새 색조를 늘리지 않고 중립(inkSoft) 점선으로 둔다 — 파랑/틸/앰버는 이미 물리 계층과
+   * 엣지가 쓰고 있고, "AWS가 만든 칸"과 "내가 그은 칸"을 실선/점선으로 가르는 편이 읽힌다.
+   */
+  const subnet = (x: number) => (
+    <>
+      <rect x={x + 14} y={302} width={92} height={34} rx={6} fill={C.line} />
+      <text x={x + 60} y={324} fontSize={11.5} fontWeight={700} textAnchor="middle" fill={C.ink}>
+        서브넷
+      </text>
+    </>
+  );
+
   return (
-    <svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
-      <rect x={10} y={10} width={740} height={400} rx={16} fill="none" stroke={C.line} strokeWidth={2} strokeDasharray="6 5" />
+    <svg viewBox="0 0 760 450" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
+      <rect x={10} y={10} width={740} height={430} rx={16} fill="none" stroke={C.line} strokeWidth={2} strokeDasharray="6 5" />
       <text x={30} y={40} fontSize={14} fontWeight={900} fill={C.inkSoft}>
         🌏 AWS 글로벌 인프라
       </text>
 
       {/* 서울 리전 */}
-      <rect x={40} y={60} width={440} height={320} rx={14} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
+      <rect x={40} y={60} width={440} height={350} rx={14} fill={C.blueSoft} stroke={C.blue} strokeWidth={2.5} />
       <text x={60} y={92} fontSize={15} fontWeight={900} fill={C.blue}>
         리전: 서울 (ap-northeast-2)
       </text>
@@ -50,18 +67,23 @@ export function GlobalInfraSvg() {
       </text>
 
       {az(60, "ap-northeast-2a", "AZ-a")}
-      <text x={120} y={308} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        1개 이상의
-      </text>
-      <text x={120} y={322} fontSize={10.5} fill={C.inkSoft} textAnchor="middle">
-        데이터센터 묶음
-      </text>
       {az(200, "ap-northeast-2b", "AZ-b")}
       {az(340, "ap-northeast-2c", "AZ-c")}
 
-      <line x1={180} y1={290} x2={200} y2={290} stroke={C.amber} strokeWidth={3} />
-      <line x1={320} y1={290} x2={340} y2={290} stroke={C.amber} strokeWidth={3} />
-      <text x={260} y={352} fontSize={11.5} fill={C.amberText} textAnchor="middle" fontWeight={700}>
+      <line x1={180} y1={232} x2={200} y2={232} stroke={C.amber} strokeWidth={3} />
+      <line x1={320} y1={232} x2={340} y2={232} stroke={C.amber} strokeWidth={3} />
+
+      {/* VPC 겹 — AZ 박스 뒤가 아니라 위에 그려 경계를 가로지르게 한다 */}
+      <rect x={52} y={276} width={416} height={70} rx={10} fill="none" stroke={C.inkSoft} strokeWidth={2} strokeDasharray="7 5" />
+      {subnet(60)}
+      {subnet(200)}
+      {subnet(340)}
+      <rect x={52} y={264} width={148} height={24} rx={6} fill={C.inkSoft} />
+      <text x={64} y={281} fontSize={11.5} fontWeight={800} fill="#FFFFFF">
+        VPC — 내 사설 네트워크
+      </text>
+
+      <text x={260} y={382} fontSize={11.5} fill={C.amberText} textAnchor="middle" fontWeight={700}>
         AZ끼리 초고속 저지연 전용망으로 연결 (물리적으로는 수십 km 분리)
       </text>
 
@@ -82,21 +104,21 @@ export function GlobalInfraSvg() {
         </g>
       ))}
 
-      {/* 엣지 */}
-      <rect x={520} y={240} width={210} height={140} rx={14} fill={C.amberSoft} stroke={C.amber} strokeWidth={2} />
-      <text x={540} y={272} fontSize={14} fontWeight={900} fill={C.amberText}>
+      {/* 엣지 — 서울 리전 박스가 VPC 겹만큼 길어졌으므로 아래 끝을 맞춰 내린다 */}
+      <rect x={520} y={255} width={210} height={155} rx={14} fill={C.amberSoft} stroke={C.amber} strokeWidth={2} />
+      <text x={540} y={287} fontSize={14} fontWeight={900} fill={C.amberText}>
         엣지 로케이션
       </text>
-      <text x={540} y={296} fontSize={11.5} fill={C.inkSoft}>
+      <text x={540} y={311} fontSize={11.5} fill={C.inkSoft}>
         리전보다 훨씬 많은 소규모 거점
       </text>
-      <text x={540} y={316} fontSize={11.5} fill={C.inkSoft}>
+      <text x={540} y={331} fontSize={11.5} fill={C.inkSoft}>
         CloudFront(CDN) 캐시,
       </text>
-      <text x={540} y={336} fontSize={11.5} fill={C.inkSoft}>
+      <text x={540} y={351} fontSize={11.5} fill={C.inkSoft}>
         Route 53 등이 여기서 동작
       </text>
-      <text x={540} y={362} fontSize={11} fill={C.amberText} fontWeight={700}>
+      <text x={540} y={377} fontSize={11} fill={C.amberText} fontWeight={700}>
         → 사용자와 가까운 곳에서 응답
       </text>
     </svg>

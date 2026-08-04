@@ -44,7 +44,7 @@ export { selfQuiz } from "./selfquiz.ts";
  */
 export const sections: SectionMeta[] = [
   { num: "00", title: "왜 AI 시대에 AWS를 공부하는가", sub: "코드는 AI가 짜준다 — 판단은 누가 하는가", freq: "lo", freqLabel: "출제 아님 · 이 공부를 하는 이유" },
-  { num: "01", title: "리전 / 가용영역(AZ)", sub: "\"내 리소스는 물리적으로 어디에 있는가\"", freq: "mid", freqLabel: "빈출 ★★☆ · 직접 문항은 적지만 모든 문제의 전제" },
+  { num: "01", title: "리전 / 가용영역(AZ)", sub: "“내 리소스는 어디에 놓이는가” — AWS가 만든 칸(리전·AZ)과 내가 그은 칸(VPC)", freq: "mid", freqLabel: "빈출 ★★☆ · 직접 문항은 적지만 모든 문제의 전제" },
   { num: "02", title: "AWS API의 구조", sub: "콘솔·CLI·SDK는 전부 “같은 API”를 부르는 다른 껍데기", freq: "hi", freqLabel: "빈출 ★★★ · 자격 증명 관련은 개발자 시험의 핵심" },
   { num: "03", title: "요금의 기본 사고방식", sub: "쓴 만큼 낸다 · 관리형 vs 직접 운영", freq: "lo", freqLabel: "빈출 ★☆☆ · 직접 출제는 드물지만 “정답 고르는 감각”의 뿌리" },
 ];
