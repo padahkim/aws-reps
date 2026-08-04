@@ -161,6 +161,10 @@ APP_ARCHITECTURE_DRAFT §3의 2키 체계(`dva.progress.v1` / `dva.review.v1`)�
 
 - 초안의 `addedAt`/`clearedAt`은 폐기: 진입 이력은 `questions[gk]`의 시도 기록으로 복원 가능하고, cleared 의미는 `graduatedAt`이 정확히 대체한다. 오답 노트 목록 = `items`에서 `graduatedAt` 없는 것, due 목록 = 그중 `dueAt ≤ now`.
 
+> **`dva.review.v1` 구현됨 [#219, 2026-08-04].** 위 스키마 그대로다. 구현체는 `lib/progress/review.ts`(localStorage 입출력·React 훅)와 `lib/progress/review-core.ts`(상자 전이·읽기 검사·정렬 — `window`를 모르는 순수 층이라 `npm run progress:test`가 CI에서 실행한다). §4-1a와 같은 이유로 **필드 목록의 정본은 코드**이고, 이 문서가 지키는 것은 "왜 이 필드들인가"다.
+>
+> 구현하며 정한 것 둘 — ① **쓰기 진입점은 `recordQuestionAttempt` 하나**다: 이 키만 따로 쓰는 경로를 만들지 않고 채점 하나가 두 키를 같은 시각으로 갱신한다(§1-2 "어디서 틀리든 강등"이 저절로 성립한다). ② **셔플(D3)은 `/review`에만 적용**했다 [사용자 결정, 2026-08-04]: 챕터 퀴즈는 SSG가 원본 순서 HTML을 선렌더하므로 첫 렌더를 섞으면 hydration이 깨지고, 피하려면 마운트 후 재배치가 필요해 별건이다. 오답 노트는 저장소를 읽어야 목록이 나와 문항이 마운트 후에 처음 렌더되므로 그 제약이 없다.
+
 ### 4-1a. `firstResult` — 구현 시 추가된 필드 [사용자 결정, 2026-08-02 · #66/PR #202]
 
 **§2-1이 숙달을 "첫 시도 정답"으로 정의하는데, `QuestionRecord`의 기본 네 필드(`attempts`·`correct`·`lastResult`·`lastAt`)로는 그 사실이 재응시 한 번에 사라진다.** `attempts ≥ 2`가 되는 순간 첫 시도가 정답이었는지 복원할 방법이 없고, 이 절이 "파생 가능한 값은 저장하지 않는다"고 한 것과 달리 **이건 파생되지 않는다**. 판정을 실제로 만드는 것은 오답 노트 착수(#86 잔여) 때지만 데이터는 첫 쓰기 경로가 착지하는 순간부터 쌓이므로, 그때 가서 소급할 수 없다는 비대칭 때문에 필드만 먼저 넣는다.

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { globalQuestionKey, stableQuestionId, type QuestionIdentity } from "./keys";
-import { applyAttempt, isRecord, repair, type Progress, type QuestionRecord } from "./records-core";
+import { isRecord, repair, type Progress, type QuestionRecord } from "./records-core";
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` (#66 — 부모 에픽 #86의 첫 쓰기 경로).
@@ -44,32 +43,17 @@ export function loadProgress(): Progress {
   return repair(readRaw());
 }
 
-function save(data: Progress): void {
+/**
+ * 이 키에 쓰는 유일한 함수. 채점 조합(어떤 값을 얹을지·언제)은 `attempt.ts` 가 정하고,
+ * 여기서는 저장만 한다 — 그 갈라짐의 이유는 그 파일 주석에 있다 (#219).
+ */
+export function saveProgress(data: Progress): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
     /* 저장 실패(프라이빗 모드·용량 초과)는 조용히 무시 — 진도는 보조 기능이다 */
   }
-}
-
-/**
- * 문항 하나의 채점 결과를 기록한다 — `<ChapterQuiz>` 의 유일한 쓰기 지점.
- *
- * 읽고(`readRaw`) → 고치고(`repair`) → 얹고(`applyAttempt`) → 저장한다(`save`). 검사를
- * 통과한 기록만 `applyAttempt` 에 들어가고, 말이 안 되는 이웃 기록은 `repair` 가 이미 버렸으므로
- * 이 `save` 가 그 삭제까지 저장소에 반영한다 (버리는 단위는 그 문항 하나다 — repairQuestion 참조).
- */
-export function recordQuestionAttempt(
-  chapterId: string,
-  question: QuestionIdentity,
-  passed: boolean,
-): void {
-  if (typeof window === "undefined") return;
-  // 문항 객체를 받아 여기서 안정 식별자로 푼다 — 호출부가 실수로 원시 q.id 를 넘길 자리를
-  // 아예 없앤다 (positional id 로 저장하면 원본 재정렬 때 진도가 조용히 엉뚱한 문항에 붙는다)
-  const gk = globalQuestionKey(chapterId, stableQuestionId(question));
-  save(applyAttempt(repair(readRaw()), gk, passed, new Date().toISOString()));
 }
 
 /**

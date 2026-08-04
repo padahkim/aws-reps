@@ -9,6 +9,8 @@ import {
   sectionCount,
 } from "@/lib/content";
 import { HomeProgress } from "./home-progress";
+import { questionKeys } from "@/lib/question-bank";
+import { ReviewLink } from "./review-link";
 
 export default function Home() {
   const chapters = getAllChapters();
@@ -18,7 +20,7 @@ export default function Home() {
       <header style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontSize: "1.5rem" }}>AWS DVA-C02 학습</h1>
         <p style={{ color: "var(--muted)" }}>
-          챕터 {chapters.length}개 · <Link href="/glossary">용어집</Link>
+          챕터 {chapters.length}개 · <Link href="/glossary">용어집</Link> · <ReviewLink knownKeys={questionKeys()} />
         </p>
       </header>
 

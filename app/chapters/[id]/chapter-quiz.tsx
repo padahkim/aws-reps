@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
-import { recordQuestionAttempt } from "@/lib/progress/records";
+import { recordQuestionAttempt } from "@/lib/progress/attempt";
 
 /**
  * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
@@ -17,8 +17,11 @@ import { recordQuestionAttempt } from "@/lib/progress/records";
  * 문항 간 이동은 게이팅하지 않는다 — 정답 여부와 무관하게 자유.
  *
  * 채점 결과 지속 (#66): 채점할 때마다 문항별 사실(시도·정오·시각)을 `dva.progress.v1` 에
- * 남긴다 (lib/progress/records.ts). 화면 상태(selected·submitted)는 예전대로 비저장이다 —
- * 되살려야 할 것은 "무엇을 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
+ * 남긴다. 화면 상태(selected·submitted)는 예전대로 비저장이다 — 되살려야 할 것은 "무엇을
+ * 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
+ *
+ * 오답 노트 (#219): 같은 채점이 Leitner 상자(`dva.review.v1`)도 갱신한다. 이 파일은 그 사실을
+ * 몰라도 되게 두 저장을 `lib/progress/attempt.ts` 한 함수가 묶는다.
  */
 
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 배경·글자색 쌍 고정으로 다크 모드에서도 읽힘.
@@ -45,27 +48,60 @@ function sameSet(a: number[], b: number[]): boolean {
   return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
 }
 
-function QuizItem({
+/**
+ * 표시 순서 → 원본 인덱스 대응표. `shuffle` 이 아니면 항등이다.
+ *
+ * **항등일 때 난수를 아예 부르지 않는 것이 요점이다** (#219): 챕터 퀴즈는 SSG 가 원본 순서로
+ * 선렌더한 HTML 위에 hydrate 하므로, 첫 렌더가 서버와 달라지면 hydration 이 깨진다. 오답
+ * 노트 화면은 localStorage 를 읽어야 목록이 나오므로 문항 자체가 마운트 후에 처음 렌더된다 —
+ * 비교 대상 HTML 이 없어 셔플이 공짜다. 그래서 셔플 적용 범위가 지금 `/review` 뿐이다.
+ */
+function displayOrder(count: number, shuffle: boolean): number[] {
+  const order = Array.from({ length: count }, (_, i) => i);
+  if (!shuffle) return order;
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+/**
+ * 문항 하나 — 선택·채점·해설. 챕터 퀴즈와 오답 노트(#219)가 함께 쓴다.
+ *
+ * 오답 노트가 이 컴포넌트를 그대로 재사용하는 것이 중요하다: 채점 로직(복수 정답은 완전 일치)
+ * 과 기록 경로(`recordQuestionAttempt`)가 한 벌이어야 설계 §1-4 의 "채점은 챕터 내와 동일
+ * 로직"이 구현으로도 성립한다. 두 벌이 되는 순간 한쪽만 고쳐지는 날이 온다.
+ */
+export function QuizItem({
   index,
   chapterId,
   question: q,
   gated = false,
+  shuffle = false,
   onExplainedChange,
+  onGraded,
 }: {
   index: number;
   chapterId: string;
   question: Question;
   gated?: boolean;
+  shuffle?: boolean;                       // 선택지를 섞어 낸다 (#219 — 위치 기억 차단, 설계 D3)
   onExplainedChange?: (id: string, explained: boolean) => void;
+  onGraded?: (passed: boolean) => void;    // 채점 직후 훅 — 오답 노트가 상자 상태를 다시 읽는다
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
   // 자기설명 체크포인트 통과 여부 (#59) — 게이트 없는 기존 모드에서는 쓰이지 않는다
   const [explained, setExplained] = useState(false);
+  // 선택지 배치는 마운트 때 한 번 정하고 고정한다 — 렌더마다 섞으면 고르는 사이에 자리가 바뀐다
+  const [order, setOrder] = useState<number[]>(() => displayOrder(q.choices.length, shuffle));
   const multi = q.answer.length > 1;
   const correct = submitted && sameSet(selected, q.answer);
   // 해설 공개 시점: 기존 모드 = 채점 즉시, 세션 모드 = 자기설명 체크포인트 통과 후
   const showExplanations = gated ? explained : submitted;
+  // 원본 인덱스 → 화면에 보이는 자리 (정답 표기 "정답: A, C" 가 이 값을 쓴다)
+  const posOf = (orig: number) => order.indexOf(orig);
 
   /**
    * 채점 = 이 문항의 유일한 기록 지점 (#66). 단일 정답(선택지 클릭)과 복수 정답(채점 버튼)이
@@ -74,10 +110,12 @@ function QuizItem({
    * 같은 렌더의 `selected` 로는 방금 고른 값을 채점할 수 없다.
    */
   function grade(choice: number[]) {
+    const passed = sameSet(choice, q.answer);
     setSelected(choice);
     setSubmitted(true);
     // 문항 객체째 넘긴다 — 저장 키는 q.id 가 아니라 안정 식별자(slug)다 (lib/progress/keys.ts)
-    recordQuestionAttempt(chapterId, q, sameSet(choice, q.answer));
+    recordQuestionAttempt(chapterId, q, passed);
+    onGraded?.(passed);
   }
 
   function pick(idx: number) {
@@ -98,10 +136,12 @@ function QuizItem({
 
   // 다시 풀기 — 화면만 되돌린다. 이미 남은 기록은 지우지 않고, 재채점이 시도를 하나 더
   // 쌓는다 (설계 §1-2: 즉시 재도전은 막지 않되 기록은 사실대로 남는다).
+  // 셔플 모드면 자리도 다시 섞는다 — "매 출제마다"(§1-4)라 재도전도 새 출제다.
   function reset() {
     setSelected([]);
     setSubmitted(false);
     setExplained(false);
+    setOrder(displayOrder(q.choices.length, shuffle));
     onExplainedChange?.(q.id, false);
   }
 
@@ -140,7 +180,8 @@ function QuizItem({
 
       {/* 선택지 */}
       <div role={multi ? "group" : "radiogroup"} style={{ display: "grid", gap: "0.5rem" }}>
-        {q.choices.map((choice, idx) => {
+        {order.map((idx, pos) => {
+          const choice = q.choices[idx];
           const isAnswer = q.answer.includes(idx);
           const isSelected = selected.includes(idx);
           let bg = "transparent";
@@ -177,7 +218,7 @@ function QuizItem({
                 }}
               >
                 <span style={{ fontWeight: 700, flexShrink: 0 }}>
-                  {submitted && isAnswer ? "✓" : submitted && isSelected ? "✗" : multi && isSelected ? "☑" : String.fromCharCode(65 + idx)}
+                  {submitted && isAnswer ? "✓" : submitted && isSelected ? "✗" : multi && isSelected ? "☑" : String.fromCharCode(65 + pos)}
                 </span>
                 <span>{choice}</span>
               </button>
@@ -239,7 +280,12 @@ function QuizItem({
               color: correct ? PAL.teal : PAL.red,
             }}
           >
-            {correct ? "정답입니다" : `오답입니다 — 정답: ${q.answer.map((a) => String.fromCharCode(65 + a)).join(", ")}`}
+            {correct
+              ? "정답입니다"
+              : `오답입니다 — 정답: ${[...q.answer]
+                  .sort((a, b) => posOf(a) - posOf(b))
+                  .map((a) => String.fromCharCode(65 + posOf(a)))
+                  .join(", ")}`}
           </div>
           {/* 자기설명 체크포인트 (#59 세션 모드) — 해설을 열기 전에 스스로 설명하게 한다 */}
           {gated && !explained && (
