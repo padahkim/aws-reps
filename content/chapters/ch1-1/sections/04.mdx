@@ -1,4 +1,5 @@
 import { Code, ExamLi, ExamPoint, Table } from "../../ui";
+import { Term } from "../../interactive";
 
 **버킷 수준**에서 활성화하며, 같은 Key로 덮어쓸 때마다 새 버전이 쌓입니다. 의도치 않은 삭제·덮어쓰기로부터 보호하고 이전 상태로 롤백할 수 있어 사실상 모든 버킷에 권장됩니다.
 
@@ -36,5 +37,5 @@ import { Code, ExamLi, ExamPoint, Table } from "../../ui";
 
 <ExamPoint>
   <ExamLi>“실수로 삭제한 파일 복구” → 버전 관리 + <b>삭제 마커 제거</b>.</ExamLi>
-  <ExamLi>버전 관리는 <b>MFA Delete·복제(Replication)의 전제 조건</b> — 연계 출제된다.</ExamLi>
+  <ExamLi>버전 관리는 <b><Term id="mfa-delete">MFA Delete</Term>·복제(Replication)의 전제 조건</b> — 연계 출제된다.</ExamLi>
 </ExamPoint>

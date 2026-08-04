@@ -1,4 +1,5 @@
 import { ExamLi, ExamPoint, Fold, SubTitle, Table, WarnBox } from "../../ui";
+import { Term } from "../../interactive";
 
 <b>이벤트 소스 매핑</b>은 Lambda가 <b>직접 폴링</b>해서 레코드를 가져오는 방식으로, 대상은 핵심 3가지 — <b>Kinesis Data Streams, DynamoDB Streams, SQS(+FIFO)</b>. 폴러가 배치를 구성해 함수를 <b>동기식으로 호출</b>합니다.
 
@@ -8,7 +9,7 @@ import { ExamLi, ExamPoint, Fold, SubTitle, Table, WarnBox } from "../../ui";
 
 샤드마다 iterator를 만들어 <b>샤드 수준 순서 보장</b>으로 처리합니다. 읽기 시작 위치는 새 항목만 / 처음부터(TRIM_HORIZON) / 특정 타임스탬프. 처리된 항목은 스트림에서 삭제되지 않으며, 처리량을 높이려면 <b>샤드당 최대 10개 배치 병렬 처리</b>(ParallelizationFactor, 파티션 키 수준 순서 유지)가 가능합니다.
 
-<WarnBox>스트림 오류 기본 동작: <b>성공하거나 항목이 만료될 때까지 배치 전체 재시도</b> — 그동안 <b>해당 샤드 처리가 중지</b>된다(순서 보장 때문). 대응 설정: discard old events · restrict retries · <b>split(bisect) batch on error</b>(배치를 반씩 쪼개 재시도 — 큰 배치가 유발하는 함수 타임아웃 우회에도 유용). 폐기된 이벤트는 Destination으로.</WarnBox>
+<WarnBox>스트림 오류 기본 동작: <b>성공하거나 항목이 만료될 때까지 배치 전체 재시도</b> — 그동안 <b>해당 샤드 처리가 중지</b>된다(순서 보장 때문). 대응 설정: discard old events · restrict retries · <b>split(bisect) batch on error</b>(배치를 반씩 쪼개 재시도 — 큰 배치가 유발하는 함수 타임아웃 우회에도 유용). 폐기된 이벤트는 <Term id="destinations">Destination</Term>으로.</WarnBox>
 
 <SubTitle>유형 ② 큐 (SQS & SQS FIFO)</SubTitle>
 

@@ -1,4 +1,5 @@
 import { ChLink, Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { Term } from "../../interactive";
 import { ApiConvergeSvg, CredentialChainResolver } from "../figs";
 
 AWS를 조작하는 도구는 세 가지입니다: 브라우저에서 버튼을 누르는 <b>웹 콘솔</b>, 터미널에서 명령을 치는 <b>CLI</b>, 코드 안에서 호출하는 <b>SDK</b>. 겉모습이 너무 달라서 초심자는 셋을 별개의 시스템으로 착각하기 쉽습니다. 하지만 —
@@ -46,7 +47,7 @@ API가 인터넷에 열려 있는 이상, AWS는 날아온 요청이 <b>누구�
 
 코드에 키를 직접 쓰지 않아도 SDK가 알아서 아래 순서로 자격 증명을 탐색합니다:
 
-- ① 코드에 명시된 파라미터 → ② 환경변수 (`AWS_ACCESS_KEY_ID` 등) → ③ 설정 파일 (`~/.aws/credentials`) → ④ <b>붙어 있는 IAM 역할</b> (EC2 인스턴스 프로파일, Lambda 실행 역할 등)
+- ① 코드에 명시된 파라미터 → ② 환경변수 (`AWS_ACCESS_KEY_ID` 등) → ③ 설정 파일 (`~/.aws/credentials`) → ④ <b>붙어 있는 IAM 역할</b> (EC2 <Term id="instance-profile">인스턴스 프로파일</Term>, Lambda 실행 역할 등)
 
 <Note>여기서 <b>역할(Role)</b>이란 고정 자격 증명 없이 필요할 때 “빌려 쓰는” IAM 신원입니다 — 자세한 개념은 <ChLink id="ch0-2">ch0-2 IAM</ChLink>에서 다룹니다. EC2에 역할만 붙여두면 코드는 자격 증명을 전혀 몰라도 동작합니다. “같은 코드가 로컬에서는 설정 파일, EC2에서는 역할로 인증된다” — 이 체인 개념이 시험에 나옵니다.</Note>
 
@@ -56,7 +57,7 @@ API가 인터넷에 열려 있는 이상, AWS는 날아온 요청이 <b>누구�
 
 <ExamPoint>
   <ExamLi>“애플리케이션에 자격 증명을 가장 안전하게 제공하는 방법은?” → <b><ChLink id="ch0-2">IAM 역할</ChLink></b> (하드코딩·환경변수·설정파일 배포는 오답)</ExamLi>
-  <ExamLi>API 요청은 <b>SigV4로 서명</b>된다 — S3 presigned URL 등 뒤 단계 주제의 기반</ExamLi>
+  <ExamLi>API 요청은 <b>SigV4로 서명</b>된다 — S3 <Term id="presigned-url">presigned URL</Term> 등 뒤 단계 주제의 기반</ExamLi>
   <ExamLi>CLI에서 임시로 다른 권한이 필요 → <Code>sts assume-role</Code> 패턴</ExamLi>
   <ExamLi><b>403 AccessDenied</b> = 인가(정책) 실패, <b>403 SignatureDoesNotMatch</b> = 서명/자격 증명 문제 — 상태 코드가 아니라 <b>에러 코드</b>로 구분하라 (트러블슈팅형 문항의 단서)</ExamLi>
 </ExamPoint>

@@ -1,8 +1,9 @@
 import { Table } from "../../ui";
+import { Term } from "../../interactive";
 
 <b>레이어(Layers)</b>의 용도: ① 커스텀 런타임(C++, Rust) ② <b>종속성 재사용</b> — 무거운 라이브러리를 분리해 함수 패키지를 가볍게 하고 여러 함수가 공유. 한도: <b>함수당 최대 5개</b>, 함수+레이어 압축 해제 합산 <b>250MB</b>.
 
-<b>EFS 마운트</b>: VPC 안에서 실행될 때 같은 VPC의 EFS를 로컬 경로에 마운트 — <b>EFS Access Point 필수</b>. 함수 인스턴스 하나가 연결 1개를 쓰므로 동시성 폭증 시 EFS 연결·버스트 한도에 주의.
+<b><Term id="efs">EFS</Term> 마운트</b>: VPC 안에서 실행될 때 같은 VPC의 EFS를 로컬 경로에 마운트 — <b>EFS Access Point 필수</b>. 함수 인스턴스 하나가 연결 1개를 쓰므로 동시성 폭증 시 EFS 연결·버스트 한도에 주의.
 
 <Table
   head={["항목", "/tmp", "레이어", "S3", "EFS"]}

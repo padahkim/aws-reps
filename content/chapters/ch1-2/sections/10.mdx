@@ -1,6 +1,7 @@
 import { ExamLi, ExamPoint, Table } from "../../ui";
+import { Term } from "../../interactive";
 
-CloudFront의 4개 후크 지점 — ① Viewer Request ② Origin Request ③ Origin Response ④ Viewer Response. <b>CloudFront Functions는 ①④(Viewer 쪽)만</b>, <b>Lambda@Edge는 ①~④ 전부</b>에 개입합니다.
+CloudFront의 4개 후크 지점 — ① Viewer Request ② Origin Request ③ Origin Response ④ Viewer Response. <b><Term id="cloudfront-functions">CloudFront Functions</Term>는 ①④(Viewer 쪽)만</b>, <b>Lambda@Edge는 ①~④ 전부</b>에 개입합니다.
 
 <Table
   head={["항목", "CloudFront Functions", "Lambda@Edge"]}
@@ -16,7 +17,7 @@ CloudFront의 4개 후크 지점 — ① Viewer Request ② Origin Request ③ O
   ]}
 />
 
-<b>Lambda@Edge는 us-east-1에서 작성</b>하면 CloudFront가 전 세계 엣지로 복제합니다. 사용 사례 — CloudFront Functions: 캐시 키 정규화·헤더 조작·URL 재작성·초경량 인증(JWT). Lambda@Edge: 수 ms 이상 로직, 외부 서비스·파일시스템·바디 접근, 서드파티 라이브러리.
+<b>Lambda@Edge는 us-east-1에서 작성</b>하면 CloudFront가 전 세계 엣지로 복제합니다. 사용 사례 — CloudFront Functions: 캐시 키 정규화·헤더 조작·URL 재작성·초경량 인증(<Term id="jwt">JWT</Term>). Lambda@Edge: 수 ms 이상 로직, 외부 서비스·파일시스템·바디 접근, 서드파티 라이브러리.
 
 <ExamPoint>
   <ExamLi>“1ms 미만·뷰어 단계·초경량” → CloudFront Functions. “오리진 단계·네트워크/바디 필요” → Lambda@Edge.</ExamLi>

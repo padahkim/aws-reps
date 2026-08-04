@@ -1,6 +1,7 @@
 import { ExamLi, ExamPoint, SubTitle, Table, WarnBox } from "../../ui";
+import { Term } from "../../interactive";
 
-<b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. CLI에서는 `--invocation-type Event`(SDK/API는 `InvocationType` 필드)로 비동기 호출합니다. S3·SNS·EventBridge· CodePipeline·SES·CloudWatch Logs(구독) 등이 비동기로 호출합니다.
+<b>비동기식</b>은 결과를 기다리지 않습니다. 이벤트는 Lambda 내부 <b>이벤트 큐</b>에 쌓이고 호출자는 즉시 `202 Accepted`만 받습니다. CLI에서는 `--invocation-type Event`(SDK/API는 `InvocationType` 필드)로 비동기 호출합니다. S3·SNS·EventBridge· <Term id="codepipeline">CodePipeline</Term>·SES·<Term id="cloudwatch">CloudWatch</Term> Logs(구독) 등이 비동기로 호출합니다.
 
 <Table
   head={["항목", "동작"]}
@@ -36,6 +37,6 @@ import { ExamLi, ExamPoint, SubTitle, Table, WarnBox } from "../../ui";
 <WarnBox>버저닝이 꺼진 버킷에서 같은 객체에 동시에 두 번 쓰기가 일어나면 S3 이벤트 알림이 <b>1건 유실</b>될 수 있다 — 빠짐없이 받으려면 <b>버전 관리 활성화</b>(그대로 출제).</WarnBox>
 
 <ExamPoint>
-  <ExamLi>“S3 이벤트가 실패하면?” → 재시도 3회 후 DLQ가 정답 흐름.</ExamLi>
+  <ExamLi>“S3 이벤트가 실패하면?” → 재시도 3회 후 <Term id="dlq">DLQ</Term>가 정답 흐름.</ExamLi>
   <ExamLi>“X분마다 Lambda 실행” → EventBridge 스케줄 규칙 (EC2 크론은 오답).</ExamLi>
 </ExamPoint>

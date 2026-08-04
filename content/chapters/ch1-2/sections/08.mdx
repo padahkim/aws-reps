@@ -1,6 +1,7 @@
 import { ExamLi, ExamPoint } from "../../ui";
+import { Term } from "../../interactive";
 
-환경 변수는 문자열 키/값으로, <b>코드를 재배포하지 않고</b> 함수 동작을 조정합니다. 총 용량 <b>4KB</b>. 비밀 값은 <b>KMS 암호화</b>(Lambda 서비스 키 또는 고객 관리형 키)하거나 <b>Secrets Manager / SSM Parameter Store</b>를 참조합니다.
+환경 변수는 문자열 키/값으로, <b>코드를 재배포하지 않고</b> 함수 동작을 조정합니다. 총 용량 <b>4KB</b>. 비밀 값은 <b>KMS 암호화</b>(Lambda 서비스 키 또는 고객 관리형 키)하거나 <b><Term id="secrets-manager">Secrets Manager</Term> / <Term id="ssm">SSM</Term> Parameter Store</b>를 참조합니다.
 
 <ExamPoint>
   <ExamLi>“환경별(dev/prod) 설정을 코드 수정 없이” → 환경 변수.</ExamLi>

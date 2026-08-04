@@ -1,13 +1,14 @@
 import { CodeBlock, ExamLi, ExamPoint, SubTitle } from "../../ui";
+import { Term } from "../../interactive";
 import { InvocationModeExplorer } from "../figs";
 
 {/* CodeBlock 템플릿 리터럴은 한 줄 \n 이스케이프로 쓴다 — MDX 다중행 표현식은 행 들여쓰기를 잘라먹어 코드 내용이 변형된다. */}
 
-호출은 <b>푸시(동기/비동기)</b>와 <b>폴링(ESM)</b>으로 나뉩니다 — 이 3유형의 구분 자체가 가장 자주 출제됩니다.
+호출은 <b>푸시(동기/비동기)</b>와 <b>폴링(<Term id="esm">ESM</Term>)</b>으로 나뉩니다 — 이 3유형의 구분 자체가 가장 자주 출제됩니다.
 
 <InvocationModeExplorer />
 
-<b>동기식</b>은 호출 후 결과를 기다렸다가 즉시 응답을 받습니다. CLI/SDK, API Gateway, ALB, CloudFront(Lambda@Edge), S3 Batch, Cognito, Step Functions 등이 동기 호출입니다. 오류 처리는 <b>클라이언트 측 책임</b> — 재시도·지수 백오프를 호출자가 수행합니다.
+<b>동기식</b>은 호출 후 결과를 기다렸다가 즉시 응답을 받습니다. CLI/SDK, API Gateway, <Term id="alb">ALB</Term>, CloudFront(<Term id="lambda-at-edge">Lambda@Edge</Term>), S3 Batch, Cognito, Step Functions 등이 동기 호출입니다. 오류 처리는 <b>클라이언트 측 책임</b> — 재시도·지수 백오프를 호출자가 수행합니다.
 
 <CodeBlock title="CLI — 동기식 호출">{`aws lambda invoke \\\n  --function-name demo-lambda \\\n  --cli-binary-format raw-in-base64-out \\\n  --payload '{"key1": "value1"}' \\\n  response.json`}</CodeBlock>
 

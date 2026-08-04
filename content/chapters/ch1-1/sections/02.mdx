@@ -1,4 +1,5 @@
 import { ChLink, CodeBlock, ExamLi, ExamPoint, Fig, Note, SubTitle } from "../../ui";
+import { Term } from "../../interactive";
 import { PolicySvg } from "../figs";
 
 S3 접근 제어는 <b>사용자 기반(IAM 정책)</b>과 <b>리소스 기반(버킷 정책, ACL)</b>으로 나뉩니다. ACL은 현재 기본 비활성화가 권장되며, 시험의 중심은 **버킷 정책**입니다.
@@ -19,7 +20,7 @@ S3 접근 제어는 <b>사용자 기반(IAM 정책)</b>과 <b>리소스 기반(�
 
 <SubTitle>Block Public Access (BPA)</SubTitle>
 
-정책과 무관하게 퍼블릭 공개를 차단하는 안전장치로, **4개 설정**을 버킷·액세스 포인트·**계정 수준**에 적용할 수 있습니다. 켜져 있으면 버킷 정책으로 퍼블릭을 허용해도 절대 공개되지 않습니다.
+정책과 무관하게 퍼블릭 공개를 차단하는 안전장치로, **4개 설정**을 버킷·<Term id="access-point">액세스 포인트</Term>·**계정 수준**에 적용할 수 있습니다. 켜져 있으면 버킷 정책으로 퍼블릭을 허용해도 절대 공개되지 않습니다.
 
 <Note>EC2에서 S3에 접근할 때는 액세스 키를 코드에 넣지 말고 <b>IAM 역할(인스턴스 프로파일)</b>을 사용합니다 — 표준 보안 관행.</Note>
 

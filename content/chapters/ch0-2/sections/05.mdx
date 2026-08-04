@@ -1,4 +1,5 @@
 import { C, Code, ExamLi, ExamPoint, Fig, SubTitle, WarnBox } from "../../ui";
+import { Term } from "../../interactive";
 import { AccentRow, CardGrid, InfoCard, PolicyTypesSvg } from "../figs";
 
 정책은 여러 종류가 있고, 실제 허용되는 권한(<b>유효 권한</b>)은 이들의 **교집합**입니다. 어느 한 경계라도 막으면 그 동작은 불가능합니다.
@@ -8,7 +9,7 @@ import { AccentRow, CardGrid, InfoCard, PolicyTypesSvg } from "../figs";
 </Fig>
 
 <AccentRow color={C.blue} term="Identity-based">유저·그룹·역할에 붙이는 정책 — “이 신원이 무엇을 할 수 있는가”. 가장 흔한 정책.</AccentRow>
-<AccentRow color={C.teal} term="Resource-based">리소스에 직접 붙임 (S3 버킷 정책, SQS/SNS/Lambda 정책). <Code>Principal</Code>로 “누가” 접근 가능한지 명시 — <b>교차 계정</b>에 유용.</AccentRow>
+<AccentRow color={C.teal} term="Resource-based">리소스에 직접 붙임 (S3 버킷 정책, <Term id="sqs">SQS</Term>/<Term id="sns">SNS</Term>/Lambda 정책). <Code>Principal</Code>로 “누가” 접근 가능한지 명시 — <b>교차 계정</b>에 유용.</AccentRow>
 <AccentRow color={C.amberText} term="Permission Boundary">유저·역할(<b>그룹 불가</b>)이 가질 수 있는 권한의 상한선. 권한을 부여하지 않고 한계만 설정.</AccentRow>
 <AccentRow color={C.red} term="SCP">AWS Organizations에서 계정/OU 전체에 적용하는 조직 차원의 최대 권한 경계. 여기 없으면 어떤 정책도 소용없음.</AccentRow>
 <AccentRow color={C.blue} term="Session Policy">AssumeRole 호출 시 인라인으로 넘기는, 해당 세션에만 적용되는 임시 축소 정책.</AccentRow>
