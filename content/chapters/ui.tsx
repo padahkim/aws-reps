@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { FigZoom } from "./fig-lightbox";
 
 /**
  * 챕터 본문 공용 프리미티브 — 레거시 HTML/JSX 변환 시 여기 컴포넌트로 조립한다.
@@ -213,7 +214,11 @@ export function CodeBlock({ title, children }: { title?: string; children: strin
   );
 }
 
-/** 도식 프레임 — 흰 카드에 SVG를 담고 캡션을 단다. */
+/**
+ * 도식 프레임 — 흰 카드에 SVG를 담고 캡션을 단다. 도식 영역 탭/클릭 = 풀스크린 라이트박스
+ * (#201, fig-lightbox.tsx). tokens 는 값 주입이다 — fig-lightbox 가 ui 를 import 하면
+ * 모듈 순환(ui ↔ fig-lightbox)이 생겨서, 팔레트의 원천은 여기 C 로 유지하되 값으로 넘긴다.
+ */
 export function Fig({ caption, children }: { caption: ReactNode; children: ReactNode }) {
   return (
     <figure
@@ -225,7 +230,12 @@ export function Fig({ caption, children }: { caption: ReactNode; children: React
         margin: "1.25rem 0",
       }}
     >
-      {children}
+      <FigZoom
+        caption={caption}
+        tokens={{ card: C.card, line: C.line, ink: C.ink, inkSoft: C.inkSoft, mono: MONO }}
+      >
+        {children}
+      </FigZoom>
       <figcaption
         style={{
           fontSize: "0.8rem",
