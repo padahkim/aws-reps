@@ -252,7 +252,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS CloudTrail",
     short: "계정의 API 호출을 기록하는 감사 로그 서비스(\"누가 언제 무엇을 했나\") — 관리 이벤트는 기본 기록되고, S3 객체 접근 같은 데이터 이벤트는 따로 켜야 남는다.",
     detail:
-      "콘솔의 이벤트 히스토리는 최근 90일치 관리 이벤트만 보여 준다. 더 오래 보관하거나 분석하려면 트레일을 만들어 S3 버킷(필요하면 CloudWatch Logs까지)으로 계속 내보내야 한다.\n\nS3 객체 읽기·쓰기나 Lambda 호출 같은 데이터 이벤트는 양이 많아 기본적으로 꺼져 있고 켜면 추가 과금된다 — 사고 뒤에 \"누가 이 객체를 지웠나\"가 안 남아 있는 흔한 원인이다.\n\n쓰임이 CloudWatch와 갈린다: 누가 어떤 API를 불렀나(감사)는 CloudTrail, 얼마나 느리고 얼마나 실패했나(운영 지표)는 CloudWatch다.",
+      "콘솔의 이벤트 히스토리는 최근 90일치 관리 이벤트만 보여 준다. 더 오래 보관하거나 분석하려면 트레일을 만들어 S3 버킷(필요하면 CloudWatch Logs까지)으로 계속 내보내거나, CloudTrail Lake의 이벤트 데이터 스토어에 적재해 거기서 바로 질의한다.\n\nS3 객체 읽기·쓰기나 Lambda 호출 같은 데이터 이벤트는 양이 많아 기본적으로 꺼져 있고 켜면 추가 과금된다 — 사고 뒤에 \"누가 이 객체를 지웠나\"가 안 남아 있는 흔한 원인이다.\n\n쓰임이 CloudWatch와 갈린다: 누가 어떤 API를 불렀나(감사)는 CloudTrail, 얼마나 느리고 얼마나 실패했나(운영 지표)는 CloudWatch다.",
   },
   {
     id: "access-analyzer",
@@ -293,7 +293,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS Secrets Manager",
     short: "DB 비밀번호 같은 시크릿을 저장하고 자동 교체(rotation)까지 해 주는 관리 서비스다.",
     detail:
-      "값은 KMS 키로 암호화해 저장하고, 교체용 Lambda를 붙여 비밀번호를 주기적으로 자동 교체한다 — RDS처럼 교체 함수가 준비된 대상도 있다.\n\n대신 시크릿마다 월정액과 API 호출 요금이 붙는다. 그래서 시험의 판단 기준은 자동 교체가 필요한지다 — 필요하면 Secrets Manager, 단순 저장이면 Parameter Store 표준 계층(무료)이 정답이다.\n\n호출할 때마다 새로 조회하면 지연과 요금이 함께 늘기 때문에, 받아 온 값을 실행 환경에 캐시해 재사용하는 쪽을 권한다.",
+      "값은 KMS 키로 암호화해 저장하고, 교체용 Lambda를 붙여 비밀번호를 주기적으로 자동 교체한다 — RDS처럼 교체 함수가 준비된 대상도 있다.\n\n대신 시크릿마다 월정액과 API 호출 요금이 붙는다. 그래서 시험의 판단 기준은 자동 교체가 필요한지다 — 필요하면 Secrets Manager, 단순 저장이면 Parameter Store 표준 계층(무료)이 정답이다.\n\n호출할 때마다 새로 조회하면 지연과 요금이 함께 늘기 때문에 받아 온 값을 캐시해 재사용하되, 만료 시간을 두거나 AWS가 주는 캐싱 라이브러리·Lambda 익스텐션을 쓴다 — 만료 없는 캐시는 시크릿이 교체된 뒤에도 옛 비밀번호를 계속 써서 인증 실패를 만든다.",
   },
   {
     id: "ssm",
@@ -450,7 +450,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Throttling",
     short: "요청이 한도를 넘을 때 AWS가 요청을 거절하는 것 — Lambda 동기 호출에서는 429 오류로 나타나며, 백오프 재시도로 대응한다.",
     detail:
-      "서비스마다 신호가 다르다 — Lambda 동기 호출과 API Gateway는 429, DynamoDB는 ProvisionedThroughputExceededException, S3는 503 Slow Down, KMS는 ThrottlingException으로 알린다.\n\n대응의 정답 패턴은 지수 백오프에 지터(무작위 지연)를 더한 재시도다. 지터가 없으면 밀린 요청들이 같은 순간에 다시 몰려들어 스로틀이 반복되기 때문이며, AWS SDK에는 이 재시도가 기본으로 들어 있다.\n\n재시도로도 못 버티면 원인을 고친다 — 한도 증설 요청, DynamoDB 용량 모드·파티션 키 재설계, Lambda 동시성 조정이 그 자리에 온다.",
+      "서비스마다 신호가 다르다 — Lambda 동기 호출과 API Gateway는 429, DynamoDB는 프로비저닝 용량 초과면 ProvisionedThroughputExceededException(온디맨드에서는 ThrottlingException), S3는 503 Slow Down, KMS는 ThrottlingException으로 알린다.\n\n대응의 정답 패턴은 지수 백오프에 지터(무작위 지연)를 더한 재시도다. 지터가 없으면 밀린 요청들이 같은 순간에 다시 몰려들어 스로틀이 반복되기 때문이며, AWS SDK에는 이 재시도가 기본으로 들어 있다.\n\n재시도로도 못 버티면 원인을 고친다 — 한도 증설 요청, DynamoDB 용량 모드·파티션 키 재설계, Lambda 동시성 조정이 그 자리에 온다.",
     chapterId: "ch1-2",
   },
   {
@@ -537,7 +537,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon API Gateway",
     short: "백엔드 앞에 세우는 관리형 API 관문 — HTTP 요청을 받아 Lambda 등으로 라우팅하고 인증·스로틀링을 대신 처리한다.",
     detail:
-      "API 유형은 REST·HTTP·WebSocket 셋이고(WebSocket은 양방향 실시간 통신용), 시험에서 자주 갈리는 건 앞의 둘이다. HTTP API는 더 싸고 빠르지만 기능이 적고, API 키·사용량 계획·응답 캐싱·요청 검증 같은 장치는 REST API 쪽이다 — 시험은 \"이 기능이 필요하다\"로 둘을 가른다.\n\n인증은 IAM(SigV4)·Cognito User Pool·직접 만든 Lambda 권한 부여자 중에 고른다. Lambda 프록시 통합을 쓰면 요청 전체가 event 객체로 넘어오고, 응답은 statusCode·headers·body 형식을 지켜야 한다.\n\n배포 단위는 스테이지(dev·prod)다 — 변경은 스테이지에 배포해야 반영되고, 캐싱·스로틀 한도도 스테이지 단위로 건다. 스테이지 변수를 쓰면 같은 API가 스테이지마다 다른 Lambda 별칭을 가리키게 할 수 있다.",
+      "API 유형은 REST·HTTP·WebSocket 셋이고(WebSocket은 양방향 실시간 통신용), 시험에서 자주 갈리는 건 앞의 둘이다. HTTP API는 더 싸고 빠르지만 기능이 적고, API 키·사용량 계획·응답 캐싱·요청 검증 같은 장치는 REST API 쪽이다 — 시험은 \"이 기능이 필요하다\"로 둘을 가른다.\n\n인증은 REST API에서 IAM(SigV4)·Cognito User Pool·직접 만든 Lambda 권한 부여자 중에 고르고, HTTP API는 OIDC·OAuth 2.0 토큰을 검사하는 JWT 권한 부여자를 내장으로 갖는다. Lambda 프록시 통합을 쓰면 요청 전체가 event 객체로 넘어오고, 응답은 statusCode·headers·body 형식을 지켜야 한다.\n\n배포 단위는 스테이지(dev·prod)다 — 변경은 스테이지에 배포해야 반영되고, 캐싱·스로틀 한도도 스테이지 단위로 건다. 스테이지 변수를 쓰면 같은 API가 스테이지마다 다른 Lambda 별칭을 가리키게 할 수 있다.",
   },
   {
     id: "rie",
@@ -570,7 +570,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon Elastic Container Registry",
     short: "컨테이너 이미지를 저장하는 AWS의 레지스트리 — Docker Hub의 AWS판이다.",
     detail:
-      "프라이빗 레지스트리라 push·pull 전에 인증이 필요하다 — aws ecr get-login-password로 받은 토큰(12시간 유효)을 docker login에 넘기는 것이 표준 절차다.\n\n이미지가 쌓이면 저장 비용이 늘어나므로 수명 주기 정책으로 오래된·태그 없는 이미지를 자동 정리하고, 이미지 스캔으로 알려진 취약점을 확인한다.\n\nLambda 컨테이너 이미지도 여기서 가져오는데, 함수와 같은 리전의 리포지토리여야 한다.",
+      "프라이빗 리포지토리는 push·pull 전에 인증이 필요하다 — aws ecr get-login-password로 받은 토큰(12시간 유효)을 docker login에 넘기는 것이 표준 절차다(익명으로 받아 갈 수 있는 ECR Public 리포지토리는 예외다).\n\n이미지가 쌓이면 저장 비용이 늘어나므로 수명 주기 정책으로 오래된·태그 없는 이미지를 자동 정리하고, 이미지 스캔으로 알려진 취약점을 확인한다.\n\nLambda 컨테이너 이미지도 여기서 가져오는데, 함수와 같은 리전의 리포지토리여야 한다.",
   },
   {
     id: "fargate",
@@ -610,7 +610,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS CodeDeploy",
     short: "배포 자동화 서비스 — Lambda에서는 별칭의 트래픽 전환(카나리·선형)을 자동화한다.",
     detail:
-      "Lambda에서는 별칭이 가리키는 트래픽을 새 버전으로 옮기는 일을 맡는다. 전환 속도는 배포 구성이 정하는데 Canary10Percent5Minutes(10%를 5분 지켜본 뒤 전량)·Linear10PercentEvery1Minute(1분마다 10%씩)·AllAtOnce가 대표 선지다.\n\n절차는 AppSpec 파일이 정의한다. Lambda 배포에는 BeforeAllowTraffic(전환 전)·AfterAllowTraffic(전환 후) 훅을 걸어 검증 함수를 돌릴 수 있고, 훅이 실패하거나 연결해 둔 CloudWatch 경보가 울리면 자동으로 이전 버전으로 롤백한다.\n\nEC2를 대상으로 하면 인플레이스와 블루/그린으로 갈리고 훅 이름도 BeforeInstall·ApplicationStart·ValidateService 등으로 달라진다.",
+      "Lambda에서는 별칭이 가리키는 트래픽을 새 버전으로 옮기는 일을 맡는다. 전환 속도는 배포 구성이 정한다 — SAM 템플릿에서는 Canary10Percent5Minutes(10%를 5분 지켜본 뒤 전량)·Linear10PercentEvery1Minute(1분마다 10%씩)·AllAtOnce처럼 접두사 없이 적고, CodeDeploy 자체의 배포 구성 이름은 CodeDeployDefault.LambdaCanary10Percent5Minutes 식으로 접두사가 붙은 별개 네임스페이스다.\n\n절차는 AppSpec 파일이 정의한다. Lambda 배포에는 BeforeAllowTraffic(전환 전)·AfterAllowTraffic(전환 후) 훅을 걸어 검증 함수를 돌릴 수 있고, 훅이 실패하거나 연결해 둔 CloudWatch 경보가 울리면 배포가 실패·중지되는데, 이전 버전으로 되돌아가는 건 배포 그룹에 자동 롤백(AutoRollbackConfiguration의 DEPLOYMENT_FAILURE·DEPLOYMENT_STOP_ON_ALARM 같은 트리거)을 켜 두었을 때다.\n\nEC2를 대상으로 하면 인플레이스와 블루/그린으로 갈리고 훅 이름도 BeforeInstall·ApplicationStart·ValidateService 등으로 달라진다.",
     chapterId: "ch1-2",
   },
   {
@@ -619,7 +619,7 @@ export const glossary: GlossaryTerm[] = [
     full: "AWS CodePipeline",
     short: "빌드→테스트→배포 흐름을 잇는 CI/CD 파이프라인 서비스다.",
     detail:
-      "파이프라인은 스테이지(소스→빌드→배포…)로 나뉘고, 각 스테이지가 만든 결과물은 아티팩트로 S3 버킷을 거쳐 다음 스테이지에 전달된다 — 스테이지 사이의 연결 고리가 이 아티팩트다.\n\n빌드는 보통 CodeBuild가 맡고, 무엇을 어떻게 빌드할지는 리포 루트의 buildspec.yml에 단계별 명령으로 적는다. 배포 단계는 CodeDeploy·CloudFormation·ECS 등으로 이어진다.\n\n스테이지가 실패하면 파이프라인은 거기서 멈추고 다음으로 넘어가지 않는다. 사람의 확인을 끼우고 싶으면 수동 승인 액션을 넣는다.",
+      "파이프라인은 스테이지(소스→빌드→배포…)로 나뉘고, 각 스테이지가 만든 결과물은 아티팩트로 S3 버킷을 거쳐 다음 스테이지에 전달된다 — 스테이지 사이의 연결 고리가 이 아티팩트다.\n\n빌드는 보통 CodeBuild가 맡고, 무엇을 어떻게 빌드할지는 기본 위치인 소스 루트의 buildspec.yml에 단계별 명령으로 적는다(프로젝트 설정이나 빌드별 재정의로 다른 경로·인라인·S3에서 가져올 수도 있다). 배포 단계는 CodeDeploy·CloudFormation·ECS 등으로 이어진다.\n\n스테이지가 실패하면 파이프라인은 거기서 멈추고 다음으로 넘어가지 않는다. 사람의 확인을 끼우고 싶으면 수동 승인 액션을 넣는다.",
   },
   {
     id: "eventbridge",
@@ -627,7 +627,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon EventBridge",
     short: "이벤트 버스 서비스 — 서비스 이벤트나 스케줄 규칙(서버리스 크론)으로 Lambda 등을 트리거한다.",
     detail:
-      "규칙에 이벤트 패턴을 적어 두면 조건에 맞는 이벤트만 대상(Lambda·SQS·Step Functions 등)으로 보낸다. AWS 서비스가 스스로 내는 이벤트(EC2 상태 변화·S3 객체 생성 등)를 받을 수 있다는 점이 SNS와의 큰 차이다.\n\n규칙은 스케줄로도 쓴다 — cron·rate 식을 걸면 서버 없는 크론이 되어 정해진 시각에 Lambda를 깨운다.\n\n같은 \"알림\"이라도 역할이 갈린다: 정해진 구독자에게 그대로 밀어 주는 건 SNS, 이벤트 내용을 보고 어디로 보낼지 고르는 라우팅이면 EventBridge다(예전 이름은 CloudWatch Events).",
+      "규칙에 이벤트 패턴을 적어 두면 조건에 맞는 이벤트만 대상(Lambda·SQS·Step Functions 등)으로 보낸다. SNS와 갈리는 지점은 이벤트 버스라는 모델이다 — S3 객체 생성 같은 이벤트는 SNS로도 곧장 보낼 수 있지만, 여러 소스의 이벤트를 한 버스에 모아 내용으로 걸러 대상마다 다르게 보내고, 보관(아카이브)했다가 다시 흘리는(리플레이) 것은 EventBridge 쪽이다.\n\n규칙은 스케줄로도 쓴다 — cron·rate 식을 걸면 서버 없는 크론이 되어 정해진 시각에 Lambda를 깨운다.\n\n같은 \"알림\"이라도 역할이 갈린다: 정해진 구독자에게 그대로 밀어 주는 건 SNS, 이벤트 내용을 보고 어디로 보낼지 고르는 라우팅이면 EventBridge다(예전 이름은 CloudWatch Events).",
     chapterId: "ch1-2",
   },
   {
@@ -816,7 +816,7 @@ export const glossary: GlossaryTerm[] = [
     full: "Amazon DynamoDB",
     short: "AWS의 완전관리형 NoSQL 키-값 데이터베이스 — 서버리스 조합의 단골 저장소다.",
     detail:
-      "테이블마다 파티션 키(항목을 나눠 담는 기준)를 정하고, 필요하면 정렬 키를 더해 두 값의 조합으로 항목 하나를 짚는다. 이 키로 찾는 Query는 싸고 빠르지만 키 없이 전체를 훑는 Scan은 느리고 비싸다 — 시험은 대개 Scan을 오답 쪽에 둔다.\n\n키가 아닌 속성으로 찾아야 하면 인덱스를 만든다. GSI는 다른 파티션 키를 쓰고 언제든 추가할 수 있지만 읽기가 최종 일관성뿐이고, LSI는 파티션 키가 같고 정렬 키만 다르며 테이블을 만들 때만 붙일 수 있다.\n\n용량은 온디맨드(쓴 만큼)와 프로비저닝(RCU·WCU를 미리 잡고 Auto Scaling) 중 고른다. 한도를 넘으면 ProvisionedThroughputExceededException이 나고, 항목 변경을 이벤트로 흘려 Lambda를 깨우려면 DynamoDB Streams를 켠다.",
+      "테이블마다 파티션 키(항목을 나눠 담는 기준)를 정하고, 필요하면 정렬 키를 더해 두 값의 조합으로 항목 하나를 짚는다. 이 키로 찾는 Query는 싸고 빠르지만 키 없이 전체를 훑는 Scan은 느리고 비싸다 — 시험은 대개 Scan을 오답 쪽에 둔다.\n\n키가 아닌 속성으로 찾아야 하면 인덱스를 만든다. GSI는 키 구성이 자유로워 파티션 키를 다르게 잡을 수 있고 언제든 추가할 수 있지만 읽기가 최종 일관성뿐이고, LSI는 파티션 키가 같고 정렬 키만 다르며 테이블을 만들 때만 붙일 수 있다.\n\n용량은 온디맨드(쓴 만큼)와 프로비저닝(RCU·WCU를 미리 잡고 Auto Scaling) 중 고른다. 프로비저닝 용량을 넘기면 ProvisionedThroughputExceededException이, 온디맨드에서 한도나 핫 키에 걸리면 ThrottlingException이 난다. 항목 변경을 이벤트로 흘려 Lambda를 깨우려면 DynamoDB Streams를 켠다.",
   },
   {
     id: "rds",
