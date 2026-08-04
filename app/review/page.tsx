@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { getAllChapters } from "@/lib/content";
-import { globalQuestionKey, stableQuestionId } from "@/lib/progress/keys";
-import { ReviewBoard, type BankEntry } from "./review-board";
+import { questionBank } from "@/lib/question-bank";
+import { ReviewBoard } from "./review-board";
 
 export const metadata: Metadata = {
   title: "오답 노트 — AWS DVA-C02 학습",
@@ -18,14 +17,5 @@ export const metadata: Metadata = {
  * 챕터가 늘어 부담이 되면 그때 챕터별 청크로 쪼갠다 — 저장 구조는 그대로다.
  */
 export default function ReviewPage() {
-  const bank: BankEntry[] = getAllChapters().flatMap((entry) => {
-    const meta = entry.data.chapterMeta;
-    return entry.data.quiz.map((question) => ({
-      gk: globalQuestionKey(meta.id, stableQuestionId(question)),
-      chapterId: meta.id,
-      chapterTitle: meta.title,
-      question,
-    }));
-  });
-  return <ReviewBoard bank={bank} />;
+  return <ReviewBoard bank={questionBank()} />;
 }

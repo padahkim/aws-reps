@@ -20,6 +20,7 @@ import {
   nextItem,
   repairItem,
   repairReview,
+  seedFromHistory,
   upcomingList,
   V,
   type Review,
@@ -306,6 +307,62 @@ expectSame("복습 N 배지 = due 개수", dueCount(listData, NOW), 3);
 expectSame("기한과 같은 순간은 due", dueCount(repairReview({ items: { [GK]: { box: 1, dueAt: NOW } } }), NOW), 1);
 expectSame("기한 1밀리초 뒤는 아직 예정", dueCount(repairReview({ items: { [GK]: { box: 1, dueAt: "2026-08-10T09:00:00.001Z" } } }), NOW), 0);
 expectSame("빈 저장소의 배지는 0", dueCount(EMPTY, NOW), 0);
+
+// ── 10. 콘텐츠에 없는 문항 걸러내기 (PR #221 리뷰 지적) ──────────────────
+
+console.log("\n── 사라진 문항 ──");
+
+// 챕터 개편으로 문항이 없어지거나 slug 가 바뀌면 저장소에 풀 수 없는 키가 남는다. 배지가 그걸
+// 세면 "복습 1"인데 화면은 비어 있는 상태가 영구히 남는다 — 세는 쪽과 그리는 쪽이 같아야 한다
+{
+  const data = repairReview({
+    items: { "1-1:살아있음": { box: 1, dueAt: T0 }, "1-1:사라짐": { box: 1, dueAt: T0 } },
+  });
+  const known = new Set(["1-1:살아있음"]);
+  expectSame("known 밖의 문항은 due 목록에서 빠진다", dueList(data, NOW, known).map((e) => e.gk), ["1-1:살아있음"]);
+  expectSame("배지도 같은 수를 센다", dueCount(data, NOW, known), 1);
+  expectSame("known 을 안 주면 전부 센다 (기존 호출부 호환)", dueCount(data, NOW), 2);
+  const future = repairReview({
+    items: { "1-1:살아있음": { box: 1, dueAt: "2026-09-01T00:00:00.000Z" }, "1-1:사라짐": { box: 1, dueAt: "2026-09-01T00:00:00.000Z" } },
+  });
+  expectSame("예정 목록도 같은 필터를 쓴다", upcomingList(future, NOW, known).map((e) => e.gk), ["1-1:살아있음"]);
+  // 저장값은 지우지 않는다 — 챕터가 잠시 빠졌다 돌아오는 경우에 이력까지 날리면 안 된다
+  expectTrue("걸러도 저장값은 남아 있다", data.items["1-1:사라짐"] !== undefined);
+}
+
+// ── 11. 이 키가 생기기 전의 오답 메우기 (PR #221 리뷰 지적) ──────────────
+
+console.log("\n── 과거 오답 이행 ──");
+
+const HISTORY = {
+  "1-1:틀린것": { lastResult: "fail" as const, lastAt: T0 },
+  "1-1:맞힌것": { lastResult: "pass" as const, lastAt: T0 },
+  "1-1:이미상자에있음": { lastResult: "fail" as const, lastAt: T0 },
+  "1-1:졸업함": { lastResult: "fail" as const, lastAt: T0 },
+  "1-1:시각이깨짐": { lastResult: "fail" as const, lastAt: "2026-08-04" },
+};
+{
+  const existing = repairReview({
+    items: {
+      "1-1:이미상자에있음": { box: 3, dueAt: T0_PLUS_7D },
+      "1-1:졸업함": { box: 3, dueAt: T0_PLUS_7D, graduatedAt: T0 },
+    },
+  });
+  const seeded = seedFromHistory(existing, HISTORY);
+  // 그때 이 규칙이 있었다면 만들어졌을 값 — nextItem(undefined, false, lastAt) 과 같다
+  expectSame("마지막이 오답이면 상자 1 · 기한 +1일로 들어온다", seeded.items["1-1:틀린것"], { box: 1, dueAt: T0_PLUS_1D });
+  // 마지막 시도가 정답인 문항은 스스로 교정된 것이라 되살릴 오답이 아니다 (§2-2 와 같은 취지)
+  expectTrue("마지막이 정답이면 들이지 않는다", seeded.items["1-1:맞힌것"] === undefined);
+  expectSame("이미 있는 항목은 건드리지 않는다", seeded.items["1-1:이미상자에있음"], { box: 3, dueAt: T0_PLUS_7D });
+  expectSame("졸업한 것을 되살리지 않는다", seeded.items["1-1:졸업함"], { box: 3, dueAt: T0_PLUS_7D, graduatedAt: T0 });
+  // 시각이 시각이 아니면 기한을 지어내는 수밖에 없다 — 지어내지 않는다
+  expectTrue("시각이 깨진 기록은 들이지 않는다", seeded.items["1-1:시각이깨짐"] === undefined);
+  expectTrue("입력을 건드리지 않는다 (비파괴)", existing.items["1-1:틀린것"] === undefined);
+  // 두 번 돌려도 같다 — 저장하지 않고 읽을 때마다 계산하므로 이 성질이 필요하다
+  expectSame("멱등하다", seedFromHistory(seeded, HISTORY), seeded);
+  expectTrue("메울 게 없으면 받은 것을 그대로 돌려준다", seedFromHistory(seeded, {}) === seeded);
+  expectSame("빈 저장소에도 메운다", seedFromHistory(EMPTY, HISTORY).items["1-1:틀린것"], { box: 1, dueAt: T0_PLUS_1D });
+}
 
 // ── 결과 ─────────────────────────────────────────────────────────────────
 

@@ -41,7 +41,7 @@ npm run dev
 | `npm run dev` | 개발 서버 (predev로 /_source 라우트 생성 후 `next dev`) |
 | `npm run validate` | 콘텐츠 값 수준 계약 검사 + 사실 블록 신선도 (`validate-content.ts` → `gen-arch-facts.ts --check` 연쇄, #137) |
 | `npm run validate:test` | 검사기 자체의 회귀 테스트 (CI 전용) |
-| `npm run progress:test` | 진도 저장소 순수 로직(read-repair·쓰기 누적)의 회귀 픽스처 (CI 전용, #214) |
+| `npm run progress:test` | 학습 상태 저장소 순수 로직의 회귀 픽스처 — 진도(read-repair·쓰기 누적, #214)와 오답 노트(Leitner 상자 전이·기한, #219). CI 전용 |
 | `npm run docs:facts` | 이 문서의 사실 블록 재생성 (`scripts/gen-arch-facts.ts`; `--check`는 validate 연쇄·CI 게이트) |
 | `npm run typecheck` | `tsc --noEmit` 타입 검사 |
 | `npm run build` | 정적 빌드 (`prebuild`가 validate + 라우트 생성 선행 → `next build`) |
@@ -136,19 +136,20 @@ flowchart TD
 | 경로 | 무엇 |
 |---|---|
 | `app/` | Next.js App Router. 라우트·페이지·클라이언트 컴포넌트. 콘텐츠를 `lib/content.ts`로만 소비한다. |
-| `app/chapters/[id]/` | 챕터 목차 페이지(`page.tsx`) + 목차(`section-toc`)·퀴즈(`chapter-quiz`) 컴포넌트. |
+| `app/chapters/[id]/` | 챕터 목차 페이지(`page.tsx`) + 목차(`section-toc`)·퀴즈(`chapter-quiz` — 문항 렌더 `QuizItem`을 오답 노트와 공유) 컴포넌트. |
+| `app/review/` | **오답 노트**(#219) — due 정렬·재출제·선택지 셔플. 홈 진입점은 `app/review-link.tsx`. |
 | `app/chapters/[id]/[sec]/` | **실제 읽기 페이지**(`page.tsx`) + 개념카드(`section-concepts`)·읽음표시(`mark-read`). |
 | `app/_source/` | dev·프리뷰 전용 **원본 검수 도구**. 레거시 `.jsx`를 문자열로 읽어 브라우저 Babel로 렌더(§7). |
 | `content/` | 학습 콘텐츠. 레거시 원본 `.jsx`(2계층 ①) + `schema.ts`·`registry.ts` + 공용 `ui.tsx`·`interactive.tsx`. |
 | `content/chapters/{id}/` | **구조화 챕터**(2계층 ②) — `meta.ts`·`body.tsx`·`sections/NN.mdx`·`intro/outro.mdx`·`figs.tsx`·`drills.ts`(+`session.ts`·`selfquiz.ts`). |
-| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `progress.ts`(읽음 진도) · `progress/`(학습 진도 — `records.ts`(브라우저 붙임)·`records-core.ts`(순수 규칙)+`.test.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
+| `lib/` | `content.ts`(앱↔콘텐츠 통로) · `question-bank.ts`(전역 키↔문항 색인, 서버 전용) · `progress.ts`(읽음 진도) · `progress/`(학습 상태 — `attempt.ts`(채점 진입점)·`records*.ts`(진도)·`review*.ts`(오답 노트)+`.test.ts`·`keys.ts`) · `reading-time.ts`(예상 소요, 서버 전용). |
 | `scripts/` | 빌드·검증·하네스 — `validate-content.ts`·`gen-source-routes.mjs`·`gen-arch-facts.ts`·`import-drills.ts`·`git_guard.py`. |
 | `docs/` | 프로젝트 문서. 지도는 `README.md`. 안내(이 문서)·진단·도면 + `design/`·`prompts/`·`reports/`·`_frozen/`. |
 | `.claude/` | 하네스 — `settings.json`(훅 등록)·`launch.json`(dev 실행)·`skills/`(issue·land·write-issue·chapter-review). |
 | `.github/workflows/` | `ci.yml` — develop 대상 타입·검증 CI. |
 | 루트 | `next.config.ts`(output:export+MDX)·`tsconfig.json`·`mdx-components.tsx`·`package.json`·`.nvmrc`. |
 
-> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records-core.ts`(필드·규칙) + `records.ts`(쓰기 진입점).
+> "이거 고치려면 어디 보나": **화면/라우팅** = `app/`, **학습 내용** = `content/chapters/{id}/`, **계약** = `content/schema.ts`, **앱↔콘텐츠 접점** = `lib/content.ts`, **읽음 진도** = `lib/progress.ts`, **퀴즈 결과·학습 진도** = `lib/progress/records-core.ts`(필드·규칙) + `records.ts`(입출력), **오답 노트·Leitner** = `lib/progress/review-core.ts` + `review.ts`, **채점 진입점** = `lib/progress/attempt.ts`.
 
 ---
 
@@ -259,7 +260,9 @@ localStorage 키가 **셋**이고, 각각 파일 하나가 소유한다. 다른 
 | `"dva.progress.v1"` | `lib/progress/records.ts` (쓰기 진입점)<br/>`lib/progress/records-core.ts` (필드·규칙) | 학습 진도 — 문항별 채점 사실 `{ [전역 문항 키]: { attempts, correct, lastResult, lastAt, firstResult? } }` (#66) |
 | `"dva.review.v1"` | `lib/progress/review.ts` (입출력)<br/>`lib/progress/review-core.ts` (필드·규칙) | 오답 노트 — 문항별 Leitner 상태 `{ [전역 문항 키]: { box, dueAt, graduatedAt? } }` (#219) |
 
-> **키는 셋인데 채점 진입점은 하나다**(#219). `recordQuestionAttempt`(records.ts)가 진도와 오답 노트를 **같은 시각으로** 함께 갱신한다 — 두 저장소가 서로 다른 순간에서 계산되면 "방금 푼 문항인데 기한이 어제"처럼 앞뒤 안 맞는 상태가 생긴다. 덕분에 채점이 어느 화면에서 일어나든(챕터 퀴즈·오답 노트) 상자 규칙이 저절로 적용된다 — "틀리면 어디서든 상자 1로"(설계 §1-2)가 구현으로도 성립하는 이유다.
+읽을 때 **이 키가 생기기 전의 오답을 메운다**(`seedFromHistory`) — 진도 키는 #66부터 채점 사실을 쌓아 왔는데 이 키는 #219에서 처음 생겨서, 그러지 않으면 이미 틀린 문항이 우연히 다시 풀리기 전까지 영영 안 나온다. 들이는 것은 **마지막 시도가 오답인 문항**뿐이고 값은 `상자 1 · 기한 = 그 채점 + 1일`이다(그때 이 규칙이 있었다면 만들어졌을 값 — 날짜를 지어내지 않는다). 저장하지 않고 읽을 때마다 계산한다.
+
+> **키는 셋인데 채점 진입점은 하나다**(#219). `lib/progress/attempt.ts`의 `recordQuestionAttempt`가 진도와 오답 노트를 **같은 시각으로** 함께 갱신한다. 저장소 파일이 아니라 그 위의 별도 파일인 이유는 순환을 피하기 위해서다 — 오답 노트는 이 키가 생기기 전의 오답을 메우느라 진도를 읽어야 한다(`seedFromHistory`) — 두 저장소가 서로 다른 순간에서 계산되면 "방금 푼 문항인데 기한이 어제"처럼 앞뒤 안 맞는 상태가 생긴다. 덕분에 채점이 어느 화면에서 일어나든(챕터 퀴즈·오답 노트) 상자 규칙이 저절로 적용된다 — "틀리면 어디서든 상자 1로"(설계 §1-2)가 구현으로도 성립하는 이유다.
 
 > **필드 목록의 정본은 문서가 아니라 코드다**(#207) — `records-core.ts`의 `Progress`·`QuestionRecord`·`ChapterRecord`이고, 설계 문서(§4)가 지키는 것은 "왜 이 필드들인가"다. 그 형이 `records.ts`가 아니라 옆 파일에 있는 이유는 #214다: `records.ts`는 `"use client"` + react import라 node가 못 불러 **CI가 진도 로직을 한 줄도 실행하지 못했다**. 순수 층을 갈라 회귀 테스트(`npm run progress:test`)를 붙였고, 앱은 여전히 `records.ts`만 import한다.
 

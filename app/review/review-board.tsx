@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Question } from "@/lib/content";
 import { loadReview, useReview } from "@/lib/progress/review";
 import {
   dueList,
@@ -10,6 +9,7 @@ import {
   type Box,
   type ReviewEntry,
 } from "@/lib/progress/review-core";
+import type { BankEntry } from "@/lib/question-bank";
 import { QuizItem } from "../chapters/[id]/chapter-quiz";
 
 /**
@@ -24,13 +24,6 @@ import { QuizItem } from "../chapters/[id]/chapter-quiz";
  * 3. **채점 경로는 챕터 퀴즈와 같은 것** — `QuizItem` 을 그대로 쓰므로 `recordQuestionAttempt`
  *    가 진도와 상자를 함께 갱신한다. 여기서 틀리면 상자 1 로 강등되는 것도 그래서 공짜다.
  */
-
-export interface BankEntry {
-  gk: string;
-  chapterId: string;
-  chapterTitle: string;
-  question: Question;
-}
 
 const BOX_LABEL: Record<Box, string> = {
   1: "상자 1 · 약점",
@@ -133,8 +126,10 @@ export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
   const [session, setSession] = useState<{ now: string; due: ReviewEntry[] } | null>(null);
   useEffect(() => {
     const now = new Date().toISOString();
-    setSession({ now, due: dueList(loadReview(), now) });
-  }, []);
+    // 콘텐츠에 실재하는 문항으로 한정한다 — 홈 배지도 같은 집합을 세므로 두 화면이 어긋나지
+    // 않는다 (lib/question-bank.ts 주석 참조)
+    setSession({ now, due: dueList(loadReview(), now, new Set(bank.map((e) => e.gk))) });
+  }, [bank]);
 
   /**
    * 방금 채점한 것 — 결과 한 줄은 **채점한 뒤에만** 나온다. (저장소에는 채점 전에도 상자
@@ -159,9 +154,11 @@ export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
   }
 
   const dueSeen = new Set(session.due.map((e) => e.gk));
-  const upcoming = upcomingList(review, session.now).filter((e) => !dueSeen.has(e.gk));
-  // 저장소에는 있는데 콘텐츠에서 사라진 문항(챕터 개편 등)은 풀 방법이 없으므로 조용히 건너뛴다
-  const playable = session.due.filter((e) => byKey.has(e.gk));
+  const upcoming = upcomingList(review, session.now, new Set(byKey.keys())).filter(
+    (e) => !dueSeen.has(e.gk),
+  );
+  // 저장소에는 있는데 콘텐츠에서 사라진 문항은 `dueList` 의 `known` 이 이미 걸렀다
+  const playable = session.due;
 
   return (
     <>
@@ -194,6 +191,10 @@ export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
           {playable.map((entry, i) => {
             const bankEntry = byKey.get(entry.gk);
             if (!bankEntry) return null;
+            // 상자 배지는 **지금 저장된 값**이다 — 얼린 값을 쓰면 채점 뒤 "상자 1 → 2" 라고
+            // 알려 놓고 배지는 "상자 1 · 약점"으로 남는다. 연체 표기는 반대로 얼린 값을 쓴다:
+            // 그건 "이 문항이 왜 이 목록에 있는가"의 설명이라 진입 시점이 정본이다.
+            const current = review.items[entry.gk] ?? entry.item;
             const late = overdueDays(entry.item.dueAt, session.now);
             return (
               <article key={entry.gk} style={{ marginTop: "1.5rem" }}>
@@ -208,7 +209,11 @@ export function ReviewBoard({ bank }: { bank: BankEntry[] }) {
                   }}
                 >
                   <Link href={`/chapters/${bankEntry.chapterId}`}>{bankEntry.chapterTitle}</Link>
-                  <Badge text={BOX_LABEL[entry.item.box]} bg={PAL.tealSoft} fg={PAL.teal} />
+                  <Badge
+                    text={current.graduatedAt !== undefined ? "졸업" : BOX_LABEL[current.box]}
+                    bg={PAL.tealSoft}
+                    fg={PAL.teal}
+                  />
                   {late > 0 && <Badge text={`${late}일 연체`} bg={PAL.redSoft} fg={PAL.red} />}
                 </div>
                 <QuizItem

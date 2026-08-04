@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { isRecord } from "./records-core";
-import { applyResult, repairReview, type Review } from "./review-core";
+import { loadProgress } from "./records";
+import { applyResult, repairReview, seedFromHistory, type Review } from "./review-core";
 
 /**
  * 오답 노트 저장소 `dva.review.v1` (#219 — 부모 에픽 #86). Leitner 상자 상태를 담는다.
@@ -34,9 +35,16 @@ function readRaw(): Record<string, unknown> {
   }
 }
 
-/** 저장소 전체를 읽는다. 못 읽거나 망가졌으면 그만큼 "복습할 것 없음"으로 강건하게. */
+/**
+ * 저장소 전체를 읽는다. 못 읽거나 망가졌으면 그만큼 "복습할 것 없음"으로 강건하게.
+ *
+ * 읽으면서 **이 키가 생기기 전에 쌓인 오답을 메운다**(`seedFromHistory`, #219 리뷰 지적 →
+ * 채택). 진도 키는 #66부터 채점 사실을 쌓아 왔는데 이 키는 이번에 처음 생기므로, 그러지 않으면
+ * 이미 틀린 문항들이 우연히 다시 풀리기 전까지 영영 안 나온다. 저장은 하지 않는다 — 값이
+ * 결정적이라 읽을 때마다 같고, 첫 쓰기가 일어날 때 함께 저장된다.
+ */
 export function loadReview(): Review {
-  return repairReview(readRaw());
+  return seedFromHistory(repairReview(readRaw()), loadProgress().questions);
 }
 
 function save(data: Review): void {
@@ -52,13 +60,24 @@ function save(data: Review): void {
  * 채점 결과 하나를 상자 상태에 반영한다 — `recordQuestionAttempt` 가 부르는 유일한 쓰기 지점.
  * `at` 을 인자로 받는 이유는 진도 키와 **같은 순간**을 쓰기 위해서다(위 파일 주석 참조).
  *
- * 읽고(`readRaw`) → 고치고(`repairReview`) → 얹고(`applyResult`) → 저장한다. 상태가 안 바뀌는
- * 채점(조기 정답·첫 정답)도 저장은 한다 — `repairReview` 가 버린 손상 항목의 삭제를 그때
- * 반영해야 하기 때문이다.
+ * 읽고(`readRaw`) → 고치고(`repairReview`) → 메우고(`seedFromHistory`) → 얹고(`applyResult`) →
+ * 저장한다. 상태가 안 바뀌는 채점(조기 정답·첫 정답)도 저장은 한다 — `repairReview` 가 버린
+ * 손상 항목의 삭제와 위 메움을 그때 반영해야 하기 때문이다.
+ *
+ * **`before` 를 인자로 받는 것이 핵심이다**: 메움의 재료인 진도는 이 채점으로 바뀌는 값이라,
+ * 저장된 것을 여기서 다시 읽으면 **이미 이번 결과가 반영된 뒤**일 수 있다. 실제로 그랬다 —
+ * 과거 오답이 메워지기 전에 정답 채점이 진도를 `pass` 로 덮으면, 메움이 그 문항을 건너뛰어
+ * 상자가 없는 채로 "첫 정답"이 되고 **승급이 통째로 사라졌다**(프리뷰에서 잡았다). 호출 순서로
+ * 막을 수도 있지만 그건 다음 사람이 모르는 규칙이 된다 — 스냅샷을 넘겨 못 틀리게 한다.
  */
-export function recordReviewResult(gk: string, passed: boolean, at: string): void {
+export function recordReviewResult(
+  gk: string,
+  passed: boolean,
+  at: string,
+  before: Record<string, { lastResult: "pass" | "fail"; lastAt: string }>,
+): void {
   if (typeof window === "undefined") return;
-  save(applyResult(loadReview(), gk, passed, at));
+  save(applyResult(seedFromHistory(repairReview(readRaw()), before), gk, passed, at));
 }
 
 /**

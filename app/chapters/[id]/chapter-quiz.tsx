@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Question } from "@/lib/content";
-import { recordQuestionAttempt } from "@/lib/progress/records";
+import { recordQuestionAttempt } from "@/lib/progress/attempt";
 
 /**
  * 챕터 퀴즈 섹션 (이슈 #6) — 챕터 페이지 하단에 quiz 전체를 렌더한다.
@@ -17,8 +17,11 @@ import { recordQuestionAttempt } from "@/lib/progress/records";
  * 문항 간 이동은 게이팅하지 않는다 — 정답 여부와 무관하게 자유.
  *
  * 채점 결과 지속 (#66): 채점할 때마다 문항별 사실(시도·정오·시각)을 `dva.progress.v1` 에
- * 남긴다 (lib/progress/records.ts). 화면 상태(selected·submitted)는 예전대로 비저장이다 —
- * 되살려야 할 것은 "무엇을 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
+ * 남긴다. 화면 상태(selected·submitted)는 예전대로 비저장이다 — 되살려야 할 것은 "무엇을
+ * 골랐었나"가 아니라 "맞혔었나"고, 그건 목차 배지가 읽는다.
+ *
+ * 오답 노트 (#219): 같은 채점이 Leitner 상자(`dva.review.v1`)도 갱신한다. 이 파일은 그 사실을
+ * 몰라도 되게 두 저장을 `lib/progress/attempt.ts` 한 함수가 묶는다.
  */
 
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 배경·글자색 쌍 고정으로 다크 모드에서도 읽힘.

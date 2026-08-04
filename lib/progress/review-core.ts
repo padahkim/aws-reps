@@ -181,10 +181,18 @@ export interface ReviewEntry {
   item: ReviewItem;
 }
 
-/** 아직 졸업하지 않은 항목만 (= 오답 노트의 모집단, §4-1). */
-function active(data: Review): ReviewEntry[] {
+/**
+ * 아직 졸업하지 않은 항목만 (= 오답 노트의 모집단, §4-1).
+ *
+ * `known` 을 주면 **지금 콘텐츠에 실재하는 문항으로 한정**한다. 챕터가 개편돼 문항이 사라지거나
+ * slug 가 바뀌면 저장소에는 풀 수 없는 키가 남는데, 그런 항목이 개수에 잡히면 홈 배지는
+ * "복습 1"인데 오답 노트는 빈 화면인 상태가 **영구히** 남는다(지울 방법도 없다). 그래서 세는
+ * 쪽과 그리는 쪽이 같은 필터를 통과하게 한다. **저장값을 지우지는 않는다** — 챕터가 잠시
+ * 빠졌다가 돌아오는 경우에 이력까지 날리지 않기 위해서다.
+ */
+function active(data: Review, known?: ReadonlySet<string>): ReviewEntry[] {
   return Object.entries(data.items)
-    .filter(([, item]) => item.graduatedAt === undefined)
+    .filter(([gk, item]) => item.graduatedAt === undefined && (known === undefined || known.has(gk)))
     .map(([gk, item]) => ({ gk, item }));
 }
 
@@ -194,9 +202,9 @@ function active(data: Review): ReviewEntry[] {
  * 상자가 낮은 쪽(더 자주 틀린 쪽)이 약점이라 먼저다. 마지막 gk 비교는 정렬을 결정적으로
  * 만들기 위한 것이다 — 같은 목록이 새로고침마다 다른 순서로 보이지 않게.
  */
-export function dueList(data: Review, now: string): ReviewEntry[] {
+export function dueList(data: Review, now: string, known?: ReadonlySet<string>): ReviewEntry[] {
   const t = Date.parse(now);
-  return active(data)
+  return active(data, known)
     .filter(({ item }) => Date.parse(item.dueAt) <= t)
     .sort(
       (a, b) =>
@@ -207,9 +215,9 @@ export function dueList(data: Review, now: string): ReviewEntry[] {
 }
 
 /** 아직 기한이 안 된 문항 — 화면에서는 접힌 "예정" 영역이다 (§1-3). 가까운 기한 순. */
-export function upcomingList(data: Review, now: string): ReviewEntry[] {
+export function upcomingList(data: Review, now: string, known?: ReadonlySet<string>): ReviewEntry[] {
   const t = Date.parse(now);
-  return active(data)
+  return active(data, known)
     .filter(({ item }) => Date.parse(item.dueAt) > t)
     .sort(
       (a, b) =>
@@ -219,7 +227,43 @@ export function upcomingList(data: Review, now: string): ReviewEntry[] {
     );
 }
 
-/** "복습 N" 배지가 읽는 값 (§1-3) — 알림·푸시는 만들지 않는다. 숫자 하나가 전부다. */
-export function dueCount(data: Review, now: string): number {
-  return dueList(data, now).length;
+/**
+ * "복습 N" 배지가 읽는 값 (§1-3) — 알림·푸시는 만들지 않는다. 숫자 하나가 전부다.
+ * `known` 은 오답 노트 화면과 **같은 값을 세기 위한** 것이다 (active 주석 참조).
+ */
+export function dueCount(data: Review, now: string, known?: ReadonlySet<string>): number {
+  return dueList(data, now, known).length;
+}
+
+/**
+ * 이 키가 생기기 전에 쌓인 오답을 복습 큐에 들인다 (#219 리뷰 지적 → 채택).
+ *
+ * `dva.progress.v1` 은 #66부터 채점 사실을 쌓아 왔는데, 이 키는 이번에 처음 생긴다. 그대로
+ * 두면 **이미 틀린 문항들이 영영 안 나온다** — 사용자가 우연히 그 문항을 다시 풀 때까지.
+ * 되살릴 근거가 저장돼 있는데 버리는 셈이라, 읽을 때 한 번 메운다.
+ *
+ * 만드는 값은 "그때 이 규칙이 있었다면 만들어졌을 값"이다 — 상자 1, `dueAt = 그 채점 + 1일`
+ * (`nextItem(undefined, false, lastAt)` 과 같다). 날짜를 지어내지 않는다.
+ *
+ * **`lastResult === "fail"` 인 것만** 들인다. 두 가지 이유가 겹친다: ① 마지막 시도가 정답인
+ * 문항은 이미 스스로 교정된 것이라 되살릴 오답이 아니고(§2-2 가 정답률을 "최근 시도 기준"으로
+ * 세는 것과 같은 취지), ② 저장된 시각은 `lastAt` 하나뿐이라 **옛날 오답이 언제였는지 알 방법이
+ * 없다** — 그런 문항까지 들이면 기한을 지어내야 한다.
+ *
+ * 이미 항목이 있는 문항은 건드리지 않는다(졸업한 것도 그대로 둔다). 저장은 하지 않고 읽을
+ * 때마다 같은 값을 낸다 — 결정적이라 그래도 되고, 첫 쓰기가 일어날 때 함께 저장된다.
+ */
+export function seedFromHistory(
+  data: Review,
+  questions: Record<string, { lastResult: "pass" | "fail"; lastAt: string }>,
+): Review {
+  const seeded: Record<string, ReviewItem> = {};
+  for (const [gk, record] of Object.entries(questions)) {
+    if (data.items[gk] !== undefined) continue;
+    if (record.lastResult !== "fail") continue;
+    const item = nextItem(undefined, false, record.lastAt);
+    if (item !== undefined) seeded[gk] = item;
+  }
+  if (Object.keys(seeded).length === 0) return data;
+  return { ...data, items: { ...data.items, ...seeded } };
 }
