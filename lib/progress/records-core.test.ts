@@ -14,6 +14,7 @@
  */
 import {
   applyAttempt,
+  applyChapterCompletion,
   isCount,
   isIsoInstant,
   isRecord,
@@ -249,11 +250,21 @@ expectSame("visitedAt + 미지 필드 보존", repairChapter({ visitedAt: AT, no
 expectSame("completedAt 보존", repairChapter({ visitedAt: AT, completedAt: AT2 }), {
   visitedAt: AT, completedAt: AT2,
 });
-expectSame("completedAt 이 비문자열 → 떨구고 기록은 생존", repairChapter({ visitedAt: AT, completedAt: 5 }), {
-  visitedAt: AT,
-});
-expectTrue("visitedAt 없음 → 버림", repairChapter({ completedAt: AT }) === undefined);
+
+// #224 로 뒤집힌 규칙 — 이제 아무도 visitedAt 을 쓰지 않으므로(열람은 aws-reps.read.v1 에서
+// 파생) 필수로 두면 completedAt 만 든 기록이 **저장 직후 다음 로드에서 사라진다**.
+// 화면상으로는 "완료 배지가 새로고침하면 풀린다"로만 보이는 종류의 결함이다
+expectSame("completedAt 만 있어도 산다", repairChapter({ completedAt: AT2 }), { completedAt: AT2 });
+
+// 시각이 있는데 시각이 아니면 기록째 버린다 (repairItem 의 graduatedAt 규칙과 같다) —
+// 완료 스냅샷이 이 기록의 전부라, 그 값을 못 믿으면 남겨 둘 것이 없다
+expectTrue("completedAt 이 비문자열 → 버림", repairChapter({ visitedAt: AT, completedAt: 5 }) === undefined);
+expectTrue("completedAt 이 날짜만 → 버림", repairChapter({ completedAt: "2026-08-03" }) === undefined);
+expectTrue("completedAt 이 없는 날짜 → 버림", repairChapter({ completedAt: "2024-02-30T00:00:00.000Z" }) === undefined);
 expectTrue("visitedAt 이 비문자열 → 버림", repairChapter({ visitedAt: 5 }) === undefined);
+expectTrue("visitedAt 이 시각이 아님 → 버림", repairChapter({ visitedAt: "어제" }) === undefined);
+expectTrue("둘 다 없음 → 버림 (빈 껍데기)", repairChapter({ note: "메모" }) === undefined);
+expectTrue("빈 객체 → 버림", repairChapter({}) === undefined);
 expectTrue("항목이 문자열 → 버림", repairChapter("x") === undefined);
 
 // 값까지 대조한다 — 키만 세면 `repair` 의 챕터 루프가 `repairChapter` 의 반환값을 깎아도(예:
@@ -265,6 +276,52 @@ expectSame(
     .chapters,
   { "1-1": { visitedAt: AT, completedAt: AT2, box: 9 } },
 );
+
+// ── 4a. 챕터 완료 쓰기 (applyChapterCompletion, #224) ─────────────────────
+
+console.log("\n── 챕터 완료 쓰기 ──");
+
+expectSame(
+  "완료 스냅샷을 남긴다",
+  applyChapterCompletion(progress(), "1-1", AT).chapters["1-1"],
+  { completedAt: AT },
+);
+// 이 값의 뜻은 "**처음** 충족한 시각"이다 — 덮어쓰면 방문할 때마다 완료 시각이 오늘로 밀린다
+{
+  const already = repair({ chapters: { "1-1": { completedAt: AT } } });
+  expectTrue("이미 있으면 받은 것을 그대로 돌려준다", applyChapterCompletion(already, "1-1", AT2) === already);
+}
+// 다음 로드가 버릴 값을 저장하지 않는다 (repairChapter 가 기록째 버린다 = 완료가 사라진다)
+{
+  const before = progress();
+  expectTrue("시각이 시각이 아니면 아무것도 안 한다", applyChapterCompletion(before, "1-1", "2026-08-03") === before);
+}
+expectSame(
+  "같은 챕터의 미지 필드는 보존한다",
+  applyChapterCompletion(repair({ chapters: { "1-1": { visitedAt: AT, note: "메모" } } }), "1-1", AT2)
+    .chapters["1-1"],
+  { visitedAt: AT, note: "메모", completedAt: AT2 },
+);
+expectSame(
+  "다른 챕터·문항 기록은 건드리지 않는다",
+  applyChapterCompletion(
+    repair({ chapters: { "1-2": { completedAt: AT } }, questions: { [GK]: rec() } }),
+    "1-1",
+    AT2,
+  ).chapters,
+  { "1-2": { completedAt: AT }, "1-1": { completedAt: AT2 } },
+);
+{
+  const before = progress();
+  const snapshot = show(before);
+  applyChapterCompletion(before, "1-1", AT);
+  expectTrue("인자를 바꾸지 않는다 (비파괴)", show(before) === snapshot, `인자가 ${show(before)} 로 변했다`);
+}
+// 쓰기 ↔ 읽기 불변식 — 여기가 깨지면 방금 딴 완료 배지가 새로고침 한 번에 풀린다
+{
+  const after = applyChapterCompletion(progress({ [GK]: rec() }), "1-1", AT);
+  expectSame("완료 저장 후 재로드가 같다", repair(after as unknown as Record<string, unknown>), after);
+}
 
 // ── 5. 형식 술어 ──────────────────────────────────────────────────────────
 

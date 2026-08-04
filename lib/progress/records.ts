@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { isRecord, repair, type Progress, type QuestionRecord } from "./records-core";
+import { useCallback, useEffect, useState } from "react";
+import {
+  applyChapterCompletion,
+  isRecord,
+  repair,
+  type Progress,
+  type QuestionRecord,
+} from "./records-core";
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` (#66 — 부모 에픽 #86의 첫 쓰기 경로).
@@ -57,24 +63,46 @@ export function saveProgress(data: Progress): void {
 }
 
 /**
- * 마운트 후 문항 기록을 읽는다 — SSG HTML 은 항상 "기록 없음"으로 렌더되므로 useEffect 로
+ * 챕터 완료 스냅샷을 남긴다 (#224) — `chapters` 슬롯에 쓰는 유일한 함수이자, 이 키의 쓰기가
+ * 전부 이 파일을 거친다는 §4-1 규칙의 두 번째 지점이다(첫 번째는 채점 쪽 `saveProgress`).
+ *
+ * 판정은 하지 않는다. 부를지 말지는 화면(`app/completion-badge.tsx`)이 `completion-core.ts`
+ * 의 조건식으로 정하고, 여기서는 "이미 있으면 그대로 둔다"만 지킨다 —
+ * `applyChapterCompletion` 이 바꿀 게 없으면 같은 객체를 돌려주므로 헛된 저장도 없다.
+ */
+export function markChapterCompleted(chapterId: string, at: string): void {
+  if (typeof window === "undefined") return;
+  const before = loadProgress();
+  const after = applyChapterCompletion(before, chapterId, at);
+  if (after === before) return;
+  saveProgress(after);
+}
+
+/**
+ * 마운트 후 저장소 전체를 읽는다 — SSG HTML 은 항상 "기록 없음"으로 렌더되므로 useEffect 로
  * 채워야 hydration 불일치가 없다 (옆 read.ts 의 useReadSections 와 같은 규칙).
  *
  * `storage` 이벤트도 듣는다 (PR #202 Codex P2): 목차를 한 탭에 열어 둔 채 다른 탭에서 퀴즈를
  * 풀면, 마운트 1회 스냅샷만으로는 배지가 새로고침 전까지 낡은 점수를 계속 보인다. 이 이벤트는
- * **다른 탭의 쓰기만** 오므로 같은 탭의 채점과 겹치지 않는다.
+ * **다른 탭의 쓰기만** 오므로 같은 탭의 채점과 겹치지 않는다 — 같은 탭에서 이 키에 쓴 화면은
+ * `refresh` 를 직접 불러야 한다 (완료 배지가 스냅샷을 남긴 직후가 그 경우다, `useReview` 와 같다).
  */
-export function useQuestionRecords(): Record<string, QuestionRecord> {
-  const [records, setRecords] = useState<Record<string, QuestionRecord>>({});
+export function useProgress(): { progress: Progress; refresh: () => void } {
+  const [progress, setProgress] = useState<Progress>(() => repair({}));
+  const refresh = useCallback(() => setProgress(loadProgress()), []);
   useEffect(() => {
-    const read = () => setRecords(loadProgress().questions);
-    read();
+    refresh();
     // key === null 은 localStorage.clear() — 그때도 다시 읽어야 비워진 상태가 반영된다
     const onStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === KEY) read();
+      if (event.key === null || event.key === KEY) refresh();
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
-  return records;
+  }, [refresh]);
+  return { progress, refresh };
+}
+
+/** 문항 기록만 필요한 화면(목차 점수 배지)이 쓰는 얇은 겉면 — 규칙은 `useProgress` 와 같다. */
+export function useQuestionRecords(): Record<string, QuestionRecord> {
+  return useProgress().progress.questions;
 }

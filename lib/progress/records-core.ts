@@ -38,12 +38,18 @@ export interface QuestionRecord {
 }
 
 /**
- * 챕터 하나의 열람·완료 스냅샷 (§4-1). 아직 **쓰기 경로가 없다** — 열람 기록과 완료 배지는
- * #86 잔여 범위다. 그래도 형을 여기 두는 이유: 이 파일이 키의 구조를 소유하므로 read-repair
- * 가 이 자리를 알아야 남의 기록을 지우지 않는다.
+ * 챕터 하나의 완료 스냅샷 (§4-1). 쓰기 경로는 `applyChapterCompletion` 하나다 (#224).
+ *
+ * **두 필드 다 optional 이고, 지금 쓰이는 것은 `completedAt` 뿐이다**:
+ * - `visitedAt` 은 **아무도 쓰지 않는다** [사용자 결정 2026-08-04, #224]. 열람 여부는
+ *   `aws-reps.read.v1`(read.ts)에 읽은 섹션이 하나라도 있는지로 파생하므로, 같은 사실을 두
+ *   키에 이중 저장하지 않는다(§4-1). 형만 남겨 둔 이유는 read-repair 가 이 자리를 알아야
+ *   구조가 바뀌었을 때 남의 기록을 지우지 않기 때문이다.
+ * - `completedAt` 은 finalQ 조건을 **처음 충족한 시각**이다 (§2-3 → completion-core.ts).
+ *   파생되지 않는 유일한 사실이라 저장한다 — 그 뒤 재응시로 조건이 깨져도 배지는 유지된다(D5).
  */
 export interface ChapterRecord {
-  visitedAt: string;
+  visitedAt?: string;
   completedAt?: string;
   [extra: string]: unknown;
 }
@@ -125,11 +131,28 @@ export function repairQuestion(raw: unknown): QuestionRecord | undefined {
   };
 }
 
-/** 챕터 기록 하나를 고친다. 열람 시각이 없으면 스냅샷이 아니므로 버린다. */
+/**
+ * 챕터 기록 하나를 고친다 — 원칙은 `repairQuestion` 과 같다: 말이 되면 두고, 아니면 버린다.
+ *
+ * **시각이 있는데 시각이 아니면 버린다**(`repairItem` 의 `graduatedAt` 규칙과 같다): 완료
+ * 스냅샷은 이 기록의 전부라, 그 값을 믿을 수 없으면 남겨 둘 것이 없다. 남기면 화면은
+ * "완료"라고 하는데 그 시각이 어디서 온 값인지 아무도 모르는 상태가 영구화된다.
+ *
+ * **둘 다 없으면 버린다** — 빈 껍데기 기록은 저장소만 부풀린다.
+ * 옛 규칙(`visitedAt` 필수)을 푼 것은 #224 다: 이제 아무도 `visitedAt` 을 쓰지 않으므로
+ * (열람은 `aws-reps.read.v1` 에서 파생), 필수로 두면 `completedAt` 만 든 기록이 저장 직후
+ * 다음 로드에서 통째로 사라진다 — 화면상으로는 "완료 배지가 새로고침하면 풀린다".
+ */
 export function repairChapter(raw: unknown): ChapterRecord | undefined {
-  if (!isRecord(raw) || typeof raw.visitedAt !== "string") return undefined;
-  const completedAt = typeof raw.completedAt === "string" ? raw.completedAt : undefined;
-  return { ...raw, visitedAt: raw.visitedAt, completedAt };
+  if (!isRecord(raw)) return undefined;
+  if (raw.visitedAt !== undefined && !isIsoInstant(raw.visitedAt)) return undefined;
+  if (raw.completedAt !== undefined && !isIsoInstant(raw.completedAt)) return undefined;
+  if (raw.visitedAt === undefined && raw.completedAt === undefined) return undefined;
+  return {
+    ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3)
+    visitedAt: typeof raw.visitedAt === "string" ? raw.visitedAt : undefined,
+    completedAt: typeof raw.completedAt === "string" ? raw.completedAt : undefined,
+  };
 }
 
 /**
@@ -171,6 +194,28 @@ export function repair(raw: Record<string, unknown>): Progress {
  * `at` 은 `new Date().toISOString()` 형식이어야 한다 (isIsoInstant 참조) — 아니면 다음 로드가
  * 이 기록을 버린다.
  */
+/**
+ * 챕터 완료 스냅샷을 남긴 **새 진도**를 돌려준다 (#224) — `chapters` 슬롯의 유일한 쓰기다.
+ * 무엇이 완료인지(조건식)는 여기 없다: `completion-core.ts` 가 판정하고, 여기는 그 사실을
+ * 저장 구조에 얹기만 한다. 입력 `data` 는 건드리지 않는다.
+ *
+ * **이미 스냅샷이 있으면 그대로 둔다** — 이 값의 뜻이 "조건을 **처음** 충족한 시각"이라
+ * 덮어쓰면 매 방문마다 완료 시각이 오늘로 밀린다. 바뀔 게 없으면 받은 것을 그대로 돌려주므로
+ * 호출부는 `!==` 하나로 저장이 필요한지 안다.
+ *
+ * `at` 이 정규 ISO 순간이 아니면 **아무것도 하지 않는다**: 그런 값은 다음 로드의 read-repair
+ * 가 기록째 버리므로(repairChapter), 저장해 봐야 새로고침 한 번에 사라지는 완료가 된다.
+ */
+export function applyChapterCompletion(data: Progress, chapterId: string, at: string): Progress {
+  if (!isIsoInstant(at)) return data;
+  const prev = data.chapters[chapterId];
+  if (prev?.completedAt !== undefined) return data;
+  return {
+    ...data,
+    chapters: { ...data.chapters, [chapterId]: { ...prev, completedAt: at } },
+  };
+}
+
 export function applyAttempt(data: Progress, gk: string, passed: boolean, at: string): Progress {
   const result = passed ? "pass" : "fail";
   const prev = data.questions[gk];

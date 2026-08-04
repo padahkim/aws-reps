@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useReadSections } from "@/lib/progress/read";
-import { globalQuestionKey } from "@/lib/progress/keys";
 import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/records";
+import { CompletionBadge } from "../../completion-badge";
 import { ProgressBar } from "../../progress-bar";
 
 /** 목차 한 줄에 필요한 직렬화 가능 데이터 — 서버(page.tsx)가 meta.sections에서 만들어 내려준다. */
@@ -13,7 +13,13 @@ export interface TocItem {
   title: string;
   sub: string;
   freq?: "hi" | "mid" | "lo";   // 빈출도 (#161 — 데이터는 v2부터 있었으나 목차에 안 보였다). 퀴즈 줄은 없음
-  quizIds?: string[];           // 점수 배지가 셀 문항의 **안정 식별자** (#66) — 퀴즈/마무리 세션 줄에만
+  /**
+   * 점수 배지가 셀 문항의 **전역 키** (#66 — 안정 식별자였던 것을 #224 에서 키로 바꿨다).
+   * 퀴즈/마무리 세션 줄에만 있다. 키를 서버가 합성해 내려보내는 이유: 이 목록이 완료 판정의
+   * finalQ 분모와 **같은 집합**이어야 하는데, 두 곳에서 각자 `scope === "final"` 을 걸고 각자
+   * 키를 합성하면 언젠가 한쪽만 고쳐진다 (lib/question-bank.ts `chapterQuestionKeys`).
+   */
+  quizKeys?: string[];
 }
 
 /**
@@ -55,19 +61,18 @@ function FreqStars({ freq }: { freq: "hi" | "mid" | "lo" }) {
  * 보여주면 안 푼 8개를 틀린 것처럼 읽힌다. 한 문항도 안 풀었으면 null — 배지 자체가 없다.
  */
 function quizScore(
-  chapterId: string,
-  quizIds: string[],
+  quizKeys: string[],
   records: Record<string, QuestionRecord>,
 ): { passed: number; attempted: number; total: number } | null {
   let passed = 0;
   let attempted = 0;
-  for (const stableId of quizIds) {
-    const record = records[globalQuestionKey(chapterId, stableId)];
+  for (const gk of quizKeys) {
+    const record = records[gk];
     if (!record) continue;
     attempted += 1;
     if (record.lastResult === "pass") passed += 1;
   }
-  return attempted > 0 ? { passed, attempted, total: quizIds.length } : null;
+  return attempted > 0 ? { passed, attempted, total: quizKeys.length } : null;
 }
 
 /**
@@ -109,8 +114,19 @@ function ScoreBadge({
 /**
  * 챕터 첫 화면의 섹션 목차 — 읽은 섹션 체크 + 챕터 진도 바 (이슈 #7).
  * v3.1(#161): 파트 그룹 헤더 + 파트별 진도 + 빈출 별점. #66: 퀴즈 줄의 점수 배지.
+ * #224: 진도 바 옆의 완료 배지 — 홈 챕터 목록과 **같은 컴포넌트**다.
  */
-export function SectionToc({ chapterId, groups }: { chapterId: string; groups: TocGroup[] }) {
+export function SectionToc({
+  chapterId,
+  groups,
+  finalKeys,
+  chapterKeys,
+}: {
+  chapterId: string;
+  groups: TocGroup[];
+  finalKeys: string[];    // 완료 판정의 finalQ 분모 (#224)
+  chapterKeys: string[];  // "복습 n" 이 세는 그 챕터 전 문항
+}) {
   const read = new Set(useReadSections(chapterId));
   const records = useQuestionRecords();
   const all = groups.flatMap((g) => g.items);
@@ -118,8 +134,24 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
 
   return (
     <>
-      <div style={{ margin: "0 0 1.25rem" }}>
+      <div
+        style={{
+          margin: "0 0 1.25rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          flexWrap: "wrap",
+        }}
+      >
         <ProgressBar done={done} total={all.length} />
+        {/* 분모(all.length)를 배지에도 넘긴다 — 진도 바와 같은 값이어야 "다 읽었는데 미완료"
+            힌트가 실제로 100% 인 순간에만 뜬다 */}
+        <CompletionBadge
+          chapterId={chapterId}
+          sectionTotal={all.length}
+          finalKeys={finalKeys}
+          chapterKeys={chapterKeys}
+        />
       </div>
       {groups.map((group, gi) => {
         const groupDone = group.items.filter((item) => read.has(item.sec)).length;
@@ -159,7 +191,7 @@ export function SectionToc({ chapterId, groups }: { chapterId: string; groups: T
             <ol style={{ listStyle: "none", display: "grid", gap: "0.6rem" }}>
               {group.items.map((item) => {
                 const isRead = read.has(item.sec);
-                const score = item.quizIds ? quizScore(chapterId, item.quizIds, records) : null;
+                const score = item.quizKeys ? quizScore(item.quizKeys, records) : null;
                 return (
                   // minWidth: 0 — 그리드 항목의 기본 min-width:auto 는 안쪽 nowrap 부제의
                   // min-content 를 바닥으로 삼아 줄이 트랙보다 넓어진다 (모바일 가로 스크롤).
