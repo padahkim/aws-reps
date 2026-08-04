@@ -154,13 +154,22 @@ export function FigZoom({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden"; // 터치 쪽은 오버레이 touch-action:none 이 맡는다
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+        close();
+      } else if (e.key === "Tab") {
+        // 단일 포커스 트랩 — 오버레이의 포커스 가능 요소는 닫기 버튼 하나라, Tab/Shift+Tab이
+        // 배경 콘텐츠로 새지 않게 버튼에 고정한다 (aria-modal 은 의미론일 뿐 강제하지 않는다)
+        e.preventDefault();
+        closeRef.current?.focus();
+      }
     };
     const onResize = () => reset(); // 맞춤 배치가 뷰포트 함수라 회전 시 변환 잔여가 어긋난다 — 맞춤으로 복귀
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; // 라인 단위 휠(Firefox) 보정
-      zoomAt(e.clientX, e.clientY, Math.exp(-dy * 0.0015));
+      // deltaMode 환산: 1(라인)≈16px, 2(페이지)≈뷰포트 높이 — 페이지 단위를 픽셀로 취급하면
+      // delta 1이 배율 0.9985 가 되어 줌이 죽은 것처럼 보인다
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
+      zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * unit * 0.0015));
     };
     const ov = overlayRef.current;
     document.addEventListener("keydown", onKey);
@@ -177,6 +186,7 @@ export function FigZoom({
   }, [lb]);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return; // 우클릭·휠클릭은 제스처가 아니다 — 컨텍스트 메뉴 중 탭 판정으로 닫히는 것 방지 (터치·펜 접촉은 0)
     if ((e.target as Element).closest("button")) return; // 닫기 버튼은 자체 click 에 맡긴다
     try {
       overlayRef.current?.setPointerCapture(e.pointerId);
