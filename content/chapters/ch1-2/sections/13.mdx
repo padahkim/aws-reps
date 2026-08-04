@@ -1,7 +1,8 @@
 import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
+import { Term } from "../../interactive";
 import { ExecEnvLifecycleSvg, ReservedConcurrencySlider } from "../figs";
 
-계정(리전)당 동시 실행 기본 한도 <b>1,000</b>(상향 요청 가능). 함수별 <b>예약 동시성(Reserved Concurrency)</b>은 그 함수의 동시 실행 상한을 지정해 격리합니다 — 무료. <b>0으로 설정하면 모든 호출이 차단</b>되어 폭주·버그 함수의 긴급 차단 스위치로도 씁니다. 한 함수가 폭주해 계정 풀 1,000을 다 쓰면 <b>같은 계정의 다른 모든 함수가 스로틀</b>됩니다(예약 동시성이 필요한 이유이자 시험 시나리오 단골).
+계정(리전)당 동시 실행 기본 한도 <b>1,000</b>(상향 요청 가능). 함수별 <b>예약 동시성(Reserved Concurrency)</b>은 그 함수의 동시 실행 상한을 지정해 격리합니다 — 무료. <b>0으로 설정하면 모든 호출이 차단</b>되어 폭주·버그 함수의 긴급 차단 스위치로도 씁니다. 한 함수가 폭주해 계정 풀 1,000을 다 쓰면 <b>같은 계정의 다른 모든 함수가 <Term id="throttling">스로틀</Term></b>됩니다(예약 동시성이 필요한 이유이자 시험 시나리오 단골).
 
 <ReservedConcurrencySlider />
 
@@ -28,7 +29,7 @@ import { ExecEnvLifecycleSvg, ReservedConcurrencySlider } from "../figs";
   <ExecEnvLifecycleSvg />
 </Fig>
 
-<b>콜드 스타트</b>: 새 실행 환경 기동 시 코드 로드 + 핸들러 밖 초기화(INIT)가 실행되어 첫 요청이 지연됩니다 — 지연 폭은 런타임·초기화 코드·패키지 크기에 따라 가변(통상 수백 ms~수 초). <b>프로비저닝된 동시성(Provisioned Concurrency)</b>은 호출 전에 실행 환경을 미리 초기화해 콜드 스타트를 제거하며(유료), <b>Application Auto Scaling</b>의 스케줄/사용률 기반 관리와 결합합니다. 게시된 <b>버전/별칭에만</b> 설정할 수 있습니다($LATEST 불가).
+<b>콜드 스타트</b>: 새 실행 환경 기동 시 코드 로드 + 핸들러 밖 초기화(INIT)가 실행되어 첫 요청이 지연됩니다 — 지연 폭은 런타임·초기화 코드·패키지 크기에 따라 가변(통상 수백 ms~수 초). <b>프로비저닝된 동시성(Provisioned Concurrency)</b>은 호출 전에 실행 환경을 미리 초기화해 콜드 스타트를 제거하며(유료), <b>Application Auto Scaling</b>의 스케줄/사용률 기반 관리와 결합합니다. 게시된 <b>버전/별칭에만</b> 설정할 수 있습니다(<Term id="latest">$LATEST</Term> 불가).
 
 <Note>보완: <b>SnapStart</b>는 초기화 완료 스냅샷에서 실행 환경을 복원해 콜드 스타트를 줄인다 — Java 11+ 외에 Python 3.12+, .NET 8+도 현행 지원.</Note>
 

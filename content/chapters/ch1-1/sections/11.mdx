@@ -1,4 +1,5 @@
 import { Code, ExamLi, ExamPoint, Fig, Note, SubTitle, Table } from "../../ui";
+import { Term } from "../../interactive";
 import { EncryptionSvg } from "../figs";
 
 **누가 키를 소유하고, 어디서 암호화가 일어나는지**로 구분하면 헷갈리지 않습니다.
@@ -57,7 +58,7 @@ import { EncryptionSvg } from "../figs";
 
 <SubTitle>SSE-KMS의 함정 — KMS 쿼터</SubTitle>
 
-객체를 쓰고 읽을 때마다 KMS의 `GenerateDataKey`·`Decrypt`가 호출되어 **KMS 요청 쿼터**(리전·키 유형별로 상이, 조정 가능)를 소모합니다 — 대량 업/다운로드 시 ThrottlingException 가능. 해결책: **S3 Bucket Key**(버킷 수준 키 재사용으로 KMS 호출 최대 99% 감소) 또는 Service Quotas 한도 상향.
+객체를 쓰고 읽을 때마다 <Term id="kms">KMS</Term>의 `GenerateDataKey`·`Decrypt`가 호출되어 **KMS 요청 쿼터**(리전·키 유형별로 상이, 조정 가능)를 소모합니다 — 대량 업/다운로드 시 ThrottlingException 가능. 해결책: **S3 Bucket Key**(버킷 수준 키 재사용으로 KMS 호출 최대 99% 감소) 또는 Service Quotas 한도 상향.
 
 <SubTitle>전송 중 암호화 (SSL/TLS)</SubTitle>
 

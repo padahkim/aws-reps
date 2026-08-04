@@ -1,3 +1,5 @@
+import { Term } from "../../interactive";
+
 버킷 하나에 팀·용도별 접근 규칙이 늘어나 버킷 정책이 비대해질 때, **액세스 포인트별 정책**으로 관리를 분리·단순화합니다. 각 액세스 포인트에는 자체 **DNS 이름**과 **정책**(버킷 정책과 유사)이 있습니다 — 예: `/finance` 읽기·쓰기 AP, `/analytics` 전체 읽기 전용 AP.
 
-Origin 유형: 인터넷 또는 **VPC**. VPC Origin이면 **VPC 엔드포인트**(Gateway 또는 Interface)를 만들어야만 접근 가능하고, 엔드포인트 정책에서 대상 버킷·AP 접근을 허용해야 합니다.
+Origin 유형: 인터넷 또는 **<Term id="vpc">VPC</Term>**. VPC Origin이면 **VPC 엔드포인트**(Gateway 또는 Interface)를 만들어야만 접근 가능하고, 엔드포인트 정책에서 대상 버킷·AP 접근을 허용해야 합니다.

@@ -1,4 +1,5 @@
 import { Code, ExamLi, ExamPoint, Fig, SubTitle } from "../../ui";
+import { Term } from "../../interactive";
 import { CardGrid, ComponentsSvg, InfoCard, PointBox } from "../figs";
 
 인트로에서 말한 두 종류 — <b>주체(Identity)</b>가 유저·그룹·역할이고, <b>권한(Policy)</b>이 정책입니다. IAM은 이 <b>유저 · 그룹 · 역할 · 정책</b> 네 요소의 조합입니다. 권한은 항상 <b>정책</b>으로 정의하고, 자격 증명 기반 정책은 유저·그룹·역할에 **연결(attach)** 해야 효력이 생깁니다 (리소스 쪽에 붙여 효력이 생기는 <b>리소스 기반 정책</b>은 §05에서 다룹니다).
@@ -16,7 +17,7 @@ import { CardGrid, ComponentsSvg, InfoCard, PointBox } from "../figs";
   <InfoCard tone="amber" title="📜 정책 (Policy)" sub="비유: 출입 허가 목록" back={<>만들어 두기만 하면 효력이 없습니다 — 자격 증명 기반은 유저·그룹·역할에, 리소스 기반은 리소스에 <b>연결(attach)</b>해야 발효됩니다. 그룹에 붙이면 소속 유저 전체에 한 번에 적용되고, 여러 그룹에 속한 유저는 <b>정책이 전부 합산</b>됩니다.</>}>권한을 정의한 <b>JSON 문서</b>. Allow/Deny + Action + Resource로 구성. 주체(자격 증명 기반) 또는 리소스(리소스 기반)에 연결해야 효력이 생깁니다.</InfoCard>
 </CardGrid>
 
-<PointBox tone="amber" title="Root vs IAM 유저">계정 생성 시 만들어지는 <b>루트 사용자</b>는 모든 권한을 가진 최상위 계정입니다 — 마스터키라서 금고에 넣어두는 것. MFA를 걸어 잠가둔 뒤 실제 작업은 권한을 제한한 <b>IAM 유저/역할</b>로 하고, 초기 설정 외에는 사용 금지·절대 공유 금지. <Code>AdministratorAccess</Code>를 단 IAM 유저와 권한의 크기는 비슷해 보여도 <b>출처</b>가 다릅니다 — 그쪽은 붙여 준 정책에서 나온 권한이라 정책을 떼면 사라지고 상한(§05 Permission Boundary)도 걸 수 있지만, 루트의 권한은 계정 그 자체에 딸려 오는 것이라 계정 안에서는 뗄 정책도 걸 상한도 없습니다(Organizations <b>멤버 계정</b>이라면 조직이 건 SCP만이 예외 — §06). 베스트 프랙티스형 문항의 단골 정답입니다.</PointBox>
+<PointBox tone="amber" title="Root vs IAM 유저">계정 생성 시 만들어지는 <b>루트 사용자</b>는 모든 권한을 가진 최상위 계정입니다 — 마스터키라서 금고에 넣어두는 것. <Term id="mfa">MFA</Term>를 걸어 잠가둔 뒤 실제 작업은 권한을 제한한 <b>IAM 유저/역할</b>로 하고, 초기 설정 외에는 사용 금지·절대 공유 금지. <Code>AdministratorAccess</Code>를 단 IAM 유저와 권한의 크기는 비슷해 보여도 <b>출처</b>가 다릅니다 — 그쪽은 붙여 준 정책에서 나온 권한이라 정책을 떼면 사라지고 상한(§05 Permission Boundary)도 걸 수 있지만, 루트의 권한은 계정 그 자체에 딸려 오는 것이라 계정 안에서는 뗄 정책도 걸 상한도 없습니다(<Term id="organizations">Organizations</Term> <b>멤버 계정</b>이라면 조직이 건 SCP만이 예외 — §06). 베스트 프랙티스형 문항의 단골 정답입니다.</PointBox>
 
 <SubTitle>그룹 규칙 3가지</SubTitle>
 

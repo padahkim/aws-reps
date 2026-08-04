@@ -1,6 +1,7 @@
 import { Note, Table } from "../../ui";
+import { Term } from "../../interactive";
 
-API Gateway·ALB 없이 Lambda에 전용 HTTPS 엔드포인트를 부여합니다 — `https://{url-id}.lambda-url.{region}.on.aws` (고유·불변, IPv4·IPv6). <b>alias 또는 $LATEST</b>에만 설정 가능(특정 버전 불가). CORS 설정을 지원하고, 접근 제어는 <b>리소스 기반 정책</b>(계정·IP CIDR), 트래픽 제한은 Reserved Concurrency로 합니다. 퍼블릭 인터넷을 통한 접근용 기능입니다.
+API Gateway·ALB 없이 Lambda에 전용 HTTPS 엔드포인트를 부여합니다 — `https://{url-id}.lambda-url.{region}.on.aws` (고유·불변, IPv4·IPv6). <b>alias 또는 $LATEST</b>에만 설정 가능(특정 버전 불가). CORS 설정을 지원하고, 접근 제어는 <b>리소스 기반 정책</b>(계정·IP <Term id="cidr">CIDR</Term>), 트래픽 제한은 Reserved Concurrency로 합니다. 퍼블릭 인터넷을 통한 접근용 기능입니다.
 
 <Table
   head={["AuthType", "동작"]}

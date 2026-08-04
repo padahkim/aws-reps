@@ -1,8 +1,9 @@
 import { Code, Note, Table } from "../../ui";
+import { Term } from "../../interactive";
 
 실행 로그는 <b>CloudWatch Logs에 자동 저장</b>됩니다 — 단, 실행 역할에 로그 쓰기 권한(`AWSLambdaBasicExecutionRole`)이 있어야 합니다. 주요 지표: Invocations, Duration, Concurrent Executions, Errors, Throttles, DeadLetterErrors, <b>IteratorAge</b>(스트림 처리 지연 확인).
 
-<b>X-Ray</b>: 구성에서 <b>Active Tracing</b>을 켜면 Lambda가 X-Ray 데몬을 대신 실행하고, 코드에서는 X-Ray SDK만 사용합니다. 실행 역할에 `AWSXRayDaemonWriteAccess` 필요.
+<b><Term id="x-ray">X-Ray</Term></b>: 구성에서 <b>Active Tracing</b>을 켜면 Lambda가 X-Ray 데몬을 대신 실행하고, 코드에서는 X-Ray SDK만 사용합니다. 실행 역할에 `AWSXRayDaemonWriteAccess` 필요.
 
 <Table
   head={["X-Ray 환경 변수", "의미"]}

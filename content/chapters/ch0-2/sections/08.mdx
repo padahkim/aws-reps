@@ -1,4 +1,5 @@
 import { ChLink, Code, ExamLi, ExamPoint, SubTitle, Table, WarnBox } from "../../ui";
+import { Term } from "../../interactive";
 import { CardGrid, InfoCard, PointBox } from "../figs";
 
 어떤 방식으로 접근하느냐에 따라 쓰는 자격 증명이 다릅니다. AWS에 접근하는 길은 세 가지 — **콘솔·CLI·SDK** — 이고, <ChLink id="ch0-1">ch0-1</ChLink>에서 본 대로 셋 다 결국 같은 API를 부릅니다.
@@ -19,7 +20,7 @@ import { CardGrid, InfoCard, PointBox } from "../figs";
   <InfoCard tone="teal" title="⏱ 임시 자격 증명">키 + Secret + <b>SessionToken</b> + 만료. STS 발급. 역할 기반 접근에 사용 — 자동 만료·갱신.</InfoCard>
 </CardGrid>
 
-<PointBox tone="teal" title="참고 — CloudShell">콘솔 안에서 바로 열리는 무료 브라우저 터미널로, CLI가 사전 설치돼 있고 로그인한 유저의 자격 증명을 자동 사용하며(액세스 키 설정 불필요) 리전별 1GB 홈 디렉터리 스토리지를 줍니다 — 다만 <b>영구 보장은 아닙니다</b>(해당 리전에서 장기간 미사용 시 삭제되고, VPC 환경의 CloudShell은 세션이 끝나면 사라짐). 도구 생태계 전반은 <ChLink id="ch0-1">ch0-1</ChLink> 몫이라 여기서는 이 정도만 짚습니다.</PointBox>
+<PointBox tone="teal" title="참고 — CloudShell">콘솔 안에서 바로 열리는 무료 브라우저 터미널로, CLI가 사전 설치돼 있고 로그인한 유저의 자격 증명을 자동 사용하며(액세스 키 설정 불필요) 리전별 1GB 홈 디렉터리 스토리지를 줍니다 — 다만 <b>영구 보장은 아닙니다</b>(해당 리전에서 장기간 미사용 시 삭제되고, <Term id="vpc">VPC</Term> 환경의 CloudShell은 세션이 끝나면 사라짐). 도구 생태계 전반은 <ChLink id="ch0-1">ch0-1</ChLink> 몫이라 여기서는 이 정도만 짚습니다.</PointBox>
 
 <SubTitle>비밀번호 정책과 MFA</SubTitle>
 
@@ -44,5 +45,5 @@ import { CardGrid, InfoCard, PointBox } from "../figs";
 <ExamPoint>
   <ExamLi>“앱 코드에서 AWS 호출” → <b>SDK</b>, “터미널/스크립트 자동화” → <b>CLI</b>, “브라우저에서 키 설정 없이 CLI” → <b>CloudShell</b></ExamLi>
   <ExamLi>Secret Access Key는 <b>생성 시 한 번만</b> 표시 — 분실하면 재발급</ExamLi>
-  <ExamLi>MFA 디바이스 유형 매칭(가상/U2F/하드웨어) — 빈출도는 낮지만 나오면 그대로 득점</ExamLi>
+  <ExamLi>MFA 디바이스 유형 매칭(가상/<Term id="u2f">U2F</Term>/하드웨어) — 빈출도는 낮지만 나오면 그대로 득점</ExamLi>
 </ExamPoint>
