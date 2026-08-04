@@ -133,24 +133,28 @@ export function repairQuestion(raw: unknown): QuestionRecord | undefined {
 
 /**
  * 챕터 기록 하나를 고친다 — 원칙은 `repairQuestion` 과 같다: 말이 되면 두고, 아니면 버린다.
+ * 다만 **버리는 단위가 필드마다 다르다**, 두 필드의 무게가 다르기 때문이다:
  *
- * **시각이 있는데 시각이 아니면 버린다**(`repairItem` 의 `graduatedAt` 규칙과 같다): 완료
- * 스냅샷은 이 기록의 전부라, 그 값을 믿을 수 없으면 남겨 둘 것이 없다. 남기면 화면은
- * "완료"라고 하는데 그 시각이 어디서 온 값인지 아무도 모르는 상태가 영구화된다.
+ * - `completedAt` 이 시각이 아니면 **기록째 버린다** (`repairItem` 의 `graduatedAt` 과 같은
+ *   규칙). 완료 스냅샷이 이 기록의 존재 이유라, 그 값을 믿을 수 없으면 남겨 둘 것이 없다.
+ * - `visitedAt` 이 시각이 아니면 **그 필드만 떨구고 완료는 살린다** (PR #225 Codex P2).
+ *   이건 아무도 쓰지 않는 유산 필드고 두 필드는 서로 독립이다 — 옛 읽기가 아무 문자열이나
+ *   받아 줬으므로 규격 밖 값이 남아 있을 수 있는데, 그것 때문에 **딴 완료 배지가 사라지고
+ *   다음 저장이 그 삭제를 영구화**하면 안 된다.
+ * - 남는 게 아무것도 없으면 버린다 — 빈 껍데기 기록은 저장소만 부풀린다.
  *
- * **둘 다 없으면 버린다** — 빈 껍데기 기록은 저장소만 부풀린다.
- * 옛 규칙(`visitedAt` 필수)을 푼 것은 #224 다: 이제 아무도 `visitedAt` 을 쓰지 않으므로
- * (열람은 `aws-reps.read.v1` 에서 파생), 필수로 두면 `completedAt` 만 든 기록이 저장 직후
- * 다음 로드에서 통째로 사라진다 — 화면상으로는 "완료 배지가 새로고침하면 풀린다".
+ * 옛 규칙(`visitedAt` 필수)을 푼 것은 #224 다: 이제 아무도 그 필드를 쓰지 않으므로(열람은
+ * `aws-reps.read.v1` 에서 파생), 필수로 두면 `completedAt` 만 든 기록이 저장 직후 다음
+ * 로드에서 통째로 사라진다 — 화면상으로는 "완료 배지가 새로고침하면 풀린다".
  */
 export function repairChapter(raw: unknown): ChapterRecord | undefined {
   if (!isRecord(raw)) return undefined;
-  if (raw.visitedAt !== undefined && !isIsoInstant(raw.visitedAt)) return undefined;
   if (raw.completedAt !== undefined && !isIsoInstant(raw.completedAt)) return undefined;
-  if (raw.visitedAt === undefined && raw.completedAt === undefined) return undefined;
+  const visitedAt = isIsoInstant(raw.visitedAt) ? raw.visitedAt : undefined;
+  if (visitedAt === undefined && raw.completedAt === undefined) return undefined;
   return {
     ...raw,   // 알 수 없는 필드는 그대로 통과 (§4-3)
-    visitedAt: typeof raw.visitedAt === "string" ? raw.visitedAt : undefined,
+    visitedAt,
     completedAt: typeof raw.completedAt === "string" ? raw.completedAt : undefined,
   };
 }

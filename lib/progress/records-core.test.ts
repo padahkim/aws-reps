@@ -256,16 +256,34 @@ expectSame("completedAt 보존", repairChapter({ visitedAt: AT, completedAt: AT2
 // 화면상으로는 "완료 배지가 새로고침하면 풀린다"로만 보이는 종류의 결함이다
 expectSame("completedAt 만 있어도 산다", repairChapter({ completedAt: AT2 }), { completedAt: AT2 });
 
-// 시각이 있는데 시각이 아니면 기록째 버린다 (repairItem 의 graduatedAt 규칙과 같다) —
-// 완료 스냅샷이 이 기록의 전부라, 그 값을 못 믿으면 남겨 둘 것이 없다
+// completedAt 이 시각이 아니면 기록째 버린다 (repairItem 의 graduatedAt 규칙과 같다) —
+// 완료 스냅샷이 이 기록의 존재 이유라, 그 값을 못 믿으면 남겨 둘 것이 없다
 expectTrue("completedAt 이 비문자열 → 버림", repairChapter({ visitedAt: AT, completedAt: 5 }) === undefined);
 expectTrue("completedAt 이 날짜만 → 버림", repairChapter({ completedAt: "2026-08-03" }) === undefined);
 expectTrue("completedAt 이 없는 날짜 → 버림", repairChapter({ completedAt: "2024-02-30T00:00:00.000Z" }) === undefined);
-expectTrue("visitedAt 이 비문자열 → 버림", repairChapter({ visitedAt: 5 }) === undefined);
-expectTrue("visitedAt 이 시각이 아님 → 버림", repairChapter({ visitedAt: "어제" }) === undefined);
+
+// 반면 visitedAt 은 **아무도 안 쓰는 유산 필드**다 (PR #225 Codex P2). 옛 읽기가 아무 문자열이나
+// 받아 줬으므로 규격 밖 값이 남아 있을 수 있는데, 그것 때문에 딴 완료가 사라지면 안 된다 —
+// 그 삭제는 다음 저장이 영구화한다. 필드만 떨구고 완료는 살린다
+expectSame("visitedAt 이 깨져도 완료는 산다", repairChapter({ visitedAt: "어제", completedAt: AT2 }), {
+  completedAt: AT2,
+});
+expectSame("visitedAt 이 비문자열이어도 완료는 산다", repairChapter({ visitedAt: 5, completedAt: AT2, note: "메모" }), {
+  completedAt: AT2, note: "메모",
+});
+// 완료가 없으면 남는 건 깨진 유산 필드뿐이다 — 그건 기록이 아니다
+expectTrue("visitedAt 만 있고 그마저 깨짐 → 버림", repairChapter({ visitedAt: "어제" }) === undefined);
+expectTrue("visitedAt 이 비문자열 뿐 → 버림", repairChapter({ visitedAt: 5 }) === undefined);
 expectTrue("둘 다 없음 → 버림 (빈 껍데기)", repairChapter({ note: "메모" }) === undefined);
 expectTrue("빈 객체 → 버림", repairChapter({}) === undefined);
 expectTrue("항목이 문자열 → 버림", repairChapter("x") === undefined);
+
+// 저장소 층에서도 같은지 — 깨진 유산 필드를 가진 챕터가 로드에서 완료를 잃지 않는다
+expectSame(
+  "로드 후에도 완료가 남는다",
+  repair({ chapters: { "1-1": { visitedAt: "어제", completedAt: AT2 } } }).chapters,
+  { "1-1": { completedAt: AT2 } },
+);
 
 // 값까지 대조한다 — 키만 세면 `repair` 의 챕터 루프가 `repairChapter` 의 반환값을 깎아도(예:
 // visitedAt 만 남기고 completedAt·미지 필드를 떨궈도) 통과한다. #86 이 완료 배지를 쓰기 시작하면

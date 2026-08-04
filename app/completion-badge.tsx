@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  chapterStatus,
-  earnsCompletion,
-  finalQuizOutcome,
-  PASS_PERCENT,
-} from "@/lib/progress/completion-core";
+import { captureChapterCompletion } from "@/lib/progress/completion";
+import { chapterStatus, finalQuizOutcome, PASS_PERCENT } from "@/lib/progress/completion-core";
 import { useReadSections } from "@/lib/progress/read";
-import { markChapterCompleted, useProgress } from "@/lib/progress/records";
+import { useProgress } from "@/lib/progress/records";
 import { useNow, useReview } from "@/lib/progress/review";
 import { dueCount } from "@/lib/progress/review-core";
 
@@ -47,16 +43,17 @@ export function CompletionBadge({
   const now = useNow();
 
   const completedAt = progress.chapters[chapterId]?.completedAt;
-  const input = { readSections, finalKeys, questions: progress.questions, completedAt };
-  const status = chapterStatus(input);
+  const status = chapterStatus({ readSections, finalKeys, questions: progress.questions, completedAt });
   const outcome = finalQuizOutcome(finalKeys, progress.questions);
 
   /**
-   * 조건을 **처음** 충족한 순간을 잡아 스냅샷을 남긴다 (§4-1: 파생되지 않는 사실).
+   * 스냅샷을 남기는 **뒷줄**이다 (§4-1: 파생되지 않는 사실). 앞줄은 채점하는 자리들이다 —
+   * 챕터 퀴즈·마무리 세션·오답 노트가 채점 직후 같은 함수를 부른다(`completion.ts` 주석).
+   * 여기가 남아 있는 이유는 그 경로 밖에서 조건이 충족되는 경우 때문이다: 이 키가 생기기 전에
+   * 이미 조건을 만족해 둔 사용자, 다른 탭에서 푼 결과가 storage 이벤트로 들어온 경우.
    *
    * 저장이 늦어도 화면은 이미 맞다 — 위 `status` 는 조건식을 직접 보므로 배지는 이 효과와
-   * 무관하게 뜬다. 스냅샷이 하는 일은 **나중에** 그 챕터 문항을 다시 틀렸을 때 배지를 지키는
-   * 것이다 (D5). 저장 뒤 `refresh` 로 다시 읽는 이유도 그것이다: 같은 탭의 쓰기에는 storage
+   * 무관하게 뜬다. 저장 뒤 `refresh` 로 다시 읽는 이유는 D5 다: 같은 탭의 쓰기에는 storage
    * 이벤트가 오지 않으므로, 다시 읽지 않으면 이 세션 동안만 스냅샷이 없는 상태로 남는다.
    *
    * **마운트당 한 번만 시도한다(`tried`)** — 저장은 실패할 수 있고(프라이빗 모드·용량 초과)
@@ -66,12 +63,8 @@ export function CompletionBadge({
   const tried = useRef(false);
   useEffect(() => {
     if (completedAt !== undefined || tried.current) return;
-    if (!earnsCompletion(input)) return;
     tried.current = true;
-    markChapterCompleted(chapterId, new Date().toISOString());
-    refresh();
-    // input 은 렌더마다 새 객체라 의존 목록에 넣을 수 없다 — 그 재료들을 대신 적는다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (captureChapterCompletion(chapterId, finalKeys)) refresh();
   }, [chapterId, completedAt, readSections, progress.questions, finalKeys, refresh]);
 
   // 오답 노트 화면·홈 배지와 **같은 필터**를 통과한 수를 센다 (review-core.ts `active` 주석):
