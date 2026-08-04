@@ -15,9 +15,10 @@ import { isRecord, repair, type Progress, type QuestionRecord } from "./records-
  * `records-core.ts` 로 옮겨 회귀 테스트를 붙였고, 여기에는 그것을 localStorage·React 에
  * 붙이는 일만 남는다. 공개 API 는 여전히 여기서 나간다.
  *
- * 읽음 진도(`aws-reps.read.v1`)는 별개 키·별개 파일이다(lib/progress.ts). 강건성 규칙은
- * 그쪽과 같다: SSG 라 초기 렌더는 항상 빈 값이고(useEffect 로 채운다), 저장 실패는 조용히
- * 무시한다(프라이빗 모드에서도 학습 자체는 굴러가야 한다).
+ * **읽음 진도(`aws-reps.read.v1`)는 별개 키·별개 파일이다** — 같은 디렉터리의 `read.ts` 이고,
+ * "어디까지 읽었나"를 담는다(이쪽은 "뭘 맞히고 틀렸나"다, #203). 서로를 읽지 않는다.
+ * 강건성 규칙만 같다: SSG 라 초기 렌더는 항상 빈 값이고(useEffect 로 채운다), 저장 실패는
+ * 조용히 무시한다(프라이빗 모드에서도 학습 자체는 굴러가야 한다).
  */
 const KEY = "dva.progress.v1";
 
@@ -32,7 +33,7 @@ function readRaw(): Record<string, unknown> {
     const parsed: unknown = JSON.parse(text);
     return isRecord(parsed) ? parsed : {};
   } catch {
-    // 파싱 실패·스토리지 접근 불가(프라이빗 모드 등) — lib/progress.ts 와 같은 처리
+    // 파싱 실패·스토리지 접근 불가(프라이빗 모드 등) — 옆 read.ts 와 같은 처리
     return {};
   }
 }
@@ -57,7 +58,7 @@ export function saveProgress(data: Progress): void {
 
 /**
  * 마운트 후 문항 기록을 읽는다 — SSG HTML 은 항상 "기록 없음"으로 렌더되므로 useEffect 로
- * 채워야 hydration 불일치가 없다 (lib/progress.ts useReadSections 와 같은 규칙).
+ * 채워야 hydration 불일치가 없다 (옆 read.ts 의 useReadSections 와 같은 규칙).
  *
  * `storage` 이벤트도 듣는다 (PR #202 Codex P2): 목차를 한 탭에 열어 둔 채 다른 탭에서 퀴즈를
  * 풀면, 마운트 1회 스냅샷만으로는 배지가 새로고침 전까지 낡은 점수를 계속 보인다. 이 이벤트는

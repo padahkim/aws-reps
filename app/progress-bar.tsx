@@ -1,6 +1,6 @@
 /**
  * 진도 바 (+% 병기) — 홈·챕터 목차 공용 표시 컴포넌트 (이슈 #7 확정: 진도 바 + % 병기).
- * done/total 은 섹션 페이지 수 기준 (퀴즈 섹션 포함). 순수 표시 — 저장소는 lib/progress.ts.
+ * done/total 은 섹션 페이지 수 기준 (퀴즈 섹션 포함). 순수 표시 — 저장소는 lib/progress/read.ts.
  */
 export function ProgressBar({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
