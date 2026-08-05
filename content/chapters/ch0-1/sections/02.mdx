@@ -32,7 +32,7 @@ API가 인터넷에 열려 있는 이상, AWS는 날아온 요청이 <b>누구�
       "임시 자격 증명",
       "키 쌍 + 세션 토큰 (STS 발급)",
       <>
-        <ChLink id="ch0-2" sec={7}>역할</ChLink>을 맡으면 자동 발급. 만료 시간이 있어 안전 →{" "}
+        <ChLink id="ch0-2" sec={7}>역할(ch0-2 §07)</ChLink>을 맡으면 자동 발급. 만료 시간이 있어 안전 →{" "}
         <b>권장 방식</b>
       </>,
     ],
@@ -56,7 +56,7 @@ API가 인터넷에 열려 있는 이상, AWS는 날아온 요청이 <b>누구�
 <CredentialChainResolver />
 
 <ExamPoint>
-  <ExamLi>“애플리케이션에 자격 증명을 가장 안전하게 제공하는 방법은?” → <b><ChLink id="ch0-2" sec={7}>IAM 역할</ChLink></b> (하드코딩·환경변수·설정파일 배포는 오답)</ExamLi>
+  <ExamLi>“애플리케이션에 자격 증명을 가장 안전하게 제공하는 방법은?” → <b><ChLink id="ch0-2" sec={7}>IAM 역할(ch0-2 §07)</ChLink></b> (하드코딩·환경변수·설정파일 배포는 오답)</ExamLi>
   <ExamLi>API 요청은 <b>SigV4로 서명</b>된다 — S3 <Term id="presigned-url">presigned URL</Term> 등 뒤 단계 주제의 기반</ExamLi>
   <ExamLi>CLI에서 임시로 다른 권한이 필요 → <Code>sts assume-role</Code> 패턴</ExamLi>
   <ExamLi><b>403 AccessDenied</b> = 인가(정책) 실패, <b>403 SignatureDoesNotMatch</b> = 서명/자격 증명 문제 — 상태 코드가 아니라 <b>에러 코드</b>로 구분하라 (트러블슈팅형 문항의 단서)</ExamLi>

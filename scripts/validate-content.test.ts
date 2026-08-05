@@ -594,7 +594,6 @@ function expectChLinkClean(label: string, source: string) {
 console.log("\n── 챕터 상호 참조: 검출되어야 하는 위반 ──");
 
 expectChLinkCaught("없는 챕터 id", '<ChLink id="ch9-9">유령</ChLink>', "CHLINK_REF_UNKNOWN");
-// 위치 인덱스라 섹션이 하나 끼어들면 조용히 어긋난다 — 이 검사가 막으려는 바로 그 사고
 expectChLinkCaught("sec 이 섹션 수 초과", '<ChLink id="ch0-1" sec={3}>ch0-1 §03</ChLink>', "CHLINK_SEC_OUT_OF_RANGE");
 expectChLinkCaught("sec 이 0", '<ChLink id="ch0-1" sec={0}>ch0-1</ChLink>', "CHLINK_SEC_OUT_OF_RANGE");
 expectChLinkCaught("동적 id 표현", "<ChLink id={cid}>챕터</ChLink>", "CHLINK_REF_UNPARSEABLE");
@@ -602,20 +601,32 @@ expectChLinkCaught("id 속성 누락", "<ChLink>챕터</ChLink>", "CHLINK_REF_UN
 // sec={N} 만 걷어내므로 그 밖의 표현식은 그대로 남아 잡힌다
 expectChLinkCaught("리터럴 id + 스프레드", '<ChLink id="ch0-1" {...props}>ch0-1</ChLink>', "CHLINK_REF_UNPARSEABLE");
 expectChLinkCaught("동적 sec 표현", '<ChLink id="ch0-1" sec={n}>ch0-1</ChLink>', "CHLINK_REF_UNPARSEABLE");
+expectChLinkCaught("문구 없는 self-closing", '<ChLink id="ch0-1" sec={1} />', "CHLINK_REF_UNPARSEABLE");
 expectChLinkCaught(
   "별칭 import",
   'import { ChLink as C } from "../../ui";\n<C id={x} />',
   "CHLINK_IMPORT_ALIASED"
 );
+// 네임스페이스 import 는 <UI.ChLink> 라 태그 스캔을 통째로 우회한다 (PR #232 Codex 라운드 2)
+expectChLinkCaught(
+  "네임스페이스 import",
+  'import * as UI from "../../ui";\n<UI.ChLink id={bad} sec={9}>x</UI.ChLink>',
+  "CHLINK_IMPORT_ALIASED"
+);
+// 범위 검사만으로는 못 잡는 사고 — 앞에 섹션이 끼어들어 sec 이 밀려도 1..count 안이다
+expectChLinkCaught("밀린 sec (문구와 불일치)", '<ChLink id="ch0-1" sec={2}>ch0-1 §01</ChLink>', "CHLINK_SEC_MISMATCH");
+expectChLinkCaught("문구에 §NN 없음", '<ChLink id="ch0-2" sec={3}>역할</ChLink>', "CHLINK_SEC_UNDECLARED");
 
 console.log("\n── 챕터 상호 참조: 통과해야 하는 케이스 ──");
 
 expectChLinkClean("sec 없는 챕터 링크", '<ChLink id="ch0-2">ch0-2</ChLink>');
-expectChLinkClean("범위 안의 sec", '<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>');
+expectChLinkClean("범위 안의 sec + 일치하는 문구", '<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>');
 expectChLinkClean("하한 경계(sec=1)", '<ChLink id="ch0-1" sec={1}>ch0-1 §01</ChLink>');
 expectChLinkClean("속성 줄바꿈", '<ChLink\n  id="ch0-1"\n  sec={2}\n>ch0-1 §02</ChLink>');
+expectChLinkClean("개념어 문구 + §NN 표기", '<ChLink id="ch0-2" sec={3}>AssumeRole — ch0-2 §03</ChLink>');
+expectChLinkClean("문구 안에 태그가 섞여도", '<ChLink id="ch0-2" sec={3}><b>역할</b>(ch0-2 §03)</ChLink>');
 expectChLinkClean("ChLink 미사용 파일", "일반 본문 문단.");
-expectChLinkClean("유사 컴포넌트명(ChLinkCard)은 무시", '<ChLinkCard id="ch9-9" />');
+expectChLinkClean("유사 컴포넌트명(ChLinkCard)은 무시", '<ChLinkCard id="ch9-9">x</ChLinkCard>');
 
 console.log("");
 if (failures === 0) {
