@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
 import { glossary } from "../glossary";
 import { C, MONO } from "./ui";
 
@@ -335,6 +336,8 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
 
 /** 셀프 퀴즈 문항 — 질문을 보고 스스로 답을 생성한 뒤 정답과 대조한다. */
 export interface SelfQuizItem {
+  // 진도 저장의 안정 식별자 (#231) — content/schema.ts 의 SelfQuizEntry.slug 가 정본이다.
+  slug: string;
   q: string;
   a: string;
   // 판정형(#150) — 값 = 정답 판정. 있으면 "답 확인하기" 대신 예/아니오 확답 게이트로 렌더.
@@ -347,8 +350,13 @@ export interface SelfQuizItem {
  * 점수 → 다시 풀기. 원본은 챕터 말미 10문항 일괄 덱이었으나 여기서는 해당 설명이 있는
  * 섹션 하단의 1~3문항 소형 덱으로 분산 배치(#82 사용자 결정) — 소형 덱에서 어색한 점수
  * UI만 조정: 결과 화면은 %(80% 기준) 대신 맞은 개수, 1문항 덱은 진행 헤더·진행바 생략.
+ *
+ * 채점 결과는 화면 상태(`score`)와 진도 저장소 양쪽에 남는다 (#231). `chapterId` 가 필수 prop
+ * 인 이유가 그것이다 — 문항은 자기가 어느 챕터 것인지 모르는데(`SelfQuizEntry` 에 챕터가 없다)
+ * 전역 문항 키는 챕터를 앞에 붙여야 만들어진다. 위젯을 쓰는 곳은 섹션 페이지 하나뿐이므로
+ * optional 로 둘 이유가 없고, optional 이면 새 호출부가 조용히 기록을 빠뜨린다.
  */
-export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
+export function SelfQuiz({ items, chapterId }: { items: SelfQuizItem[]; chapterId: string }) {
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(false);
   const [score, setScore] = useState({ o: 0, x: 0 });
@@ -364,7 +372,11 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
       setVerdict(null);
     }
   };
+  // 서술형 문항의 자기채점. 판정형은 아래 judge 가 따로 기록한다 — 한 문항이 두 경로를
+  // 거치는 일은 없다(판정형은 자기채점 버튼 자체가 렌더되지 않는다). "다시 풀기"로 같은
+  // 문항을 또 풀면 새 시도로 누적되는 것이 맞다 (applyAttempt 기본 동작).
   const grade = (ok: boolean) => {
+    recordSelfQuizAttempt(chapterId, items[i], ok);
     setScore((s) => ({ o: s.o + (ok ? 1 : 0), x: s.x + (ok ? 0 : 1) }));
     next();
   };
@@ -420,6 +432,7 @@ export function SelfQuiz({ items }: { items: SelfQuizItem[] }) {
   // 근거·수치는 공개된 정답으로 읽히고, 서술 인출의 깊이는 인출 카드 몫이다(#98 역할 분담).
   const judge = (choice: "예" | "아니오") => {
     const ok = choice === cur.yn;
+    recordSelfQuizAttempt(chapterId, cur, ok);
     setVerdict(ok);
     setOpen(true);
     setScore((s) => ({ o: s.o + (ok ? 1 : 0), x: s.x + (ok ? 0 : 1) }));

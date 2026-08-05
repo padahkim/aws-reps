@@ -69,7 +69,7 @@ export default async function SectionPage({
   const afterSection =
     concepts.length > 0 || selfQuizItems.length > 0 ? (
       <>
-        {selfQuizItems.length > 0 && <SelfQuiz items={selfQuizItems} />}
+        {selfQuizItems.length > 0 && <SelfQuiz items={selfQuizItems} chapterId={id} />}
         {concepts.length > 0 && <SectionConcepts concepts={concepts} />}
       </>
     ) : undefined;

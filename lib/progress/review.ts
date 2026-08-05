@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { isRecord } from "./records-core";
-import { loadProgress } from "./records";
-import { applyResult, repairReview, seedFromHistory, type Review } from "./review-core";
+import { isRecord } from "./records-core.ts";
+import { loadProgress } from "./records.ts";
+import { applyResult, repairReview, seedFromHistory, type Review } from "./review-core.ts";
 
 /**
  * 오답 노트 저장소 `dva.review.v1` (#219 — 부모 에픽 #86). Leitner 상자 상태를 담는다.
@@ -20,7 +20,7 @@ import { applyResult, repairReview, seedFromHistory, type Review } from "./revie
  */
 const KEY = "dva.review.v1";
 
-export type { Box, Review, ReviewEntry, ReviewItem } from "./review-core";
+export type { Box, Review, ReviewEntry, ReviewItem } from "./review-core.ts";
 
 /** 저장된 원본을 파싱만 해서 돌려준다. 못 읽으면 빈 객체 — 서버·파싱 실패·접근 불가 공통. */
 function readRaw(): Record<string, unknown> {

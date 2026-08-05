@@ -340,6 +340,8 @@ const HISTORY = {
   "1-1:이미상자에있음": { lastResult: "fail" as const, lastAt: T0 },
   "1-1:졸업함": { lastResult: "fail" as const, lastAt: T0 },
   "1-1:시각이깨짐": { lastResult: "fail" as const, lastAt: "2026-08-04" },
+  // 셀프 퀴즈 오답 (#231) — 같은 진도 맵에 쌓이지만 오답 노트가 재출제할 수 없는 문항이다
+  "1-1:sq-셀프퀴즈오답": { lastResult: "fail" as const, lastAt: T0 },
 };
 {
   const existing = repairReview({
@@ -357,6 +359,8 @@ const HISTORY = {
   expectSame("졸업한 것을 되살리지 않는다", seeded.items["1-1:졸업함"], { box: 3, dueAt: T0_PLUS_7D, graduatedAt: T0 });
   // 시각이 시각이 아니면 기한을 지어내는 수밖에 없다 — 지어내지 않는다
   expectTrue("시각이 깨진 기록은 들이지 않는다", seeded.items["1-1:시각이깨짐"] === undefined);
+  // 셀프 퀴즈는 진도에만 남는다 (#231 결정) — 이 경로로 상자에 들어가면 그 결정이 우회된다
+  expectTrue("셀프 퀴즈 오답은 들이지 않는다", seeded.items["1-1:sq-셀프퀴즈오답"] === undefined);
   expectTrue("입력을 건드리지 않는다 (비파괴)", existing.items["1-1:틀린것"] === undefined);
   // 두 번 돌려도 같다 — 저장하지 않고 읽을 때마다 계산하므로 이 성질이 필요하다
   expectSame("멱등하다", seedFromHistory(seeded, HISTORY), seeded);

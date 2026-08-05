@@ -7,7 +7,7 @@ import {
   repair,
   type Progress,
   type QuestionRecord,
-} from "./records-core";
+} from "./records-core.ts";
 
 /**
  * 학습 진도 저장소 `dva.progress.v1` (#66 — 부모 에픽 #86의 첫 쓰기 경로).
@@ -28,7 +28,7 @@ import {
  */
 const KEY = "dva.progress.v1";
 
-export type { ChapterRecord, Progress, QuestionRecord } from "./records-core";
+export type { ChapterRecord, Progress, QuestionRecord } from "./records-core.ts";
 
 /** 저장된 원본을 파싱만 해서 돌려준다. 못 읽으면 빈 객체 — 서버·파싱 실패·접근 불가 공통. */
 function readRaw(): Record<string, unknown> {

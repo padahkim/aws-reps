@@ -18,6 +18,7 @@
 // 확장자를 적는 이유: 이 파일은 node 가 직접 실행하는 경로(`npm run progress:test`)에 있고,
 // node ESM 은 확장자 없는 상대 경로를 못 찾는다. 번들러 쪽은 양쪽 다 되므로(content/chapters/*/
 // meta.ts 가 같은 형태로 `./drills.ts` 를 부른다) 실행되는 쪽에 맞춘다.
+import { isSelfQuizKey } from "./keys.ts";
 import { isIsoInstant, isRecord } from "./records-core.ts";
 
 /** 상자 번호 (§1-2) — 3개가 상한이다. "이 앱의 사용자는 시험 준비생 1명"(설계 머리말). */
@@ -252,6 +253,13 @@ export function dueCount(data: Review, now: string, known?: ReadonlySet<string>)
  *
  * 이미 항목이 있는 문항은 건드리지 않는다(졸업한 것도 그대로 둔다). 저장은 하지 않고 읽을
  * 때마다 같은 값을 낸다 — 결정적이라 그래도 되고, 첫 쓰기가 일어날 때 함께 저장된다.
+ *
+ * **셀프 퀴즈는 들이지 않는다** (#231). 이 함수가 훑는 진도 맵에는 챕터 퀴즈뿐 아니라 섹션
+ * 셀프 퀴즈의 채점도 쌓이는데(#231 부터), 오답 노트 화면은 선택지가 있는 문항의 재출제를
+ * 전제로 만들어져 있어 셀프 퀴즈를 렌더할 수 없다. 거르지 않으면 **셀프 퀴즈는 상자를 건드리지
+ * 않는다는 결정이 이 경로로 우회된다** — `recordSelfQuizAttempt` 가 오답 노트를 안 써도, 나중에
+ * 챕터 퀴즈를 한 번 채점하는 순간 그동안의 셀프 퀴즈 오답이 통째로 딸려 들어온다.
+ * (화면은 `known` 집합으로 한 번 더 거르므로 눈에는 안 띈다 — 그래서 더 걸러야 한다.)
  */
 export function seedFromHistory(
   data: Review,
@@ -260,6 +268,7 @@ export function seedFromHistory(
   const seeded: Record<string, ReviewItem> = {};
   for (const [gk, record] of Object.entries(questions)) {
     if (data.items[gk] !== undefined) continue;
+    if (isSelfQuizKey(gk)) continue;
     if (record.lastResult !== "fail") continue;
     const item = nextItem(undefined, false, record.lastAt);
     if (item !== undefined) seeded[gk] = item;

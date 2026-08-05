@@ -44,3 +44,34 @@ export function stableQuestionId(question: QuestionIdentity): string {
 export function globalQuestionKey(chapterId: string, stableId: string): string {
   return `${chapterId}:${stableId}`;
 }
+
+/**
+ * 셀프 퀴즈 문항의 안정 식별자 접두 (#231) — 이 이름공간의 **예약 접두**다.
+ *
+ * 검증기가 양쪽을 다 강제한다: 셀프 퀴즈 slug 는 이걸로 **시작해야 하고**
+ * (`SELFQUIZ_SLUG_FORMAT`), 챕터 퀴즈의 안정 식별자는 이걸로 **시작하면 안 된다**
+ * (`QUESTION_KEY_RESERVED_PREFIX`). 아래 술어가 접두만 보고 출처를 판정해도 되는 근거가
+ * 그 두 규칙이고, 그래서 검증기가 이 상수를 import 해서 쓴다 — 두 벌이 되면 갈라진다.
+ */
+export const SELF_QUIZ_PREFIX = "sq-";
+
+/**
+ * 이 전역 키가 섹션 셀프 퀴즈 문항인가 (#231).
+ *
+ * 셀프 퀴즈와 챕터 퀴즈는 진도 저장소에서 **한 이름공간**을 쓴다. 대부분의 코드는 그 둘을
+ * 구분할 필요가 없지만(둘 다 "이 문항을 맞혔나"라는 같은 사실이다), **오답 노트는 다르다**:
+ * 그 화면은 선택지가 있는 문항의 재출제를 전제로 만들어져 있어서 셀프 퀴즈를 렌더할 수 없다.
+ * 그래서 상자에 들이는 경로가 이 술어로 셀프 퀴즈를 걸러 낸다 (`seedFromHistory`).
+ *
+ * 접두로 판별하는 것이 안전한 이유: 접두는 관례가 아니라 **검증기가 강제하는 형식**이고,
+ * 챕터 퀴즈의 안정 식별자는 이 접두를 **쓸 수 없다**(`QUESTION_KEY_RESERVED_PREFIX`).
+ *
+ * 유일성 검사만으로는 부족하다 [PR #233 Codex P2]: `sq-` 로 시작하는 퀴즈 slug 라도 같은
+ * 이름의 셀프 퀴즈가 없으면 충돌이 안 나 그냥 통과한다. 그러면 이 술어가 **진짜 퀴즈 문항을
+ * 셀프 퀴즈로 오분류**하고, 그 문항의 과거 오답은 `seedFromHistory` 에서 영영 건너뛰어진다 —
+ * 화면에는 아무 이상이 없고 복습 큐에 그 문항만 조용히 빠진다. 그래서 접두를 예약어로 막는다.
+ */
+export function isSelfQuizKey(globalKey: string): boolean {
+  const sep = globalKey.indexOf(":");
+  return sep !== -1 && globalKey.slice(sep + 1).startsWith(SELF_QUIZ_PREFIX);
+}
