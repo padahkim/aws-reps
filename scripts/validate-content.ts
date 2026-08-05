@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ChapterData, GlossaryTerm } from "../content/schema.ts";
 // 저장 키 규칙의 정본을 그대로 쓴다 — 여기서 규칙을 베끼면 게이트가 실물과 어긋난다.
-import { stableQuestionId } from "../lib/progress/keys.ts";
+import { SELF_QUIZ_PREFIX, stableQuestionId } from "../lib/progress/keys.ts";
 
 export interface Problem {
   chapterId: string;   // 위반이 속한 챕터 id (id 유일성 위반 등 전역 검사는 대표 id)
@@ -283,6 +283,17 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
           chapterId: cid,
           code: "QUESTION_KEY_DUP",
           message: `quiz[${qi}]: 진도 저장 키 "${key}" 가 챕터 내에서 중복 — 두 문항이 한 기록을 공유하게 됨`,
+        });
+      }
+      // 예약 접두 금지 (#231, PR #233 Codex P2) — `sq-` 는 셀프 퀴즈 이름공간이고,
+      // lib/progress/keys.ts 의 isSelfQuizKey 가 그 접두만으로 출처를 판정한다. 퀴즈 문항이
+      // 이 접두를 쓰면 셀프 퀴즈로 오분류돼 과거 오답 메움(seedFromHistory)에서 통째로
+      // 빠진다 — 유일성 검사는 같은 이름의 셀프 퀴즈가 없으면 이걸 못 잡는다.
+      if (key.startsWith(SELF_QUIZ_PREFIX)) {
+        problems.push({
+          chapterId: cid,
+          code: "QUESTION_KEY_RESERVED_PREFIX",
+          message: `quiz[${qi}]: 진도 저장 키 "${key}" 가 예약 접두 "${SELF_QUIZ_PREFIX}" 로 시작 — 셀프 퀴즈 전용 이름공간이라 쓸 수 없음`,
         });
       }
       // 구분자 금지 — 위 챕터 id 검사와 같은 이유 (전역 키 합성이 단사여야 한다)
@@ -566,11 +577,14 @@ export function validateChapters(chapters: ChapterData[]): Problem[] {
 }
 
 /**
- * 셀프 퀴즈 slug — `sq-` 접두 + 소문자 케밥 케이스. schema.ts SelfQuizEntry.slug 참조.
+ * 셀프 퀴즈 slug — 예약 접두 + 소문자 케밥 케이스. schema.ts SelfQuizEntry.slug 참조.
  * 접두를 형식에 박아 두는 이유: 이 값은 같은 챕터 quiz[] 의 안정 식별자와 **한 이름공간**을
  * 쓰므로, 접두가 갈라져 있으면 두 출처가 서로의 진도 기록을 덮어쓸 일이 애초에 없다.
+ *
+ * 접두 문자열은 `lib/progress/keys.ts` 에서 가져온다 — 거기 `isSelfQuizKey` 가 같은 접두로
+ * 출처를 판정하므로, 두 벌로 두면 한쪽만 바뀌었을 때 판정과 검사가 조용히 어긋난다.
  */
-const SELFQUIZ_SLUG_FORMAT = /^sq-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SELFQUIZ_SLUG_FORMAT = new RegExp(`^${SELF_QUIZ_PREFIX}[a-z0-9]+(?:-[a-z0-9]+)*$`);
 
 /** 용어집 id — URL 앵커(/glossary#<id>)로 쓰이므로 소문자 케밥 케이스만. schema.ts GlossaryTerm.id 참조. */
 const GLOSSARY_ID_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

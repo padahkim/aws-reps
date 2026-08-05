@@ -366,6 +366,20 @@ expectCaught(
   [ch(meta("1-1"), [question({ slug: "sq-a" })], [section()], undefined, [selfq({ slug: "sq-a" })])],
   "QUESTION_KEY_DUP"
 );
+// 예약 접두 (PR #233 Codex P2) — **겹치는 셀프 퀴즈가 없어도** 걸려야 한다. 위 충돌 검사만
+// 있으면 이 케이스가 통과하고, 그러면 isSelfQuizKey 가 이 퀴즈 문항을 셀프 퀴즈로 오분류해
+// 과거 오답 메움에서 빠뜨린다. selfQuiz 를 아예 주지 않는 것이 이 픽스처의 요점이다.
+expectCaught(
+  "quiz slug 가 셀프 퀴즈 예약 접두를 씀 (겹치는 셀프 퀴즈 없음)",
+  [ch(meta("1-1"), [question({ slug: "sq-mine" })], [section()])],
+  "QUESTION_KEY_RESERVED_PREFIX"
+);
+// slug 가 없으면 id 로 떨어지므로(stableQuestionId) id 쪽도 같은 규칙을 받아야 한다
+expectCaught(
+  "slug 없는 quiz 의 id 가 예약 접두를 씀",
+  [ch(meta("1-1"), [question({ id: "sq-1" })], [section()])],
+  "QUESTION_KEY_RESERVED_PREFIX"
+);
 
 console.log("\n── 통과해야 하는 적법 입력 ──");
 
