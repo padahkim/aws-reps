@@ -5,7 +5,13 @@
  * 실행: `npm run validate:test`. 하나라도 어긋나면 종료 코드 1.
  * (프로덕션 검사가 아니라 검사기 자체의 회귀 테스트다.)
  */
-import { validateChapters, validateGlossary, validateTermRefs, type Problem } from "./validate-content.ts";
+import {
+  validateChLinkRefs,
+  validateChapters,
+  validateGlossary,
+  validateTermRefs,
+  type Problem,
+} from "./validate-content.ts";
 import type {
   ChapterData,
   ChapterMeta,
@@ -556,6 +562,60 @@ expectTermClean("children 생략(self-closing)", srcFile('<Term id="s3" />'));
 expectTermClean("속성 줄바꿈", srcFile('<Term\n  id="region"\n>리전</Term>'));
 expectTermClean("Term 미사용 파일", srcFile("일반 본문 문단. TermX 나 </Term> 비슷한 문자열은 무해."));
 expectTermClean("유사 컴포넌트명(TermCard)은 무시", srcFile('<TermCard id="ghost" />'));
+
+// ── 챕터 상호 참조 (#230 — validateChLinkRefs) ──────────────────────────────
+
+/** ch0-1 은 본문 섹션 2개, ch0-2 는 4개인 픽스처. */
+const CHLINK_CHAPTERS = [
+  { chapterMeta: { id: "ch0-1" }, sections: sectionsUpTo(2) },
+  { chapterMeta: { id: "ch0-2" }, sections: sectionsUpTo(4) },
+];
+
+function expectChLinkCaught(label: string, source: string, code: string) {
+  const found = codes(validateChLinkRefs(srcFile(source), CHLINK_CHAPTERS));
+  if (found.has(code)) {
+    console.log(`  ✓ ${label} → ${code}`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: ${code} 기대했으나 미검출 (검출: ${[...found].join(", ") || "없음"})`);
+  }
+}
+
+function expectChLinkClean(label: string, source: string) {
+  const found = validateChLinkRefs(srcFile(source), CHLINK_CHAPTERS);
+  if (found.length === 0) {
+    console.log(`  ✓ ${label} → 통과`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: 통과 기대했으나 위반 ${found.length}건 (${found.map((p) => p.code).join(", ")})`);
+  }
+}
+
+console.log("\n── 챕터 상호 참조: 검출되어야 하는 위반 ──");
+
+expectChLinkCaught("없는 챕터 id", '<ChLink id="ch9-9">유령</ChLink>', "CHLINK_REF_UNKNOWN");
+// 위치 인덱스라 섹션이 하나 끼어들면 조용히 어긋난다 — 이 검사가 막으려는 바로 그 사고
+expectChLinkCaught("sec 이 섹션 수 초과", '<ChLink id="ch0-1" sec={3}>ch0-1 §03</ChLink>', "CHLINK_SEC_OUT_OF_RANGE");
+expectChLinkCaught("sec 이 0", '<ChLink id="ch0-1" sec={0}>ch0-1</ChLink>', "CHLINK_SEC_OUT_OF_RANGE");
+expectChLinkCaught("동적 id 표현", "<ChLink id={cid}>챕터</ChLink>", "CHLINK_REF_UNPARSEABLE");
+expectChLinkCaught("id 속성 누락", "<ChLink>챕터</ChLink>", "CHLINK_REF_UNPARSEABLE");
+// sec={N} 만 걷어내므로 그 밖의 표현식은 그대로 남아 잡힌다
+expectChLinkCaught("리터럴 id + 스프레드", '<ChLink id="ch0-1" {...props}>ch0-1</ChLink>', "CHLINK_REF_UNPARSEABLE");
+expectChLinkCaught("동적 sec 표현", '<ChLink id="ch0-1" sec={n}>ch0-1</ChLink>', "CHLINK_REF_UNPARSEABLE");
+expectChLinkCaught(
+  "별칭 import",
+  'import { ChLink as C } from "../../ui";\n<C id={x} />',
+  "CHLINK_IMPORT_ALIASED"
+);
+
+console.log("\n── 챕터 상호 참조: 통과해야 하는 케이스 ──");
+
+expectChLinkClean("sec 없는 챕터 링크", '<ChLink id="ch0-2">ch0-2</ChLink>');
+expectChLinkClean("범위 안의 sec", '<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>');
+expectChLinkClean("하한 경계(sec=1)", '<ChLink id="ch0-1" sec={1}>ch0-1 §01</ChLink>');
+expectChLinkClean("속성 줄바꿈", '<ChLink\n  id="ch0-1"\n  sec={2}\n>ch0-1 §02</ChLink>');
+expectChLinkClean("ChLink 미사용 파일", "일반 본문 문단.");
+expectChLinkClean("유사 컴포넌트명(ChLinkCard)은 무시", '<ChLinkCard id="ch9-9" />');
 
 console.log("");
 if (failures === 0) {

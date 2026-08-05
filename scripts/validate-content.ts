@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ChapterData, GlossaryTerm } from "../content/schema.ts";
+import type { ChapterData, GlossaryTerm, SectionMeta } from "../content/schema.ts";
 // 저장 키 규칙의 정본을 그대로 쓴다 — 여기서 규칙을 베끼면 게이트가 실물과 어긋난다.
 import { stableQuestionId } from "../lib/progress/keys.ts";
 
@@ -673,6 +673,72 @@ export function validateTermRefs(
   return problems;
 }
 
+/**
+ * 챕터 상호 참조 규칙 (#230) — `<ChLink id="..." sec={N}>` 의 목적지를 정적으로 검증한다.
+ * `sec` 는 섹션 페이지 URL 번호(1-based 위치, 규약 v2)라 **섹션이 하나 끼어들면 조용히 어긋난다**
+ * — 링크가 엉뚱한 섹션을 열어도 빌드는 통과하므로, 그 창을 여기서 닫는다.
+ * Term 검사와 같은 fail-closed 계약: 정적으로 못 읽는 형태는 존재 자체가 위반이다. 다만 ChLink 는
+ * `sec={N}` 이 적법 속성이라 **그 정확한 형태만 먼저 걷어내고** 남은 JSX 표현식을 위반으로 잡는다.
+ * 마무리 페이지(세션·퀴즈)는 본문이 아니므로 상한은 sections.length 다.
+ */
+const CHLINK_TAG = /<ChLink(?![A-Za-z0-9])([^>]*)/g;
+const CHLINK_SEC_ATTR = /\bsec=\{(\d+)\}/;
+const CHLINK_ID_ATTR = /\bid="([^"]*)"/;
+const CHLINK_ALIAS_IMPORT = /import\s+(?:type\s+)?\{[^}]*\bChLink\s+as\b[^}]*\}/;
+
+export function validateChLinkRefs(
+  files: { path: string; source: string }[],
+  chapters: { chapterMeta: { id: string }; sections: SectionMeta[] }[]
+): Problem[] {
+  const problems: Problem[] = [];
+  const sectionCounts = new Map(chapters.map((c) => [c.chapterMeta.id, c.sections.length]));
+
+  for (const { path, source } of files) {
+    const cid = /content\/chapters\/([^/]+)\//.exec(path)?.[1] ?? "content";
+
+    if (CHLINK_ALIAS_IMPORT.test(source)) {
+      problems.push({
+        chapterId: cid,
+        code: "CHLINK_IMPORT_ALIASED",
+        message: `${path}: ChLink 를 별칭으로 import 함 — 사용부가 <ChLink 이 아니게 되어 참조 검사가 못 본다`,
+      });
+    }
+
+    for (const tag of source.matchAll(CHLINK_TAG)) {
+      const sec = CHLINK_SEC_ATTR.exec(tag[1])?.[1];
+      // 적법한 sec={N} 만 걷어낸 뒤에도 표현식이 남으면 정적 검증이 불가능하다
+      const rest = tag[1].replace(CHLINK_SEC_ATTR, "");
+      const id = rest.includes("{") ? undefined : CHLINK_ID_ATTR.exec(rest)?.[1];
+
+      if (id === undefined) {
+        problems.push({
+          chapterId: cid,
+          code: "CHLINK_REF_UNPARSEABLE",
+          message: `${path}: <ChLink> 는 리터럴 id="..." 과 sec={숫자} 만 허용 — 동적 표현·스프레드는 목적지를 검증할 수 없다`,
+        });
+        continue;
+      }
+
+      const count = sectionCounts.get(id);
+      if (count === undefined) {
+        problems.push({
+          chapterId: cid,
+          code: "CHLINK_REF_UNKNOWN",
+          message: `${path}: <ChLink id="${id}"> 는 등록되지 않은 챕터 id`,
+        });
+      } else if (sec !== undefined && (Number(sec) < 1 || Number(sec) > count)) {
+        problems.push({
+          chapterId: cid,
+          code: "CHLINK_SEC_OUT_OF_RANGE",
+          message: `${path}: <ChLink id="${id}" sec={${sec}}> — ${id} 의 본문 섹션은 1~${count} 번이다`,
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
 /** 이 파일이 직접 실행됐는지 (import 되었는지 아닌지) — ESM 판별. */
 function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
@@ -695,10 +761,12 @@ async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
   const { glossary } = await import("../content/glossary.ts");
   const chapters = registry.map((entry) => entry.data);
+  const sources = collectChapterSources();
   const problems = [
     ...validateChapters(chapters),
     ...validateGlossary(glossary, chapters),
-    ...validateTermRefs(collectChapterSources(), new Set(glossary.map((t) => t.id))),
+    ...validateTermRefs(sources, new Set(glossary.map((t) => t.id))),
+    ...validateChLinkRefs(sources, chapters),
   ];
 
   if (problems.length === 0) {
