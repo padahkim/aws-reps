@@ -16,7 +16,7 @@ import { CardGrid, CrossAccountSvg, EvalEngine, InfoCard } from "../figs";
 
 <SubTitle>자격 증명 정책 × 리소스 정책 — 같은 계정은 합집합</SubTitle>
 
-동일 계정 안에서는 자격 증명 기반 정책(IAM 정책)과 리소스 기반 정책(S3 버킷 정책 등)이 <b>합집합(union)</b>으로 평가됩니다 — 어느 한쪽만 Allow여도 접근 가능합니다. 교차 계정에서는 **양쪽 모두의 Allow**가 필요합니다. 버킷 정책 자체는 <ChLink id="ch1-1">ch1-1 §02 S3 보안·버킷 정책</ChLink>에서 다룬 것과 동일한 리소스 기반 메커니즘입니다.
+동일 계정 안에서는 자격 증명 기반 정책(IAM 정책)과 리소스 기반 정책(S3 버킷 정책 등)이 <b>합집합(union)</b>으로 평가됩니다 — 어느 한쪽만 Allow여도 접근 가능합니다. 교차 계정에서는 **양쪽 모두의 Allow**가 필요합니다. 버킷 정책 자체는 <ChLink id="ch1-1" sec={2}>ch1-1 §02 S3 보안·버킷 정책</ChLink>에서 다룬 것과 동일한 리소스 기반 메커니즘입니다.
 
 <Fig caption="동일 계정은 두 정책의 합집합, 교차 계정은 양쪽 Allow가 모두 필요하다.">
   <CrossAccountSvg />

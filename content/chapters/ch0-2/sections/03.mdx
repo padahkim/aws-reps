@@ -11,7 +11,7 @@ import { AuthFlowSvg, CardGrid, InfoCard, PointBox } from "../figs";
 <CardGrid>
   <InfoCard title="① 인증 · AuthN — “너 누구야?”" items={[
     <>콘솔: 유저명 + 비밀번호 (+ MFA)</>,
-    <>CLI/SDK: Access Key ID + Secret Access Key — 이 키로 요청마다 <b>SigV4 서명</b>을 만들어 보냅니다. <ChLink id="ch0-1">ch0-1</ChLink>에서 본 “모든 요청은 SigV4로 서명된다”의 서명 검증이 바로 이 인증 단계입니다</>,
+    <>CLI/SDK: Access Key ID + Secret Access Key — 이 키로 요청마다 <b>SigV4 서명</b>을 만들어 보냅니다. <ChLink id="ch0-1" sec={3}>ch0-1 §02</ChLink>에서 본 “모든 요청은 SigV4로 서명된다”의 서명 검증이 바로 이 인증 단계입니다</>,
     <>역할: STS가 발급한 임시 자격 증명 (SessionToken 포함)</>,
   ]} />
   <InfoCard tone="amber" title="② 인가 · AuthZ — “뭐 할 수 있어?”" items={[
