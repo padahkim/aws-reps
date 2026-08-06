@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { GlossaryTerm } from "@/lib/content";
 import { markGlossaryTerm, useGlossaryMarks } from "@/lib/progress/glossary";
 
@@ -22,15 +22,56 @@ import { markGlossaryTerm, useGlossaryMarks } from "@/lib/progress/glossary";
 // 콘텐츠 공용 팔레트(content/chapters/ui.tsx)와 같은 값 — 앱은 content/를 lib/content.ts로만
 // 소비하므로 ui.tsx를 직접 import 하지 않고 값을 복제한다 (review-board.tsx와 같은 방식).
 const PAL = {
-  ink: "#171E26",
   teal: "#0E7C7B",
   tealSoft: "#DCF0EF",
   red: "#B9432C",
   redSoft: "#F8E4DF",
   amberText: "#9A5B06",
+  ink: "#171E26",
 } as const;
 
 const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+
+/** soft 배경 위 accent 글자는 4.24~4.40:1 로 4.5:1에 못 미친다 — 85%로 낮춰 5.5:1대
+ *  (content/chapters/interactive.tsx outlineBtn 과 같은 처리, PR #147 Codex 지적의 재적용). */
+const onSoft = (accent: string) => `color-mix(in srgb, ${accent} 85%, #000)`;
+
+/**
+ * soft 채움 아웃라인 버튼 — `.widget-btn`(globals.css #144)의 CSS 변수 계약을 채운다.
+ * 변수를 빠뜨리면 호버가 죽고 포커스 링(`--btn-ring`)이 안 그려진다 (PR #242 Codex 지적).
+ * 자기채점 쌍은 같은 무게의 아웃라인 — 한쪽만 채우면 선택된 것처럼 읽힌다 (#144 규칙).
+ */
+const softBtn = (accent: string, soft: string) =>
+  ({
+    "--btn-bg": soft,
+    "--btn-fg": onSoft(accent),
+    "--btn-hover-bg": `color-mix(in srgb, ${soft} 90%, #000)`,
+    "--btn-ring": accent,
+    borderColor: accent,
+  }) as CSSProperties;
+
+/** 채움 버튼 — interactive.tsx fillBtn 과 같은 변수 채움 (링은 한 단계 어둡게, PR #147). */
+const fillBtn = (accent: string) =>
+  ({
+    "--btn-bg": accent,
+    "--btn-fg": "#fff",
+    "--btn-hover-bg": `color-mix(in srgb, ${accent} 86%, #000)`,
+    "--btn-ring": `color-mix(in srgb, ${accent} 70%, #000)`,
+  }) as CSSProperties;
+
+/** 중립 동작(종료·목록으로) — 테마 변수로 그린다: 고정 ink 는 다크 배경(#111113)에서
+ *  사실상 안 보인다 (PR #242 Codex 지적). review-board ScopeButton 과 같은 문법. */
+const neutralBtnStyle: CSSProperties = {
+  font: "inherit",
+  fontSize: "0.83rem",
+  fontWeight: 700,
+  padding: "0.35rem 0.9rem",
+  borderRadius: 99,
+  border: "1px solid var(--border)",
+  background: "transparent",
+  color: "var(--fg)",
+  cursor: "pointer",
+};
 
 function shuffled<T>(list: T[]): T[] {
   const out = [...list];
@@ -54,26 +95,12 @@ function MarkBadge({ known }: { known: boolean }) {
         borderRadius: 99,
         padding: "2px 10px",
         background: known ? PAL.tealSoft : PAL.redSoft,
-        color: known ? PAL.teal : PAL.red,
+        color: onSoft(known ? PAL.teal : PAL.red),
       }}
     >
       {known ? "안다 ✓" : "모른다 ✗"}
     </span>
   );
-}
-
-/** 자기채점 쌍과 같은 등가 아웃라인 버튼 (#144 규칙 — 한쪽만 채우면 선택된 것처럼 읽힌다). */
-function outlineBtn(accent: string, soft: string) {
-  return {
-    font: "inherit",
-    fontSize: "0.9rem",
-    fontWeight: 700,
-    border: `1.5px solid ${accent}`,
-    borderRadius: 10,
-    background: soft,
-    color: accent,
-    cursor: "pointer",
-  } as const;
 }
 
 export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
@@ -85,6 +112,22 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
   const [open, setOpen] = useState(false);
   const [tally, setTally] = useState({ known: 0, unknown: 0 });
 
+  /**
+   * 카드 전환마다 포커스를 옮긴다 (PR #242 Codex 지적) — 뒤집기·채점이 포커스된 버튼을
+   * 언마운트하므로, 그대로 두면 포커스가 body 로 떨어져 키보드 사용자는 카드마다 페이지
+   * 처음부터 탭해 와야 한다. 뜻이 열리면 정답 영역으로, 다음 카드로 넘어가면 "뜻 확인하기"로,
+   * 다 돌면 결과 영역으로 보낸다.
+   */
+  const revealRef = useRef<HTMLButtonElement>(null);
+  const answerRef = useRef<HTMLDivElement>(null);
+  const doneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (deck === null) return;
+    if (idx >= deck.length) doneRef.current?.focus();
+    else if (open) answerRef.current?.focus();
+    else revealRef.current?.focus();
+  }, [deck, idx, open]);
+
   const startDrill = () => {
     setDeck(shuffled(terms));
     setIdx(0);
@@ -93,8 +136,11 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
   };
   const exitDrill = () => setDeck(null);
 
-  const knownCount = Object.values(marks).filter((m) => m.known).length;
-  const unknownCount = Object.keys(marks).length - knownCount;
+  // 요약·배지는 **현재 콘텐츠에 실재하는 용어**만 센다 (PR #242 Codex 지적) — 콘텐츠 개정으로
+  // 사라진 id 의 기록이 기기에 남아 있으면, 전체 키를 세는 요약이 목록보다 큰 수를 말하게 된다.
+  const counted = terms.filter((t) => marks[t.id] !== undefined);
+  const knownCount = counted.filter((t) => marks[t.id].known).length;
+  const unknownCount = counted.length - knownCount;
 
   // ── 암기 모드 ──────────────────────────────────────────────────────────
   if (deck !== null) {
@@ -120,18 +166,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
           <button
             type="button"
             onClick={exitDrill}
-            style={{
-              font: "inherit",
-              fontSize: "0.83rem",
-              fontWeight: 700,
-              marginLeft: "auto",
-              padding: "0.35rem 0.9rem",
-              borderRadius: 99,
-              border: "1px solid var(--border)",
-              background: "transparent",
-              color: "var(--muted)",
-              cursor: "pointer",
-            }}
+            style={{ ...neutralBtnStyle, marginLeft: "auto" }}
           >
             암기 종료
           </button>
@@ -139,12 +174,15 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
 
         {done ? (
           <div
+            ref={doneRef}
+            tabIndex={-1}
             style={{
               border: "1px solid var(--border)",
               borderRadius: 8,
               padding: "2rem 1rem",
               marginTop: "1rem",
               textAlign: "center",
+              outline: "none",
             }}
           >
             <div style={{ fontFamily: MONO, fontSize: "2rem", fontWeight: 700, color: PAL.teal }}>
@@ -159,15 +197,14 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
                 type="button"
                 onClick={startDrill}
                 className="widget-btn"
-                style={{ ...outlineBtn(PAL.teal, PAL.tealSoft), padding: "10px 18px" }}
+                style={{ ...softBtn(PAL.teal, PAL.tealSoft), padding: "10px 18px" }}
               >
                 다시 섞어서 한 번 더
               </button>
               <button
                 type="button"
                 onClick={exitDrill}
-                className="widget-btn"
-                style={{ ...outlineBtn(PAL.ink, "transparent"), padding: "10px 18px" }}
+                style={{ ...neutralBtnStyle, padding: "10px 18px", borderRadius: 10 }}
               >
                 목록으로
               </button>
@@ -212,25 +249,16 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
 
               {!open ? (
                 <button
+                  ref={revealRef}
                   type="button"
                   onClick={() => setOpen(true)}
                   className="widget-btn"
-                  style={{
-                    font: "inherit",
-                    fontSize: "0.9rem",
-                    fontWeight: 700,
-                    border: "none",
-                    borderRadius: 10,
-                    background: PAL.amberText,
-                    color: "#fff",
-                    cursor: "pointer",
-                    padding: "10px 18px",
-                  }}
+                  style={{ ...fillBtn(PAL.amberText), padding: "10px 18px" }}
                 >
                   뜻 확인하기
                 </button>
               ) : (
-                <div>
+                <div ref={answerRef} tabIndex={-1} style={{ outline: "none" }}>
                   <div
                     style={{
                       background: PAL.tealSoft,
@@ -243,7 +271,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
                     }}
                   >
                     {cur.full && (
-                      <div style={{ fontSize: "0.8rem", color: PAL.teal, fontWeight: 700, marginBottom: 4 }}>
+                      <div style={{ fontSize: "0.8rem", color: onSoft(PAL.teal), fontWeight: 700, marginBottom: 4 }}>
                         {cur.full}
                       </div>
                     )}
@@ -254,7 +282,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
                       type="button"
                       onClick={() => grade(true)}
                       className="widget-btn"
-                      style={{ ...outlineBtn(PAL.teal, PAL.tealSoft), flex: 1, padding: "10px" }}
+                      style={{ ...softBtn(PAL.teal, PAL.tealSoft), flex: 1, padding: "10px" }}
                     >
                       안다 ✓
                     </button>
@@ -262,7 +290,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
                       type="button"
                       onClick={() => grade(false)}
                       className="widget-btn"
-                      style={{ ...outlineBtn(PAL.red, PAL.redSoft), flex: 1, padding: "10px" }}
+                      style={{ ...softBtn(PAL.red, PAL.redSoft), flex: 1, padding: "10px" }}
                     >
                       모른다 ✗
                     </button>
@@ -292,7 +320,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0.3rem 0 0.7rem" }}>
           용어를 보고 뜻을 떠올린 뒤 뒤집어 확인합니다. 안다/모른다 체크는 이 기기에
           저장되고, 아래 목록에 항목별로 표시됩니다.
-          {Object.keys(marks).length > 0 && (
+          {counted.length > 0 && (
             <>
               {" "}
               지금까지 <b style={{ color: PAL.teal }}>안다 {knownCount}</b> ·{" "}
@@ -304,7 +332,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
           type="button"
           onClick={startDrill}
           className="widget-btn"
-          style={{ ...outlineBtn(PAL.teal, PAL.tealSoft), padding: "0.5rem 1.1rem" }}
+          style={{ ...softBtn(PAL.teal, PAL.tealSoft), padding: "0.5rem 1.1rem" }}
         >
           전체 {terms.length}개 무작위로 시작
         </button>
