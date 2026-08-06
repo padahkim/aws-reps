@@ -41,6 +41,23 @@ const ASSETS = ["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-51
  * (열거가 아니다), gitignore 된 생성물은 정의상 빠진다 — 이 스크립트의 산출물인
  * public/sw.js · icon-*.png 도 그래서 자동으로 제외된다(자기 해시 문제도 함께 사라진다).
  */
+
+/**
+ * 추적되지만 **배포되는 앱에 닿을 수 없는** 경로 (Codex P2, PR #238 4라운드).
+ * 이것들만 바뀐 배포는 내보낸 결과물이 한 바이트도 다르지 않은데, 넣어 두면 전 사용자가
+ * 가짜 갱신 배너를 보고 4.7MB 를 통째로 다시 받는다. 이 리포는 하네스·문서 커밋이 잦아
+ * 그 비용이 반복된다.
+ *
+ * **여기에 무엇을 넣을지는 보수적으로 판단한다.** 두 방향의 오류가 대칭이 아니기 때문이다:
+ *   잘못 넣으면 → 화면이 바뀌어도 버전이 그대로 = 사용자가 옛 콘텐츠에 영원히 묶인다 (1라운드 P1)
+ *   안 넣으면   → 갱신 배너가 한 번 더 뜰 뿐이다
+ * 그래서 "빌드 그래프에 없음을 확인한 것"만 넣는다. 확인 근거(2026-08-06): app·lib·content·
+ * scripts·next.config·mdx-components 어디에서도 이 경로들을 읽지 않는다. docs/ 는 코드 주석의
+ * 설계 참조로만 등장하고(문자열 경로일 뿐 import 가 아니다), gen-arch-facts.ts 는 docs 를
+ * **쓰기만** 한다 — 앱 번들로 흘러가는 통로가 없다.
+ */
+const NOT_DEPLOYED = [".github/", ".claude/", "docs/", "CLAUDE.md", ".mcp.json"];
+
 function hashInputs(): string {
   let listing: string;
   try {
@@ -53,8 +70,11 @@ function hashInputs(): string {
     );
   }
 
-  const files = listing.split("\0").filter(Boolean).sort();
-  if (files.length === 0) throw new Error("git 이 추적하는 파일이 없습니다 — 체크아웃을 확인하세요.");
+  const tracked = listing.split("\0").filter(Boolean).sort();
+  if (tracked.length === 0) throw new Error("git 이 추적하는 파일이 없습니다 — 체크아웃을 확인하세요.");
+
+  const files = tracked.filter((rel) => !NOT_DEPLOYED.some((p) => rel === p || rel.startsWith(p)));
+  if (files.length === 0) throw new Error("NOT_DEPLOYED 가 추적 파일을 전부 걸렀습니다 — 목록을 확인하세요.");
 
   const digest = createHash("sha256");
   for (const rel of files) {

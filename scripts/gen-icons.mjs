@@ -56,6 +56,16 @@ export function parseSvg(source) {
   }
 
   const tags = [...svg.matchAll(/<([a-zA-Z][\w-]*)\b([^>]*?)\/?>/g)];
+
+  // <svg> 는 정확히 하나여야 한다 (Codex P2, PR #238 4라운드). 중첩 <svg> 는 그 자체로
+  // 새 뷰포트라 브라우저는 안쪽 좌표계로 배율·클리핑을 적용하는데, 이 래스터라이저는
+  // 첫 viewBox 하나만 읽고 모든 rect 를 바깥 좌표계에 그린다 — 통과시키면 커밋된 SVG 와
+  // 생성된 PNG 가 말없이 달라진다. 요소 이름 검사만으로는 못 잡는다 (svg 는 허용 목록에 있다).
+  const roots = tags.filter((t) => t[1] === "svg").length;
+  if (roots !== 1) {
+    throw new Error(`icon.svg: <svg> 는 최상위 하나여야 합니다 — ${roots}개 발견 (중첩 뷰포트 미지원).`);
+  }
+
   const unsupported = tags.map((t) => t[1]).filter((name) => !SUPPORTED.has(name));
   if (unsupported.length) {
     throw new Error(
