@@ -254,6 +254,12 @@ export function ReviewBoard({
               </article>
             );
           })}
+          {playable.every((entry) => graded[entry.gk]) && (
+            <SessionDone
+              total={playable.length}
+              passed={playable.filter((entry) => graded[entry.gk]?.passed).length}
+            />
+          )}
         </section>
       )}
 
@@ -288,6 +294,43 @@ export function ReviewBoard({
         </details>
       )}
     </>
+  );
+}
+
+/**
+ * 세션 마무리 블록 (#239) — 얼린 목록(위 규칙 1)의 **전 문항이 채점되면** 리스트 끝에
+ * 나타난다. 목록이 얼어 있어 채점해도 문항이 사라지지 않으므로, 이 블록이 없으면 due 가
+ * 1개인 날(매일 조금씩 복습하는 최빈 상태)은 채점 후 화면이 막다른 골목이 된다 — 끝났다는
+ * 확인도 다음 행동도 없다 (2026-08-06 사용자 피드백).
+ *
+ * 형태는 due 0 진입의 빈 상태 문구와 같은 틀(점선 상자)이다 — "할 일 없음"을 말하는 두
+ * 화면이 다른 물건으로 보이지 않게. 요약 수치는 `graded` 의 이번 세션 채점만 센다:
+ * 저장소 누계(`attempts`·`correct`)를 세면 "오늘 복습"의 결과가 아니게 된다.
+ */
+function SessionDone({ total, passed }: { total: number; passed: number }) {
+  const failed = total - passed;
+  return (
+    <div
+      style={{
+        marginTop: "2rem",
+        padding: "1.5rem 1rem",
+        textAlign: "center",
+        border: "1px dashed var(--border)",
+        borderRadius: 8,
+      }}
+    >
+      <p style={{ fontWeight: 900 }}>
+        오늘 복습 끝 — {total}문항 중 {passed}개 맞혔습니다
+      </p>
+      <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 4 }}>
+        {failed > 0
+          ? `틀린 ${failed}문항은 상자 1에서 내일 다시 나옵니다.`
+          : "맞힌 문항은 상자가 올라 더 뜸하게, 기한이 되면 다시 여기 모입니다."}
+      </p>
+      <p style={{ marginTop: "0.8rem" }}>
+        <Link href="/">홈으로 돌아가기</Link>
+      </p>
+    </div>
   );
 }
 
