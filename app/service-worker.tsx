@@ -15,16 +15,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function ServiceWorker() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  // 다른 탭이 먼저 갱신을 수락한 상태 (Codex P2, PR #238) — 이 탭의 대기 워커는 이미
+  // 활성화돼 버려서 SKIP_WAITING 을 보내도 아무 일이 없다. 배너는 남기되 동작을 바꾼다.
+  const [activatedElsewhere, setActivatedElsewhere] = useState(false);
   // 우리가 넘긴 그 순간에만 새로고침한다 — 다른 탭이 갱신했을 때 이 탭이 멋대로 튀지 않게.
   const reloading = useRef(false);
 
   useEffect(() => {
-    // dev 에는 sw.js 가 없다 (out/ 빌드 산출물). 등록해 봐야 404 만 부른다.
+    // dev 에는 sw.js 가 없다 (public/ 은 빌드가 퍼 간다). 등록해 봐야 404 만 부른다.
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
     const onControllerChange = () => {
-      if (reloading.current) window.location.reload();
+      if (reloading.current) {
+        window.location.reload();
+        return;
+      }
+      // 남이 넘겼다. 이 탭은 아직 옛 화면이므로 배너는 그대로 두고,
+      // 눌렀을 때 할 일만 "그냥 새로고침"으로 바꾼다.
+      setActivatedElsewhere(true);
     };
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
@@ -59,12 +68,16 @@ export function ServiceWorker() {
   }, []);
 
   const activate = useCallback(() => {
-    if (!waiting) return;
     reloading.current = true;
+    // 이미 남이 넘겼으면 보낼 곳이 없다 — 새 워커가 이미 통제 중이니 새로고침이면 충분하다.
+    if (activatedElsewhere || !waiting) {
+      window.location.reload();
+      return;
+    }
     waiting.postMessage({ type: "SKIP_WAITING" });
-  }, [waiting]);
+  }, [waiting, activatedElsewhere]);
 
-  if (!waiting || dismissed) return null;
+  if ((!waiting && !activatedElsewhere) || dismissed) return null;
 
   return (
     <div role="status" className="sw-update">

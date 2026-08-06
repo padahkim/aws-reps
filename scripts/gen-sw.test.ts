@@ -55,14 +55,24 @@ check("페이로드 치환", built.includes('p=["/index.txt","/glossary.txt"]'),
 check("자산 치환", built.includes('a=["/icon.svg"]'), true);
 check("자리표시자 잔여 없음", /__[A-Z]+__/.test(built), false);
 
-let threw = false;
-try {
-  // 자리표시자 이름이 바뀌었는데 생성기를 안 고친 상황 — 조용히 넘어가면 안 된다.
-  buildSw("v=__VERSION__ r=__ROUTE_LIST__", { version: "x", routes: [], payloads: [], assets: [] });
-} catch {
-  threw = true;
+/** 던지면 true. buildSw 의 fail-fast 두 방향을 각각 확인한다. */
+function throws(template: string): boolean {
+  try {
+    buildSw(template, { version: "x", routes: [], payloads: [], assets: [] });
+    return false;
+  } catch {
+    return true;
+  }
 }
-check("치환 못 한 자리표시자는 던진다", threw, true);
+
+const full = "__VERSION__ __ROUTES__ __PAYLOADS__ __ASSETS__";
+check("정상 템플릿은 안 던진다", throws(full), false);
+// 자리표시자가 지워지거나 오타 난 경우 — replaceAll 이 아무 일도 안 하고, "남은 게 없다"는
+// 사후 검사도 통과해 버린다. 치환 전에 실재를 확인해야 잡힌다.
+check("자리표시자가 아예 없으면 던진다", throws("__VERSION__ __ROUTES__ __PAYLOADS__"), true);
+check("오타 난 자리표시자는 던진다", throws("__VERSION__ __ROUTE__ __PAYLOADS__ __ASSETS__"), true);
+// 이름이 바뀌어 채우지 못하고 남은 경우 — 사후 검사가 잡는다.
+check("모르는 자리표시자가 남으면 던진다", throws(`${full} __EXTRA__`), true);
 
 console.log("");
 if (failures === 0) {

@@ -32,29 +32,42 @@ self.addEventListener("install", (event) => {
   event.waitUntil(precache());
 });
 
+/**
+ * 프리캐시는 **전부 아니면 전무**다 (Codex P1, PR #238).
+ *
+ * 처음에는 일부 실패를 눈감고 설치를 마치게 했었다 — "부분적으로라도 오프라인이 되는 편이
+ * 낫다"는 생각이었는데, 갱신 경로에서 그게 뒤집힌다: activate 가 옛 캐시를 지우므로,
+ * 흔들리는 네트워크에서 갱신을 한 번 수락하면 **멀쩡히 되던 오프라인 페이지가 사라진다**.
+ * 그래서 하나라도 실패하면 이번 캐시를 버리고 설치를 실패시킨다. 그러면 새 워커가 대기
+ * 상태로 가지 않아 배너도 안 뜨고, 쓰던 캐시는 그대로 남는다. 브라우저가 나중에 다시 시도한다.
+ *
+ * 대가는 첫 설치가 실패하면 오프라인이 아예 없다는 것인데, 그건 다음 방문에 다시 시도된다.
+ * 덕분에 "aws-reps-<버전> 캐시는 언제나 완전하다"가 불변식이 되고, activate 의 청소가
+ * 항상 안전해진다.
+ */
 async function precache() {
   const cache = await caches.open(CACHE);
-  const failed = [];
 
-  // 1) 문서 — 캐시하면서 본문에 적힌 빌드 자산 경로를 함께 걷는다.
-  const assets = new Set(ASSETS);
-  await eachBatch(ROUTES, async (path) => {
-    const html = await store(cache, path, failed, true);
-    if (html) for (const m of html.match(ASSET_IN_HTML) ?? []) assets.add(m);
-  });
+  try {
+    // 1) 문서 — 캐시하면서 본문에 적힌 빌드 자산 경로를 함께 걷는다.
+    const assets = new Set(ASSETS);
+    await eachBatch(ROUTES, async (path) => {
+      const html = await store(cache, path, true);
+      for (const m of html.match(ASSET_IN_HTML) ?? []) assets.add(m);
+    });
 
-  // 2) RSC 페이로드 — 오프라인에서 <Link> 이동이 살아 있으려면 필요하다.
-  await eachBatch(PAYLOADS, (path) => store(cache, path, failed, false));
+    // 2) RSC 페이로드 — 오프라인에서 <Link> 이동이 살아 있으려면 필요하다.
+    await eachBatch(PAYLOADS, (path) => store(cache, path, false));
 
-  // 3) 1)에서 찾아낸 청크·CSS. 문서를 담은 뒤라야 목록이 완성된다.
-  await eachBatch([...assets], (path) => store(cache, path, failed, false));
+    // 3) 1)에서 찾아낸 청크·CSS. 문서를 담은 뒤라야 목록이 완성된다.
+    await eachBatch([...assets], (path) => store(cache, path, false));
 
-  // 일부 실패로 설치를 통째로 실패시키지 않는다: 오프라인이 부분적으로 되는 편이
-  // 아예 안 되는 편보다 낫다. 대신 무엇이 빠졌는지는 남긴다.
-  if (failed.length) {
-    console.warn(`[sw] 프리캐시 실패 ${failed.length}건`, failed.slice(0, 10));
-  } else {
     console.info(`[sw] 프리캐시 완료 — 문서 ${ROUTES.length}, 자산 ${assets.size}`);
+  } catch (err) {
+    // 반쯤 찬 캐시를 남기지 않는다 — 다음 설치가 그걸 완전한 것으로 오인한다.
+    await caches.delete(CACHE);
+    console.warn("[sw] 프리캐시 실패 — 설치를 중단한다 (쓰던 캐시는 그대로 둔다)", err);
+    throw err;
   }
 }
 
@@ -64,18 +77,22 @@ async function eachBatch(items, run) {
   }
 }
 
-/** 받아서 캐시에 넣는다. wantText 면 본문을 문자열로 돌려준다(자산 수집용). */
-async function store(cache, path, failed, wantText) {
+/**
+ * 받아서 캐시에 넣는다. wantText 면 본문을 문자열로 돌려준다(자산 수집용).
+ * 실패하면 한 번 더 시도한다 — 전부 아니면 전무로 바꾼 만큼, 순간적인 실패 하나로
+ * 오프라인을 통째로 포기하지 않게 한다.
+ */
+async function store(cache, path, wantText, retry = true) {
   try {
     // cache: "reload" — 브라우저 HTTP 캐시의 옛 사본을 그대로 담지 않게.
     const res = await fetch(path, { cache: "reload" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = wantText ? await res.clone().text() : null;
+    const text = wantText ? await res.clone().text() : "";
     await cache.put(path, res);
     return text;
-  } catch {
-    failed.push(path);
-    return null;
+  } catch (err) {
+    if (retry) return store(cache, path, wantText, false);
+    throw new Error(`프리캐시 실패: ${path} (${err.message})`);
   }
 }
 

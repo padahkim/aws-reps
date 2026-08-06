@@ -24,43 +24,68 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ASSETS = ["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png"];
 
 /**
- * 캐시 버전의 재료 — 화면에 나타나는 것을 바꿀 수 있는 소스 전부.
- * app/%5Fsource 는 제외한다: gen-source-routes.mjs 의 생성물이고 preview 빌드에만 있어서,
- * 넣으면 같은 커밋이 배포 종류에 따라 다른 버전을 갖게 된다.
+ * 캐시 버전의 재료 — 리포의 소스 전부에서 **제외할 것만** 센다.
+ *
+ * 담을 것을 열거하지 않는 이유 (Codex P1, PR #238): 열거하면 빠뜨린 파일이 화면을 바꿔도
+ * 버전이 그대로다. 그러면 sw.js 가 바이트 단위로 같아 브라우저가 갱신을 감지하지 못하고,
+ * cache-first 워커가 옛 HTML 을 **영원히** 내준다. 실제로 mdx-components.tsx(생성되는 MDX
+ * 마크업을 정한다)와 next.config.ts 가 목록 밖에 있었다.
+ * 제외 목록은 반대 방향으로 틀린다 — 안 걸러낸 파일이 바뀌면 갱신 배너가 한 번 더 뜰 뿐이다.
+ * 조용히 안 뜨는 것보다 낫다.
  */
-const VERSION_INPUTS = ["app", "content", "lib", "scripts/sw.template.js", "public/icon.svg", "package-lock.json"];
-const VERSION_EXCLUDE = new Set(["%5Fsource", "node_modules"]);
+const VERSION_EXCLUDE = new Set([
+  ".git",
+  ".next",
+  "out",
+  "node_modules",
+  "%5Fsource",   // gen-source-routes.mjs 생성물 — preview 빌드에만 있어 배포 종류마다 값이 갈린다
+]);
+
+/** 이 스크립트 자신의 산출물 — 넣으면 해시가 자기 자신을 먹어 값이 실행마다 달라진다. */
+const SELF_OUTPUT = new Set(["public/sw.js"]);
+const SELF_OUTPUT_PATTERN = /^public\/icon-\d+\.png$/;
 
 function hashInputs(): string {
   const digest = createHash("sha256");
   const walk = (abs: string) => {
     const rel = relative(root, abs).split(sep).join("/");
-    const stat = statSync(abs);
-    if (stat.isDirectory()) {
+    if (SELF_OUTPUT.has(rel) || SELF_OUTPUT_PATTERN.test(rel)) return;
+    if (statSync(abs).isDirectory()) {
       for (const name of readdirSync(abs).sort()) {
-        if (VERSION_EXCLUDE.has(name) || name.startsWith(".")) continue;
+        if (VERSION_EXCLUDE.has(name)) continue;
         walk(join(abs, name));
       }
       return;
     }
     digest.update(rel).update("\0").update(readFileSync(abs)).update("\0");
   };
-  for (const input of VERSION_INPUTS) walk(join(root, input));
+  walk(root);
   return digest.digest("hex").slice(0, 12);
 }
 
-/** 자리표시자를 채운다. 채우지 못한 게 남으면 던진다 — 조용히 빈 캐시로 배포되는 것을 막는다. */
+/**
+ * 자리표시자를 채운다. 양쪽에서 막는다 (Codex P2, PR #238):
+ *   치환 **전** — 기대한 자리표시자가 템플릿에 실재하는가. 오타나 삭제로 사라지면 replaceAll
+ *                 은 아무 일도 안 하고 "남은 게 없다"는 사후 검사도 통과해 버린다.
+ *   치환 **후** — 남은 __NAME__ 이 없는가. 이름이 바뀐 자리표시자를 잡는다.
+ */
 export function buildSw(
   template: string,
   values: { version: string; routes: string[]; payloads: string[]; assets: string[] },
 ): string {
-  const sw = template
-    .replaceAll("__VERSION__", values.version)
-    .replaceAll("__ROUTES__", JSON.stringify(values.routes))
-    .replaceAll("__PAYLOADS__", JSON.stringify(values.payloads))
-    .replaceAll("__ASSETS__", JSON.stringify(values.assets));
+  const fill: Record<string, string> = {
+    __VERSION__: values.version,
+    __ROUTES__: JSON.stringify(values.routes),
+    __PAYLOADS__: JSON.stringify(values.payloads),
+    __ASSETS__: JSON.stringify(values.assets),
+  };
 
-  // 아는 이름만 확인하면 자리표시자 이름이 바뀐 경우를 놓친다 — 남은 __NAME__ 을 전부 잡는다.
+  let sw = template;
+  for (const [token, value] of Object.entries(fill)) {
+    if (!sw.includes(token)) throw new Error(`sw.template.js 에 자리표시자 ${token} 가 없습니다.`);
+    sw = sw.replaceAll(token, value);
+  }
+
   const leftover = /__[A-Z][A-Z0-9_]*__/.exec(sw);
   if (leftover) throw new Error(`sw.template.js 의 ${leftover[0]} 를 치환하지 못했습니다.`);
   return sw;

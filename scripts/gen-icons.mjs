@@ -19,8 +19,24 @@ const SIZES = [192, 512];
 
 /* ── SVG(제한 서브셋) 파싱 ─────────────────────────────────────────────── */
 
-/** 지원하는 요소는 <rect> 뿐. 그 외 도형이 보이면 던진다. */
+/**
+ * 지원하는 요소는 <rect> 뿐. 그 외 도형이 보이면 던진다.
+ *
+ * 속성까지 화이트리스트로 보는 이유 (Codex P2, PR #238): 요소 이름만 검사하면
+ * transform·opacity·ry·stroke 처럼 **적법하지만 이 래스터라이저가 구현하지 않은** 속성이
+ * 조용히 무시된다. 그러면 커밋된 SVG 와 배포되는 PNG 가 말없이 달라진다 — 이 생성기가
+ * 애초에 막겠다고 한 일이다.
+ */
 const SUPPORTED = new Set(["svg", "rect"]);
+const SUPPORTED_ATTRS = {
+  svg: new Set(["xmlns", "viewBox", "width", "height"]),
+  rect: new Set(["x", "y", "width", "height", "rx", "fill"]),
+};
+
+/** 태그 안의 속성 이름만 뽑는다 (값은 안 본다). */
+function attrNames(source) {
+  return [...source.matchAll(/([a-zA-Z][\w:-]*)\s*=\s*"/g)].map((m) => m[1]);
+}
 
 export function parseSvg(source) {
   // 주석을 먼저 걷어낸다 — 주석 안의 예시 태그가 도형으로 잡히지 않게.
@@ -42,6 +58,16 @@ export function parseSvg(source) {
       `icon.svg: 래스터라이저가 모르는 요소 ${[...new Set(unsupported)].join(", ")} — ` +
         `<rect> 만 쓸 수 있습니다 (scripts/gen-icons.mjs 머리말).`,
     );
+  }
+
+  for (const [, name, body] of tags) {
+    const unknown = attrNames(body).filter((a) => !SUPPORTED_ATTRS[name].has(a));
+    if (unknown.length) {
+      throw new Error(
+        `icon.svg: <${name}> 의 ${unknown.join(", ")} 는 래스터라이저가 그리지 못합니다 — ` +
+          `쓸 수 있는 속성: ${[...SUPPORTED_ATTRS[name]].join(", ")}.`,
+      );
+    }
   }
 
   const rects = tags
