@@ -74,13 +74,27 @@ export function useReadSections(chapterId: string): number[] {
  *
  * 의존은 배열 identity 가 아니라 **내용**이다 — 호출부가 렌더마다 `chapters.map(...)` 으로 새
  * 배열을 만들어 넘겨도 다시 읽지 않는다. 구분자 `\u0000` 은 챕터 id 에 나올 수 없는 문자다.
+ *
+ * `storage` 이벤트도 듣는다 (PR #237 Codex P2 — `useProgress`·`useReview` 와 같은 규칙):
+ * 홈을 한 탭에 열어 둔 채 다른 탭에서 섹션을 읽으면, 마운트 1회 스냅샷만으로는 진행률·
+ * 커버리지만 낡은 채 남는다 — 대시보드가 조인하는 다른 저장소들은 cross-tab 갱신되므로
+ * 이쪽만 안 들으면 지표끼리 어긋난다. (`useReadSections` 는 읽음을 만드는 섹션 페이지
+ * 쪽이라 사정이 다르다 — 필요해지면 그때 같은 규칙을 붙인다.)
  */
 export function useReadMap(chapterIds: readonly string[]): Record<string, number[]> {
   const [map, setMap] = useState<Record<string, number[]>>({});
   const joined = chapterIds.join("\u0000");
   useEffect(() => {
     const ids = joined === "" ? [] : joined.split("\u0000");
-    setMap(Object.fromEntries(ids.map((id) => [id, getReadSections(id)])));
+    const read = () => setMap(Object.fromEntries(ids.map((id) => [id, getReadSections(id)])));
+    read();
+    // key === null 은 localStorage.clear() — 그때도 다시 읽어야 비워진 상태가 반영된다
+    // (storage 이벤트 규칙은 records.ts useProgress 와 같다)
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === KEY) read();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [joined]);
   return map;
 }
