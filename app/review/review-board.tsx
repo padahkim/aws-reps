@@ -258,6 +258,7 @@ export function ReviewBoard({
             <SessionDone
               total={playable.length}
               passed={playable.filter((entry) => graded[entry.gk]?.passed).length}
+              states={playable.map((entry) => review.items[entry.gk] ?? entry.item)}
             />
           )}
         </section>
@@ -306,9 +307,29 @@ export function ReviewBoard({
  * 형태는 due 0 진입의 빈 상태 문구와 같은 틀(점선 상자)이다 — "할 일 없음"을 말하는 두
  * 화면이 다른 물건으로 보이지 않게. 요약 수치는 `graded` 의 이번 세션 채점만 센다:
  * 저장소 누계(`attempts`·`correct`)를 세면 "오늘 복습"의 결과가 아니게 된다.
+ *
+ * **다음 일정 안내는 채점 정오가 아니라 저장된 상자 상태에서 파생한다** (PR #240 Codex P2):
+ * "맞혔다 = 상자가 올랐다"가 아니다 — 상자 3 정답은 졸업이라 다시 나오지 않고, "다시 풀기"
+ * 정답은 조기 정답(D2)이라 상자 1 그대로 내일 나온다. 정오 플래그로 문구를 지으면 그 두
+ * 경로에서 거짓말이 된다. 상자 1 = 내일(간격 1일), 상자 2·3 = 다음 기한, 졸업 = 안 나옴.
  */
-function SessionDone({ total, passed }: { total: number; passed: number }) {
-  const failed = total - passed;
+function SessionDone({
+  total,
+  passed,
+  states,
+}: {
+  total: number;
+  passed: number;
+  states: ReviewEntry["item"][];
+}) {
+  const graduated = states.filter((item) => item.graduatedAt !== undefined).length;
+  const tomorrow = states.filter((item) => item.graduatedAt === undefined && item.box === 1).length;
+  const later = states.length - graduated - tomorrow;
+  const parts = [
+    tomorrow > 0 && `${tomorrow}문항은 상자 1 — 내일 다시 나옵니다`,
+    later > 0 && `${later}문항은 상자가 올라 다음 기한에 다시 나옵니다`,
+    graduated > 0 && `${graduated}문항은 졸업 — 더 나오지 않습니다`,
+  ].filter(Boolean);
   return (
     <div
       style={{
@@ -322,11 +343,11 @@ function SessionDone({ total, passed }: { total: number; passed: number }) {
       <p style={{ fontWeight: 900 }}>
         오늘 복습 끝 — {total}문항 중 {passed}개 맞혔습니다
       </p>
-      <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 4 }}>
-        {failed > 0
-          ? `틀린 ${failed}문항은 상자 1에서 내일 다시 나옵니다.`
-          : "맞힌 문항은 상자가 올라 더 뜸하게, 기한이 되면 다시 여기 모입니다."}
-      </p>
+      {parts.length > 0 && (
+        <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 4 }}>
+          {parts.join(" · ")}
+        </p>
+      )}
       <p style={{ marginTop: "0.8rem" }}>
         <Link href="/">홈으로 돌아가기</Link>
       </p>
