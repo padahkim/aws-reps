@@ -64,6 +64,13 @@ main {
   border: 1px solid var(--border);
   border-radius: 8px;
   scroll-margin-top: 1rem;
+  /* detail 문단의 긴 라틴 토큰(DEPLOYMENT_STOP_ON_ALARM 등 400px 넘는 것들)을 꺾는다 (#243).
+     `break-word` 가 아니라 `anywhere` 여야 한다 — 목록 ul 이 grid 라 트랙 최소폭이 항목의
+     min-content 로 잡히는데, 그 계산에 꺾을 자리를 반영하는 건 `anywhere` 뿐이다.
+     `break-word` 는 줄만 꺾고 min-content 는 그대로라 트랙이 계속 뷰포트를 넘는다.
+     실제 줄바꿈 위치는 둘이 같아서(제 줄에 안 들어가는 낱말만 꺾는다) 데스크탑 조판은
+     그대로고, 한국어는 원래 음절 단위로 꺾이므로 영향이 없다. */
+  overflow-wrap: anywhere;
 }
 
 .glossary-item:target {
