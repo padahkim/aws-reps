@@ -11,6 +11,7 @@ import {
 import { HomeProgress } from "./home-progress";
 import { chapterQuestionKeys, questionKeys } from "@/lib/question-bank";
 import { CompletionBadge } from "./completion-badge";
+import { HomeDashboard } from "./home-dashboard";
 import { ReviewLink } from "./review-link";
 
 export default function Home() {
@@ -27,6 +28,22 @@ export default function Home() {
           챕터 {chapters.length}개 · <Link href="/glossary">용어집</Link> · <ReviewLink knownKeys={questionKeys()} />
         </p>
       </header>
+
+      {/*
+        진도 대시보드 (#235) — 챕터 목록 **위**에 둔다: "오늘의 복습"이 유일한 행동 유도
+        지표(설계 §3-3)라 첫 화면에서 목록보다 먼저 읽혀야 한다. 별도 라우트를 두지 않은
+        결정(2026-08-06)도 같은 이유다 — 사용자 1명인 앱에서 진입 단계 추가는 과설계다.
+      */}
+      {chapters.length > 0 && (
+        <HomeDashboard
+          chapters={chapters.map((entry) => ({
+            id: entry.data.chapterMeta.id,
+            title: entry.data.chapterMeta.title,
+            domain: entry.data.chapterMeta.domain,
+          }))}
+          keys={keys}
+        />
+      )}
 
       {chapters.length === 0 ? (
         <p
