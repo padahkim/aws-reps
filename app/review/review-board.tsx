@@ -114,6 +114,11 @@ function Outcome({
       before.box > 1
         ? `상자 ${before.box} → 1 강등 · 내일 다시 나옵니다`
         : "상자 1 그대로 · 내일 다시 나옵니다";
+  } else if (graduated && before.graduatedAt !== undefined) {
+    // 출제 모드(#236)에서만 오는 경로 — due 뷰는 졸업 문항을 내지 않는다. 이미 졸업한 문항의
+    // 정답은 상태를 바꾸지 않으므로(nextItem), "방금 졸업했다"처럼 말하면 거짓이 된다 (PR #241
+    // Codex P2)
+    text = "이미 졸업한 문항 — 상태는 그대로입니다. 다시 틀리면 상자 1로 돌아옵니다";
   } else if (graduated) {
     text = "졸업 — 숙달로 넘어갔습니다. 다시 틀리면 상자 1로 돌아옵니다";
   } else if (after.box > before.box) {
@@ -462,10 +467,12 @@ export function ReviewBoard({
  * 화면이 다른 물건으로 보이지 않게. 요약 수치는 `graded` 의 이번 세션 채점만 센다:
  * 저장소 누계(`attempts`·`correct`)를 세면 "오늘 복습"의 결과가 아니게 된다.
  *
- * **다음 일정 안내는 채점 정오가 아니라 저장된 상자 상태에서 파생한다** (PR #240 Codex P2):
- * "맞혔다 = 상자가 올랐다"가 아니다 — 상자 3 정답은 졸업이라 다시 나오지 않고, "다시 풀기"
- * 정답은 조기 정답(D2)이라 상자 1 그대로 내일 나온다. 정오 플래그로 문구를 지으면 그 두
- * 경로에서 거짓말이 된다. 상자 1 = 내일(간격 1일), 상자 2·3 = 다음 기한, 졸업 = 안 나옴.
+ * **다음 일정 안내는 채점 정오가 아니라 저장된 상태에서 파생한다** (PR #240 Codex P2 →
+ * #241 Codex P2에서 한 걸음 더): "맞혔다 = 상자가 올랐다"가 아니고, "상자 1 = 내일"도
+ * 아니다 — 출제 모드의 기한 전 정답은 상자도 dueAt 도 그대로라, 상자 번호로 지은 문구는
+ * 오늘 기한인 문항을 "내일"이라고 말하게 된다. 그래서 상자 번호가 아니라 **저장된 dueAt**
+ * 으로 가른다: 하루 안 = 곧 다시 나옴, 그 뒤 = 다음 기한. 졸업은 "복습 큐에는" 안 나온다고
+ * 한정한다 — 출제 모드의 모집단에는 계속 나오기 때문이다 (practiceList 주석).
  *
  * 출제 모드(#236)도 이 블록을 쓴다 — 세션의 정의(얼린 목록 전 문항 채점)와 다음 일정 파생
  * 규칙이 같아서, 다른 것은 머리글 문구뿐이다. 그래서 `heading` 만 호출부가 짓는다.
@@ -477,15 +484,17 @@ function SessionDone({
   heading: string;
   states: ReviewEntry["item"][];
 }) {
+  // 마운트 후에만 렌더되는 블록이라(채점이 선행) 여기서 시각을 잡아도 hydration 과 무관하다
+  const nowMs = Date.now();
   const graduated = states.filter((item) => item.graduatedAt !== undefined).length;
-  const tomorrow = states.filter((item) => item.graduatedAt === undefined && item.box === 1).length;
-  const later = states.length - graduated - tomorrow;
+  const soon = states.filter(
+    (item) => item.graduatedAt === undefined && Date.parse(item.dueAt) <= nowMs + DAY_MS,
+  ).length;
+  const later = states.length - graduated - soon;
   const parts = [
-    tomorrow > 0 && `${tomorrow}문항은 상자 1 — 내일 다시 나옵니다`,
-    // "상자가 올라"라고 말하지 않는다 — due 뷰에서는 참이지만(기한 도달 정답만 이 상자에
-    // 온다), 출제 모드(#236)에서는 기한 전 정답이 상자 2·3 에 그대로 머물러 거짓이 된다
-    later > 0 && `${later}문항은 상자 2·3 — 다음 기한에 다시 나옵니다`,
-    graduated > 0 && `${graduated}문항은 졸업 — 더 나오지 않습니다`,
+    soon > 0 && `${soon}문항은 하루 안에 다시 나옵니다`,
+    later > 0 && `${later}문항은 다음 기한에 다시 나옵니다`,
+    graduated > 0 && `${graduated}문항은 졸업 — 복습 큐에는 더 나오지 않습니다`,
   ].filter(Boolean);
   return (
     <div
