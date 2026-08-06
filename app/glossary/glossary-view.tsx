@@ -36,6 +36,13 @@ const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
  *  (content/chapters/interactive.tsx outlineBtn 과 같은 처리, PR #147 Codex 지적의 재적용). */
 const onSoft = (accent: string) => `color-mix(in srgb, ${accent} 85%, #000)`;
 
+/** 페이지 배경 위 상태 강조색 — 다크 배경(#111113)에서 원색 teal/red 는 3.5~3.8:1 로 부족해
+ *  밝은 변형으로 갈아탄다 (PR #242 라운드 2 지적). `light-dark()` 는 globals.css 의
+ *  `html { color-scheme: light dark }` 덕에 그대로 동작한다 (soft 배경 위 글자는 배경이
+ *  고정 밝음이라 해당 없음 — onSoft 가 맡는다). 다크 변형은 6:1대. */
+const okFg = `light-dark(${PAL.teal}, #17A2A0)`;
+const badFg = `light-dark(${PAL.red}, #E8735A)`;
+
 /**
  * soft 채움 아웃라인 버튼 — `.widget-btn`(globals.css #144)의 CSS 변수 계약을 채운다.
  * 변수를 빠뜨리면 호버가 죽고 포커스 링(`--btn-ring`)이 안 그려진다 (PR #242 Codex 지적).
@@ -185,7 +192,7 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
               outline: "none",
             }}
           >
-            <div style={{ fontFamily: MONO, fontSize: "2rem", fontWeight: 700, color: PAL.teal }}>
+            <div style={{ fontFamily: MONO, fontSize: "2rem", fontWeight: 700, color: okFg }}>
               {tally.known} / {deck.length}
             </div>
             <p style={{ color: "var(--muted)", fontSize: "0.9rem", margin: "0.4rem 0 1rem" }}>
@@ -233,8 +240,8 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
                   {idx + 1} / {deck.length}
                 </span>
                 <span>
-                  안다 <b style={{ color: PAL.teal }}>{tally.known}</b> · 모른다{" "}
-                  <b style={{ color: PAL.red }}>{tally.unknown}</b>
+                  안다 <b style={{ color: okFg }}>{tally.known}</b> · 모른다{" "}
+                  <b style={{ color: badFg }}>{tally.unknown}</b>
                 </span>
               </div>
 
@@ -323,8 +330,8 @@ export function GlossaryView({ terms }: { terms: GlossaryTerm[] }) {
           {counted.length > 0 && (
             <>
               {" "}
-              지금까지 <b style={{ color: PAL.teal }}>안다 {knownCount}</b> ·{" "}
-              <b style={{ color: PAL.red }}>모른다 {unknownCount}</b>.
+              지금까지 <b style={{ color: okFg }}>안다 {knownCount}</b> ·{" "}
+              <b style={{ color: badFg }}>모른다 {unknownCount}</b>.
             </>
           )}
         </p>
