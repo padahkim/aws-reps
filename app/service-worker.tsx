@@ -20,19 +20,29 @@ export function ServiceWorker() {
   const [activatedElsewhere, setActivatedElsewhere] = useState(false);
   // 우리가 넘긴 그 순간에만 새로고침한다 — 다른 탭이 갱신했을 때 이 탭이 멋대로 튀지 않게.
   const reloading = useRef(false);
+  // 이 탭이 이미 워커의 통제 아래 있었는가. 첫 방문에서는 false 로 시작한다.
+  const controlled = useRef(false);
 
   useEffect(() => {
     // dev 에는 sw.js 가 없다 (public/ 은 빌드가 퍼 간다). 등록해 봐야 404 만 부른다.
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
 
+    controlled.current = !!navigator.serviceWorker.controller;
+
     const onControllerChange = () => {
       if (reloading.current) {
         window.location.reload();
         return;
       }
-      // 남이 넘겼다. 이 탭은 아직 옛 화면이므로 배너는 그대로 두고,
-      // 눌렀을 때 할 일만 "그냥 새로고침"으로 바꾼다.
+      // 첫 설치의 clients.claim() 도 여기로 온다 (Codex P2, PR #238 2라운드).
+      // 통제하는 워커가 **없다가 생긴** 것은 갱신이 아니라 최초 장악이다 — 알릴 새 버전이 없다.
+      if (!controlled.current) {
+        controlled.current = true;
+        return;
+      }
+      // 여기부터가 진짜 교체 = 다른 탭이 먼저 갱신을 수락했다. 이 탭은 아직 옛 화면이므로
+      // 배너는 그대로 두고, 눌렀을 때 할 일만 "그냥 새로고침"으로 바꾼다.
       setActivatedElsewhere(true);
     };
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
@@ -80,16 +90,21 @@ export function ServiceWorker() {
   if ((!waiting && !activatedElsewhere) || dismissed) return null;
 
   return (
-    <div role="status" className="sw-update">
-      <span>새 버전이 준비됐습니다.</span>
-      <span className="sw-update-actions">
-        <button type="button" onClick={activate}>
-          지금 갱신
-        </button>
-        <button type="button" className="sw-update-later" onClick={() => setDismissed(true)}>
-          나중에
-        </button>
-      </span>
-    </div>
+    <>
+      {/* 고정 배너는 흐름에서 높이를 차지하지 않는다 — 본문 맨 아래(이전·다음 이동)를
+          가리지 않도록 배너가 떠 있는 동안만 그만큼의 자리를 세워 둔다. */}
+      <div className="sw-update-spacer" aria-hidden="true" />
+      <div role="status" className="sw-update">
+        <span>새 버전이 준비됐습니다.</span>
+        <span className="sw-update-actions">
+          <button type="button" onClick={activate}>
+            지금 갱신
+          </button>
+          <button type="button" className="sw-update-later" onClick={() => setDismissed(true)}>
+            나중에
+          </button>
+        </span>
+      </div>
+    </>
   );
 }

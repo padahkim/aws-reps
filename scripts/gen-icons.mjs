@@ -33,9 +33,13 @@ const SUPPORTED_ATTRS = {
   rect: new Set(["x", "y", "width", "height", "rx", "fill"]),
 };
 
-/** 태그 안의 속성 이름만 뽑는다 (값은 안 본다). */
+/**
+ * 태그 안의 속성 이름만 뽑는다 (값은 안 본다).
+ * 홑따옴표도 본다 — XML 에서 적법하고, 큰따옴표만 보면 `opacity='0.5'` 같은 미구현 속성이
+ * 화이트리스트 검사를 통째로 비껴간다 (Codex P2, PR #238 2라운드).
+ */
 function attrNames(source) {
-  return [...source.matchAll(/([a-zA-Z][\w:-]*)\s*=\s*"/g)].map((m) => m[1]);
+  return [...source.matchAll(/([a-zA-Z][\w:-]*)\s*=\s*["']/g)].map((m) => m[1]);
 }
 
 export function parseSvg(source) {
@@ -99,8 +103,9 @@ export function parseSvg(source) {
 }
 
 function attr(source, name) {
-  const m = new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`).exec(source);
-  return m ? m[1] : undefined;
+  // 값의 따옴표도 두 종류 다 받는다 (attrNames 와 같은 이유).
+  const m = new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`).exec(source);
+  return m ? (m[2] ?? m[3]) : undefined;
 }
 
 function parseColor(raw, i) {

@@ -12,9 +12,10 @@
 //
 // 캐시 버전 = 사이트를 만들어 내는 소스 전부의 해시. 콘텐츠나 코드가 바뀌면 값이 바뀌고,
 // 그 순간 새 캐시가 되며 사용자에게 갱신 배너가 뜬다. 아무것도 안 바뀌면 같은 값이라 조용하다.
-import { readFileSync, readdirSync, writeFileSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { join, dirname, relative, sep } from "node:path";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { payloadPath, siteRoutes } from "../lib/chapter-routes.ts";
 
@@ -24,42 +25,41 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ASSETS = ["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png"];
 
 /**
- * 캐시 버전의 재료 — 리포의 소스 전부에서 **제외할 것만** 센다.
+ * 캐시 버전 = **git 이 추적하는 파일 전부**의 해시.
  *
- * 담을 것을 열거하지 않는 이유 (Codex P1, PR #238): 열거하면 빠뜨린 파일이 화면을 바꿔도
- * 버전이 그대로다. 그러면 sw.js 가 바이트 단위로 같아 브라우저가 갱신을 감지하지 못하고,
- * cache-first 워커가 옛 HTML 을 **영원히** 내준다. 실제로 mdx-components.tsx(생성되는 MDX
- * 마크업을 정한다)와 next.config.ts 가 목록 밖에 있었다.
- * 제외 목록은 반대 방향으로 틀린다 — 안 걸러낸 파일이 바뀌면 갱신 배너가 한 번 더 뜰 뿐이다.
- * 조용히 안 뜨는 것보다 낫다.
+ * 담을 것을 열거하지 않는 이유 (Codex P1, PR #238 1라운드): 열거하면 빠뜨린 파일이 화면을
+ * 바꿔도 버전이 그대로다. 그러면 sw.js 가 바이트 단위로 같아 브라우저가 갱신을 감지하지
+ * 못하고, cache-first 워커가 옛 HTML 을 **영원히** 내준다. 실제로 mdx-components.tsx(생성되는
+ * MDX 마크업을 정한다)와 next.config.ts 가 목록 밖에 있었다.
+ *
+ * 그렇다고 디렉토리를 통째로 훑으면 반대쪽에서 샌다 (Codex P2, 2라운드): tsconfig.tsbuildinfo
+ * 처럼 **gitignore 된 생성물**이 섞여 든다. 그 안에는 기계별 절대 경로와 증분 컴파일 상태가
+ * 들어 있어서, 같은 소스인데도 typecheck 를 돌렸는지·어느 기계인지에 따라 버전이 달라진다 →
+ * 사용자에게 가짜 갱신 배너가 뜨고 4.7MB 를 통째로 다시 받는다.
+ *
+ * 추적 파일 목록이 두 요구를 동시에 만족한다: 배포되는 소스와 정확히 같은 집합이고
+ * (열거가 아니다), gitignore 된 생성물은 정의상 빠진다 — 이 스크립트의 산출물인
+ * public/sw.js · icon-*.png 도 그래서 자동으로 제외된다(자기 해시 문제도 함께 사라진다).
  */
-const VERSION_EXCLUDE = new Set([
-  ".git",
-  ".next",
-  "out",
-  "node_modules",
-  "%5Fsource",   // gen-source-routes.mjs 생성물 — preview 빌드에만 있어 배포 종류마다 값이 갈린다
-]);
-
-/** 이 스크립트 자신의 산출물 — 넣으면 해시가 자기 자신을 먹어 값이 실행마다 달라진다. */
-const SELF_OUTPUT = new Set(["public/sw.js"]);
-const SELF_OUTPUT_PATTERN = /^public\/icon-\d+\.png$/;
-
 function hashInputs(): string {
+  let listing: string;
+  try {
+    listing = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  } catch (err) {
+    // 조용히 다른 방식으로 넘어가지 않는다 — 버전 산출 방식이 바뀌면 전 사용자가 갱신을 받는다.
+    throw new Error(
+      `캐시 버전을 낼 수 없습니다: git ls-files 실패 (${(err as Error).message}). ` +
+        `이 스크립트는 git 체크아웃에서 실행되는 것을 전제로 합니다.`,
+    );
+  }
+
+  const files = listing.split("\0").filter(Boolean).sort();
+  if (files.length === 0) throw new Error("git 이 추적하는 파일이 없습니다 — 체크아웃을 확인하세요.");
+
   const digest = createHash("sha256");
-  const walk = (abs: string) => {
-    const rel = relative(root, abs).split(sep).join("/");
-    if (SELF_OUTPUT.has(rel) || SELF_OUTPUT_PATTERN.test(rel)) return;
-    if (statSync(abs).isDirectory()) {
-      for (const name of readdirSync(abs).sort()) {
-        if (VERSION_EXCLUDE.has(name)) continue;
-        walk(join(abs, name));
-      }
-      return;
-    }
-    digest.update(rel).update("\0").update(readFileSync(abs)).update("\0");
-  };
-  walk(root);
+  for (const rel of files) {
+    digest.update(rel).update("\0").update(readFileSync(join(root, rel))).update("\0");
+  }
   return digest.digest("hex").slice(0, 12);
 }
 
