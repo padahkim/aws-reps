@@ -254,6 +254,13 @@ export function ReviewBoard({
               </article>
             );
           })}
+          {playable.every((entry) => graded[entry.gk]) && (
+            <SessionDone
+              total={playable.length}
+              passed={playable.filter((entry) => graded[entry.gk]?.passed).length}
+              states={playable.map((entry) => review.items[entry.gk] ?? entry.item)}
+            />
+          )}
         </section>
       )}
 
@@ -288,6 +295,63 @@ export function ReviewBoard({
         </details>
       )}
     </>
+  );
+}
+
+/**
+ * 세션 마무리 블록 (#239) — 얼린 목록(위 규칙 1)의 **전 문항이 채점되면** 리스트 끝에
+ * 나타난다. 목록이 얼어 있어 채점해도 문항이 사라지지 않으므로, 이 블록이 없으면 due 가
+ * 1개인 날(매일 조금씩 복습하는 최빈 상태)은 채점 후 화면이 막다른 골목이 된다 — 끝났다는
+ * 확인도 다음 행동도 없다 (2026-08-06 사용자 피드백).
+ *
+ * 형태는 due 0 진입의 빈 상태 문구와 같은 틀(점선 상자)이다 — "할 일 없음"을 말하는 두
+ * 화면이 다른 물건으로 보이지 않게. 요약 수치는 `graded` 의 이번 세션 채점만 센다:
+ * 저장소 누계(`attempts`·`correct`)를 세면 "오늘 복습"의 결과가 아니게 된다.
+ *
+ * **다음 일정 안내는 채점 정오가 아니라 저장된 상자 상태에서 파생한다** (PR #240 Codex P2):
+ * "맞혔다 = 상자가 올랐다"가 아니다 — 상자 3 정답은 졸업이라 다시 나오지 않고, "다시 풀기"
+ * 정답은 조기 정답(D2)이라 상자 1 그대로 내일 나온다. 정오 플래그로 문구를 지으면 그 두
+ * 경로에서 거짓말이 된다. 상자 1 = 내일(간격 1일), 상자 2·3 = 다음 기한, 졸업 = 안 나옴.
+ */
+function SessionDone({
+  total,
+  passed,
+  states,
+}: {
+  total: number;
+  passed: number;
+  states: ReviewEntry["item"][];
+}) {
+  const graduated = states.filter((item) => item.graduatedAt !== undefined).length;
+  const tomorrow = states.filter((item) => item.graduatedAt === undefined && item.box === 1).length;
+  const later = states.length - graduated - tomorrow;
+  const parts = [
+    tomorrow > 0 && `${tomorrow}문항은 상자 1 — 내일 다시 나옵니다`,
+    later > 0 && `${later}문항은 상자가 올라 다음 기한에 다시 나옵니다`,
+    graduated > 0 && `${graduated}문항은 졸업 — 더 나오지 않습니다`,
+  ].filter(Boolean);
+  return (
+    <div
+      style={{
+        marginTop: "2rem",
+        padding: "1.5rem 1rem",
+        textAlign: "center",
+        border: "1px dashed var(--border)",
+        borderRadius: 8,
+      }}
+    >
+      <p style={{ fontWeight: 900 }}>
+        오늘 복습 끝 — {total}문항 중 {passed}개 맞혔습니다
+      </p>
+      {parts.length > 0 && (
+        <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 4 }}>
+          {parts.join(" · ")}
+        </p>
+      )}
+      <p style={{ marginTop: "0.8rem" }}>
+        <Link href="/">홈으로 돌아가기</Link>
+      </p>
+    </div>
   );
 }
 
