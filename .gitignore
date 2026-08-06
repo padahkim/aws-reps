@@ -9,6 +9,10 @@
 # 손으로 쓴 소스는 app/_source/ 에 있다 (커밋됨). predev 가 만들고 prebuild 가 지운다.
 /app/%5Fsource/
 
+# 앱 아이콘 PNG — scripts/gen-icons.mjs 가 prebuild 에서 굽는다.
+# 정본은 public/icon.svg 하나다 (커밋됨). 리포에 바이너리를 두지 않으려는 것.
+/public/icon-*.png
+
 # misc
 .DS_Store
 *.tsbuildinfo

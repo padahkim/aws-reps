@@ -10,6 +10,16 @@
       ],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "out",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "serve:out"
+      ],
+      "port": 4000,
+      "autoPort": false
     }
   ]
 }
