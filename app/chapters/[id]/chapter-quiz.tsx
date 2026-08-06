@@ -82,6 +82,7 @@ export function QuizItem({
   shuffle = false,
   onExplainedChange,
   onGraded,
+  onReset,
 }: {
   index: number;
   chapterId: string;
@@ -90,6 +91,7 @@ export function QuizItem({
   shuffle?: boolean;                       // 선택지를 섞어 낸다 (#219 — 위치 기억 차단, 설계 D3)
   onExplainedChange?: (id: string, explained: boolean) => void;
   onGraded?: (passed: boolean) => void;    // 채점 직후 훅 — 오답 노트가 상자 상태를 다시 읽는다
+  onReset?: () => void;                    // "다시 풀기" 훅 — 오답 노트가 완주 판정을 되돌린다 (PR #241)
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
@@ -144,6 +146,7 @@ export function QuizItem({
     setExplained(false);
     setOrder(displayOrder(q.choices.length, shuffle));
     onExplainedChange?.(q.id, false);
+    onReset?.();
   }
 
   return (

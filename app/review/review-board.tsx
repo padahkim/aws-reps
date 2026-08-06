@@ -276,6 +276,15 @@ export function ReviewBoard({
           chapterId={bankEntry.chapterId}
           question={bankEntry.question}
           shuffle
+          // "다시 풀기"는 그 문항을 미채점으로 되돌린다 — 맵에서 지우지 않으면 문항은 미응답인데
+          // 마무리 블록이 "끝났다"며 이전 점수를 계속 보여준다 (PR #241 Codex P2)
+          onReset={() => {
+            setGradedMap((prev) => {
+              const next = { ...prev };
+              delete next[entry.gk];
+              return next;
+            });
+          }}
           onGraded={(passed) => {
             const before = review.items[entry.gk] ?? entry.item;
             setGradedMap((prev) => ({ ...prev, [entry.gk]: { passed, before } }));
@@ -395,8 +404,20 @@ export function ReviewBoard({
             borderRadius: 8,
           }}
         >
-          아직 복습할 문항이 없습니다. 챕터 퀴즈에서 <b>틀린 문항</b>이 여기 모이고, 하루 뒤부터
-          다시 나옵니다.
+          {pool.length > 0 ? (
+            // due·예정이 다 비었는데 모집단은 남아 있다 = 전부 졸업이다 (졸업 아닌 항목은 반드시
+            // 둘 중 한 목록에 있다). "복습할 문항이 없다"고 하면 바로 위 출제 모드 카드의
+            // "전체 N문항"과 모순된다 (PR #241 Codex P2) — 큐 이야기로 한정한다.
+            <>
+              지금 기한인 복습이 없습니다 — 모든 문항이 <b>졸업</b>했습니다. 위 출제 모드로
+              자유 연습은 언제든 할 수 있습니다.
+            </>
+          ) : (
+            <>
+              아직 복습할 문항이 없습니다. 챕터 퀴즈에서 <b>틀린 문항</b>이 여기 모이고, 하루
+              뒤부터 다시 나옵니다.
+            </>
+          )}
         </p>
       ) : null}
 
