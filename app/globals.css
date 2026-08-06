@@ -218,3 +218,73 @@ a:hover {
   outline: 2px solid var(--switch-ring);
   outline-offset: 2px;
 }
+
+/* 갱신 배너 (#234) — 새 서비스 워커가 대기 중일 때만 뜬다(app/service-worker.tsx).
+   화면 아래 고정: 학습 중 시선을 뺏지 않으면서, 스크롤 어디에서도 닿는다.
+
+   자리 확보 (Codex P2, PR #238 2라운드): main 의 하단 패딩 4rem 으로는 모자란다. 320px 같은
+   좁은 화면에서 배너가 두 줄로 접히면 bottom 여백까지 더해 4rem 을 넘고, 섹션 페이지 맨 아래의
+   이전·다음 이동이 가려진다 — 배너를 치우기 전엔 진도를 못 나간다는 뜻이다. 그래서 배너와
+   같은 수명의 spacer 를 본문 흐름에 세운다(고정 배너 자신은 높이를 차지하지 않으므로).
+   빈 div 라 높이는 전적으로 이 규칙이 준다 — 이 규칙이 없으면 spacer 는 0px 이고 지적받은
+   상태 그대로다 (3라운드에서 실제로 그렇게 됐다: 임시 변경을 되돌리다 이 블록이 함께 날아갔다). */
+.sw-update-spacer {
+  height: 7rem;
+}
+
+@media (min-width: 26rem) {
+  .sw-update-spacer {
+    height: 4rem;   /* 한 줄로 들어가는 폭 — main 의 하단 패딩과 합쳐 충분하다 */
+  }
+}
+
+.sw-update {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: calc(100% - 2rem);
+  max-width: 30rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+}
+
+.sw-update-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.sw-update button {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sw-update .sw-update-later {
+  background: none;
+  border-color: var(--border);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.sw-update button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

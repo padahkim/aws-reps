@@ -40,6 +40,11 @@ jobs:
       # 저장값만 틀리는 결함은 다른 단계가 못 잡는다 — 상자·기한은 며칠 뒤에야 증상이 나온다.
       - run: npm run progress:test
 
+      # 오프라인 프리캐시 목록 회귀 픽스처 (#234). 특히 /_source 배제 — dev 검수 도구의 날것
+      # 원본 9MB 는 Vercel preview 빌드에 실재하므로, 여기가 새면 사용자 기기로 따라 내려간다.
+      # 로컬 프로덕션 빌드에는 그 폴더가 없어 눈으로는 잡히지 않는 종류다.
+      - run: npm run sw:test
+
       # 문서 신선도 게이트 (#117) — docs/ARCHITECTURE.md 의 사실 블록이
       # 코드(registry·schema·CURRICULUM·package.json)와 어긋나면 PR을 깬다.
       - run: node scripts/gen-arch-facts.ts --check

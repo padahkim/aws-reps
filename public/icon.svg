@@ -1,0 +1,18 @@
+<!-- 앱 아이콘 정본 (#234). 여기서 192/512 PNG 가 파생된다 (scripts/gen-icons.mjs, prebuild).
+     리포에 바이너리를 커밋하지 않는 성질을 지키려고 SVG 만 커밋한다.
+
+     제약 — 래스터라이저가 이해하는 것만 쓸 수 있다:
+       · 최상위 <svg viewBox="0 0 W H">
+       · <rect x y width height [rx] fill="#rgb|#rrggbb"> 만. 다른 요소·속성을 쓰면 빌드가 멈춘다.
+     그림을 바꿀 땐 이 파일만 고친다. PNG 는 손대지 않는다 (생성물·gitignore).
+
+     구도: 꽉 찬 파란 배경 + 카드 두 장(인출 카드). iOS·Android 가 알아서 모서리를 깎으므로
+     배경은 일부러 모서리를 두지 않았고, 내용물은 maskable 안전 영역(중앙 지름 80%) 안에 있다. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect x="0" y="0" width="512" height="512" fill="#2563eb" />
+  <rect x="152" y="116" width="248" height="176" rx="24" fill="#a8c7fa" />
+  <rect x="96" y="160" width="288" height="224" rx="28" fill="#ffffff" />
+  <rect x="136" y="208" width="208" height="28" rx="14" fill="#2563eb" />
+  <rect x="136" y="260" width="160" height="28" rx="14" fill="#2563eb" />
+  <rect x="136" y="312" width="184" height="28" rx="14" fill="#2563eb" />
+</svg>
