@@ -66,3 +66,21 @@ export function useReadSections(chapterId: string): number[] {
   }, [chapterId]);
   return read;
 }
+
+/**
+ * 여러 챕터의 읽음 목록을 한 번에 읽는다 (#235 홈 대시보드) — 훅은 조건·반복 안에서 못 부르니
+ * 챕터 목록을 도는 화면은 `useReadSections` 를 챕터 수만큼 늘어놓을 수 없다. 규칙은 그 훅과
+ * 같다: SSG 초기 렌더는 빈 진도, 마운트 후 useEffect 로 채움, 값 검사는 `getReadSections` 경유.
+ *
+ * 의존은 배열 identity 가 아니라 **내용**이다 — 호출부가 렌더마다 `chapters.map(...)` 으로 새
+ * 배열을 만들어 넘겨도 다시 읽지 않는다. 구분자 `\u0000` 은 챕터 id 에 나올 수 없는 문자다.
+ */
+export function useReadMap(chapterIds: readonly string[]): Record<string, number[]> {
+  const [map, setMap] = useState<Record<string, number[]>>({});
+  const joined = chapterIds.join("\u0000");
+  useEffect(() => {
+    const ids = joined === "" ? [] : joined.split("\u0000");
+    setMap(Object.fromEntries(ids.map((id) => [id, getReadSections(id)])));
+  }, [joined]);
+  return map;
+}
