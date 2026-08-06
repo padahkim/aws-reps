@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { loadReview, useReview } from "@/lib/progress/review";
 import {
   dueList,
+  practiceList,
   upcomingList,
   type Box,
   type ReviewEntry,
@@ -52,6 +53,24 @@ function formatDay(iso: string): string {
 function overdueDays(dueAt: string, now: string): number {
   return Math.floor((Date.parse(now) - Date.parse(dueAt)) / DAY_MS);
 }
+
+/**
+ * 출제 모드의 무작위 순서 (#236) — 연습 시작 시점에 한 번 섞어 얼린다(렌더마다 섞으면 푸는
+ * 사이에 목록이 흔들린다 — QuizItem 이 선택지 배치를 마운트 때 고정하는 것과 같은 이유).
+ * 여기서 섞어도 되는 근거도 같다: 이 목록은 localStorage 를 읽어야 나오므로 비교할 선렌더
+ * HTML 이 없다 (위 규칙 2).
+ */
+function shuffled<T>(list: T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** 채점 직후 상태 — due 뷰와 출제 모드가 각자 한 벌씩 갖는다 (세션이 서로 독립이므로). */
+type GradedMap = Record<string, { passed: boolean; before: ReviewEntry["item"] }>;
 
 function Badge({ text, bg, fg }: { text: string; bg: string; fg: string }) {
   return (
@@ -153,7 +172,15 @@ export function ReviewBoard({
    * 사실(조기 정답, D2)이 화면에서 사라진다. 이 자리의 `review` 는 아직 `refresh()` 전이라
    * 정확히 그 값이다.
    */
-  const [graded, setGraded] = useState<Record<string, { passed: boolean; before: ReviewEntry["item"] }>>({});
+  const [graded, setGraded] = useState<GradedMap>({});
+
+  /**
+   * 출제 모드 (#236) — due 뷰가 "지금 해야 하는 복습"이라면 이건 "내가 고른 범위의 자유 연습"
+   * 이다. 켜져 있는 동안 due 뷰를 통째로 대체한다: 두 목록을 같이 그리면 같은 문항이 화면에
+   * 두 번 나와 서로 다른 채점 상태를 갖게 된다. 목록은 시작 시점에 섞어 얼린다 (위 규칙 1).
+   */
+  const [practice, setPractice] = useState<{ label: string; entries: ReviewEntry[] } | null>(null);
+  const [practiceGraded, setPracticeGraded] = useState<GradedMap>({});
 
   // SSG HTML 과 첫 클라이언트 렌더가 같아야 한다 — 저장소를 읽기 전에는 양쪽 다 이 화면이다
   if (session === null) {
@@ -172,9 +199,186 @@ export function ReviewBoard({
   // 저장소에는 있는데 콘텐츠에서 사라진 문항은 `dueList` 의 `known` 이 이미 걸렀다
   const playable = session.due;
 
+  // 출제 모드 모집단 (#236) — 오답 노트 전부(졸업 포함), 콘텐츠에 실재하는 것만
+  const pool = practiceList(review, new Set(byKey.keys()));
+  // 범위 버튼용 챕터 색인 — 항목이 있는 챕터만, 콘텐츠 순서(bank 가 챕터 순이다)
+  const practiceChapters: { id: string; title: string; count: number }[] = [];
+  for (const entry of pool) {
+    const bankEntry = byKey.get(entry.gk);
+    if (!bankEntry) continue;
+    const slot = practiceChapters.find((c) => c.id === bankEntry.chapterId);
+    if (slot) slot.count++;
+    else practiceChapters.push({ id: bankEntry.chapterId, title: bankEntry.chapterTitle, count: 1 });
+  }
+  practiceChapters.sort((a, b) => (a.id < b.id ? -1 : 1));
+
+  function startPractice(chapterId: string | null, label: string) {
+    const scoped =
+      chapterId === null ? pool : pool.filter((e) => byKey.get(e.gk)?.chapterId === chapterId);
+    setPractice({ label, entries: shuffled(scoped) });
+    setPracticeGraded({});
+  }
+
+  function exitPractice() {
+    setPractice(null);
+    setPracticeGraded({});
+    // due 목록 재동결 — 연습 채점으로 상자·기한이 움직였으므로, 얼린 목록을 그대로 두면
+    // 방금 연습에서 승급한 문항이 due 로 남아 "맞혔는데 왜 또 나오지"가 된다. 나가는 순간이
+    // 이 화면의 새 진입이다 (위 규칙 1의 "진입 시점"을 다시 잡는 셈).
+    const now = new Date().toISOString();
+    setSession({ now, due: dueList(loadReview(), now, new Set(bank.map((e) => e.gk))) });
+    setGraded({});
+  }
+
+  /** 문항 카드 하나 — due 뷰와 출제 모드가 같은 모양을 쓴다. `late` 는 due 뷰만 넘긴다. */
+  function renderEntry(
+    entry: ReviewEntry,
+    i: number,
+    gradedMap: GradedMap,
+    setGradedMap: Dispatch<SetStateAction<GradedMap>>,
+    late?: number,
+  ) {
+    const bankEntry = byKey.get(entry.gk);
+    if (!bankEntry) return null;
+    // 상자 배지는 **지금 저장된 값**이다 — 얼린 값을 쓰면 채점 뒤 "상자 1 → 2" 라고
+    // 알려 놓고 배지는 "상자 1 · 약점"으로 남는다. 연체 표기는 반대로 얼린 값을 쓴다:
+    // 그건 "이 문항이 왜 이 목록에 있는가"의 설명이라 진입 시점이 정본이다.
+    const current = review.items[entry.gk] ?? entry.item;
+    return (
+      <article key={entry.gk} style={{ marginTop: "1.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            alignItems: "center",
+            flexWrap: "wrap",
+            fontSize: "0.8rem",
+            color: "var(--muted)",
+          }}
+        >
+          <Link href={`/chapters/${bankEntry.chapterId}`}>{bankEntry.chapterTitle}</Link>
+          <Badge
+            text={current.graduatedAt !== undefined ? "졸업" : BOX_LABEL[current.box]}
+            bg={PAL.tealSoft}
+            fg={PAL.teal}
+          />
+          {late !== undefined && late > 0 && (
+            <Badge text={`${late}일 연체`} bg={PAL.redSoft} fg={PAL.red} />
+          )}
+        </div>
+        <QuizItem
+          index={i}
+          chapterId={bankEntry.chapterId}
+          question={bankEntry.question}
+          shuffle
+          onGraded={(passed) => {
+            const before = review.items[entry.gk] ?? entry.item;
+            setGradedMap((prev) => ({ ...prev, [entry.gk]: { passed, before } }));
+            // 이 채점이 그 챕터의 완료 조건을 넘겼을 수 있다 (#224)
+            captureChapterCompletion(
+              bankEntry.chapterId,
+              chapterKeys[bankEntry.chapterId]?.final ?? [],
+            );
+            refresh();
+          }}
+        />
+        {gradedMap[entry.gk] && (
+          <Outcome
+            before={gradedMap[entry.gk].before}
+            after={review.items[entry.gk]}
+            passed={gradedMap[entry.gk].passed}
+          />
+        )}
+      </article>
+    );
+  }
+
+  // 출제 모드 화면 — due 뷰를 통째로 대체한다 (state 주석 참조)
+  if (practice !== null) {
+    const allGraded =
+      practice.entries.length > 0 && practice.entries.every((e) => practiceGraded[e.gk]);
+    return (
+      <>
+        <Header />
+        <section>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 900 }}>
+              출제 모드 · {practice.label} {practice.entries.length}문항
+            </h2>
+            <button
+              type="button"
+              onClick={exitPractice}
+              style={{
+                font: "inherit",
+                fontSize: "0.83rem",
+                fontWeight: 700,
+                marginLeft: "auto",
+                padding: "0.35rem 0.9rem",
+                borderRadius: 99,
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--muted)",
+                cursor: "pointer",
+              }}
+            >
+              연습 종료
+            </button>
+          </div>
+          <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: 4 }}>
+            무작위 순서로 나옵니다. 채점 규칙은 평소와 같습니다 — 틀리면 상자 1로, 기한 전
+            정답은 승급하지 않습니다.
+          </p>
+          {practice.entries.map((entry, i) =>
+            renderEntry(entry, i, practiceGraded, setPracticeGraded),
+          )}
+          {allGraded && (
+            <SessionDone
+              heading={`연습 끝 — ${practice.entries.length}문항 중 ${
+                practice.entries.filter((e) => practiceGraded[e.gk]?.passed).length
+              }개 맞혔습니다`}
+              states={practice.entries.map((e) => review.items[e.gk] ?? e.item)}
+            />
+          )}
+        </section>
+      </>
+    );
+  }
+
   return (
     <>
       <Header />
+
+      {/* 출제 모드 진입 (#236) — 항목이 하나라도 있어야 낼 것이 있다 */}
+      {pool.length > 0 && (
+        <section
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: "0.9rem 1rem",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <div style={{ fontWeight: 900, fontSize: "0.95rem" }}>출제 모드 — 자유 연습</div>
+          <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0.3rem 0 0.7rem" }}>
+            기한과 무관하게, 오답 노트에 모인 문항(졸업 포함)을 범위를 골라 무작위 순서로 다시
+            풉니다 — 시험 전 훑기에 씁니다. 채점은 평소처럼 상자에 반영됩니다.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <ScopeButton
+              label={`전체 ${pool.length}문항`}
+              primary
+              onClick={() => startPractice(null, "전체")}
+            />
+            {practiceChapters.map((c) => (
+              <ScopeButton
+                key={c.id}
+                label={`${c.title} ${c.count}`}
+                onClick={() => startPractice(c.id, c.title)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {playable.length === 0 && upcoming.length === 0 ? (
         <p
@@ -200,64 +404,14 @@ export function ReviewBoard({
             연체가 오래된 것부터, 같으면 약점(낮은 상자)부터 나옵니다. 선택지 순서는 매번
             섞입니다 — 자리로 답을 외우지 않게.
           </p>
-          {playable.map((entry, i) => {
-            const bankEntry = byKey.get(entry.gk);
-            if (!bankEntry) return null;
-            // 상자 배지는 **지금 저장된 값**이다 — 얼린 값을 쓰면 채점 뒤 "상자 1 → 2" 라고
-            // 알려 놓고 배지는 "상자 1 · 약점"으로 남는다. 연체 표기는 반대로 얼린 값을 쓴다:
-            // 그건 "이 문항이 왜 이 목록에 있는가"의 설명이라 진입 시점이 정본이다.
-            const current = review.items[entry.gk] ?? entry.item;
-            const late = overdueDays(entry.item.dueAt, session.now);
-            return (
-              <article key={entry.gk} style={{ marginTop: "1.5rem" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.5rem",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    fontSize: "0.8rem",
-                    color: "var(--muted)",
-                  }}
-                >
-                  <Link href={`/chapters/${bankEntry.chapterId}`}>{bankEntry.chapterTitle}</Link>
-                  <Badge
-                    text={current.graduatedAt !== undefined ? "졸업" : BOX_LABEL[current.box]}
-                    bg={PAL.tealSoft}
-                    fg={PAL.teal}
-                  />
-                  {late > 0 && <Badge text={`${late}일 연체`} bg={PAL.redSoft} fg={PAL.red} />}
-                </div>
-                <QuizItem
-                  index={i}
-                  chapterId={bankEntry.chapterId}
-                  question={bankEntry.question}
-                  shuffle
-                  onGraded={(passed) => {
-                    const before = review.items[entry.gk] ?? entry.item;
-                    setGraded((prev) => ({ ...prev, [entry.gk]: { passed, before } }));
-                    // 이 채점이 그 챕터의 완료 조건을 넘겼을 수 있다 (#224)
-                    captureChapterCompletion(
-                      bankEntry.chapterId,
-                      chapterKeys[bankEntry.chapterId]?.final ?? [],
-                    );
-                    refresh();
-                  }}
-                />
-                {graded[entry.gk] && (
-                  <Outcome
-                    before={graded[entry.gk].before}
-                    after={review.items[entry.gk]}
-                    passed={graded[entry.gk].passed}
-                  />
-                )}
-              </article>
-            );
-          })}
+          {playable.map((entry, i) =>
+            renderEntry(entry, i, graded, setGraded, overdueDays(entry.item.dueAt, session.now)),
+          )}
           {playable.every((entry) => graded[entry.gk]) && (
             <SessionDone
-              total={playable.length}
-              passed={playable.filter((entry) => graded[entry.gk]?.passed).length}
+              heading={`오늘 복습 끝 — ${playable.length}문항 중 ${
+                playable.filter((entry) => graded[entry.gk]?.passed).length
+              }개 맞혔습니다`}
               states={playable.map((entry) => review.items[entry.gk] ?? entry.item)}
             />
           )}
@@ -312,14 +466,15 @@ export function ReviewBoard({
  * "맞혔다 = 상자가 올랐다"가 아니다 — 상자 3 정답은 졸업이라 다시 나오지 않고, "다시 풀기"
  * 정답은 조기 정답(D2)이라 상자 1 그대로 내일 나온다. 정오 플래그로 문구를 지으면 그 두
  * 경로에서 거짓말이 된다. 상자 1 = 내일(간격 1일), 상자 2·3 = 다음 기한, 졸업 = 안 나옴.
+ *
+ * 출제 모드(#236)도 이 블록을 쓴다 — 세션의 정의(얼린 목록 전 문항 채점)와 다음 일정 파생
+ * 규칙이 같아서, 다른 것은 머리글 문구뿐이다. 그래서 `heading` 만 호출부가 짓는다.
  */
 function SessionDone({
-  total,
-  passed,
+  heading,
   states,
 }: {
-  total: number;
-  passed: number;
+  heading: string;
   states: ReviewEntry["item"][];
 }) {
   const graduated = states.filter((item) => item.graduatedAt !== undefined).length;
@@ -327,7 +482,9 @@ function SessionDone({
   const later = states.length - graduated - tomorrow;
   const parts = [
     tomorrow > 0 && `${tomorrow}문항은 상자 1 — 내일 다시 나옵니다`,
-    later > 0 && `${later}문항은 상자가 올라 다음 기한에 다시 나옵니다`,
+    // "상자가 올라"라고 말하지 않는다 — due 뷰에서는 참이지만(기한 도달 정답만 이 상자에
+    // 온다), 출제 모드(#236)에서는 기한 전 정답이 상자 2·3 에 그대로 머물러 거짓이 된다
+    later > 0 && `${later}문항은 상자 2·3 — 다음 기한에 다시 나옵니다`,
     graduated > 0 && `${graduated}문항은 졸업 — 더 나오지 않습니다`,
   ].filter(Boolean);
   return (
@@ -340,9 +497,7 @@ function SessionDone({
         borderRadius: 8,
       }}
     >
-      <p style={{ fontWeight: 900 }}>
-        오늘 복습 끝 — {total}문항 중 {passed}개 맞혔습니다
-      </p>
+      <p style={{ fontWeight: 900 }}>{heading}</p>
       {parts.length > 0 && (
         <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginTop: 4 }}>
           {parts.join(" · ")}
@@ -352,6 +507,37 @@ function SessionDone({
         <Link href="/">홈으로 돌아가기</Link>
       </p>
     </div>
+  );
+}
+
+/** 출제 모드 범위 버튼 (#236) — 전체(primary) 하나와 챕터별 하나씩. */
+function ScopeButton({
+  label,
+  onClick,
+  primary = false,
+}: {
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        font: "inherit",
+        fontSize: "0.83rem",
+        fontWeight: 700,
+        padding: "0.35rem 0.9rem",
+        borderRadius: 99,
+        cursor: "pointer",
+        border: primary ? "none" : "1px solid var(--border)",
+        background: primary ? "var(--accent)" : "transparent",
+        color: primary ? "#fff" : "var(--fg)",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

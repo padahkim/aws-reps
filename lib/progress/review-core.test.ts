@@ -18,6 +18,7 @@ import {
   INTERVAL_DAYS,
   isBox,
   nextItem,
+  practiceList,
   repairItem,
   repairReview,
   seedFromHistory,
@@ -330,7 +331,34 @@ console.log("\n── 사라진 문항 ──");
   expectTrue("걸러도 저장값은 남아 있다", data.items["1-1:사라짐"] !== undefined);
 }
 
-// ── 11. 이 키가 생기기 전의 오답 메우기 (PR #221 리뷰 지적) ──────────────
+// ── 11. 출제 모드 모집단 (#236) ──────────────────────────────────────────
+
+console.log("\n── 출제 모드 모집단 ──");
+
+// due 뷰와 달리 기한으로 거르지 않고, 졸업도 포함한다 — 졸업 문항의 유일한 재노출 경로다
+{
+  expectSame(
+    "모집단 = 저장소 전부 · 졸업 포함 · gk 순 (결정적)",
+    practiceList(listData).map((e) => e.gk),
+    [
+      "a:연체 3일 · 상자 2",
+      "b:연체 5일 · 상자 3",
+      "c:연체 3일 · 상자 1",
+      "d:예정",
+      "e:예정 더 나중",
+      "f:졸업",
+    ],
+  );
+  const known = new Set(["b:연체 5일 · 상자 3", "f:졸업"]);
+  expectSame(
+    "known 밖의 문항은 빠진다 (due 목록과 같은 필터)",
+    practiceList(listData, known).map((e) => e.gk),
+    ["b:연체 5일 · 상자 3", "f:졸업"],
+  );
+  expectSame("빈 저장소면 빈 목록", practiceList(EMPTY), []);
+}
+
+// ── 12. 이 키가 생기기 전의 오답 메우기 (PR #221 리뷰 지적) ──────────────
 
 console.log("\n── 과거 오답 이행 ──");
 

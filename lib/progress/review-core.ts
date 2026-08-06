@@ -237,6 +237,26 @@ export function dueCount(data: Review, now: string, known?: ReadonlySet<string>)
 }
 
 /**
+ * 출제 모드의 모집단 (#236) — 이 저장소에 있는 문항 **전부, 졸업 포함**. due 뷰가 "지금 해야
+ * 하는 복습"(Leitner 가 고른 것)이라면 출제 모드는 "내가 고른 범위의 자유 연습"이라, 기한으로
+ * 거르지 않는다.
+ *
+ * **졸업을 포함하는 이유**: 졸업 문항은 due 큐에서 영구히 빠지므로(§2-1) 이 목록이 유일한
+ * 재노출 경로다. 시험 전 훑기에서 "한때 틀렸던 것"만큼 확인 가치가 큰 집합이 없고, 다시
+ * 틀리면 기존 규칙이 상자 1 로 되돌린다(`nextItem` 강등) — 망각이 드러날 자리를 하나 남겨
+ * 두는 셈이다. 맞히면 아무 일도 없다(졸업 유지).
+ *
+ * 정렬은 gk 순으로 **결정적**이다 — 랜덤 출제의 셔플은 화면 몫이다(선택지 셔플이 `QuizItem`
+ * 몫인 것과 같은 분담 — 순수 층에 난수를 들이면 픽스처로 잠글 수 없다).
+ */
+export function practiceList(data: Review, known?: ReadonlySet<string>): ReviewEntry[] {
+  return Object.entries(data.items)
+    .filter(([gk]) => known === undefined || known.has(gk))
+    .map(([gk, item]) => ({ gk, item }))
+    .sort((a, b) => (a.gk < b.gk ? -1 : 1));
+}
+
+/**
  * 이 키가 생기기 전에 쌓인 오답을 복습 큐에 들인다 (#219 리뷰 지적 → 채택).
  *
  * `dva.progress.v1` 은 #66부터 채점 사실을 쌓아 왔는데, 이 키는 이번에 처음 생긴다. 그대로
