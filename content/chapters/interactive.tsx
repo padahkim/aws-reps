@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
 import { glossary } from "../glossary";
@@ -194,50 +194,49 @@ export function Switch({
  */
 export function Term({ id, children }: { id: string; children?: ReactNode }) {
   const t = glossary.find((g) => g.id === id);
-  const [open, setOpen] = useState(false);
-  // 컬럼 내 좌우 클램프 보정값(px) — 열릴 때 측정해 한 번 정한다
-  const [dx, setDx] = useState(0);
+  // 팝오버 배치(px, 래퍼 기준 left + 카드 폭) — 열 때 한 번 계산한다. null = 닫힘.
+  const [pos, setPos] = useState<{ left: number; width: number } | null>(null);
+  const open = pos !== null;
   const wrapRef = useRef<HTMLSpanElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const popRef = useRef<HTMLSpanElement>(null);
 
-  // 배치: 용어 아래 왼쪽 정렬로 렌더한 뒤, 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
-  // useLayoutEffect 라 보정 전 프레임은 화면에 뜨지 않는다. 닫힘 → dx 리셋이므로
-  // 다음 열림도 항상 dx=0 기준으로 측정한다.
-  useLayoutEffect(() => {
-    if (!open) {
-      setDx(0);
-      return;
-    }
-    const pop = popRef.current;
-    const col = wrapRef.current?.closest("main");
-    if (!pop || !col) return;
+  // 배치: 용어 아래 왼쪽 정렬을 기본으로, 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  // 계산은 **마운트 전에** 끝낸다 — 팝오버를 일단 left:0 으로 붙였다가 보정하면, 그 한 번의
+  // 레이아웃에서 문서 폭이 뷰포트를 넘고(용어가 줄 오른쪽에 있을수록 크게), 모바일 브라우저는
+  // 그 폭에 맞춰 페이지를 축소한다. 축소는 팝오버가 제자리로 돌아와도 되돌아오지 않아
+  // 화면 전체가 작아진 채로 남는다 (#250 — 설치형 PWA/iOS Safari 에서 재현, useLayoutEffect
+  // 로도 못 막는다: 축소를 부르는 건 페인트가 아니라 레이아웃이다).
+  // 폭도 여기서 정한다 — CSS(min(320px, …))로 두면 clamp 계산이 폭을 알 수 없어 다시
+  // 측정 → 보정 순서로 돌아간다.
+  const openPopover = () => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const col = wrap.closest("main") ?? document.documentElement;
     const pad = 8;
+    const wrapRect = wrap.getBoundingClientRect();
     const colRect = col.getBoundingClientRect();
-    const popRect = pop.getBoundingClientRect();
-    let shift = 0;
-    if (popRect.right > colRect.right - pad) shift = colRect.right - pad - popRect.right;
-    if (popRect.left + shift < colRect.left + pad) shift = colRect.left + pad - popRect.left;
-    setDx(shift);
-  }, [open]);
+    const width = Math.min(320, colRect.width - pad * 2);
+    const left = Math.max(colRect.left + pad, Math.min(wrapRect.left, colRect.right - pad - width));
+    setPos({ left: left - wrapRect.left, width });
+  };
 
   // dismiss: 바깥 탭/클릭(document pointerdown — 리포 최초의 클릭아웃사이드) + Escape.
   // Escape 는 초점을 트리거로 되돌린다 — 팝오버 링크에 초점이 있던 채 닫히면 초점이 유실된다.
-  // 리사이즈/회전도 닫는다 (PR #213 라운드 5) — dx 는 열 때 한 번 계산하므로 열린 채
+  // 리사이즈/회전도 닫는다 (PR #213 라운드 5) — 배치는 열 때 한 번 계산하므로 열린 채
   // 뷰포트가 바뀌면 낡은 클램프가 카드를 컬럼 밖으로 민다. 팝오버는 일시적 UI라
   // 재계산(리스너 + 재측정)보다 닫기가 단순하고, 다시 탭하면 새 뷰포트 기준으로 열린다.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setOpen(false);
+        setPos(null);
         btnRef.current?.focus();
       }
     };
-    const onResize = () => setOpen(false);
+    const onResize = () => setPos(null);
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
@@ -262,7 +261,7 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
       // 클릭(텍스트 선택)하는 순간 닫혀 버린다.
       onBlur={(e) => {
         const to = e.relatedTarget as Node | null;
-        if (to && !wrapRef.current?.contains(to)) setOpen(false);
+        if (to && !wrapRef.current?.contains(to)) setPos(null);
       }}
     >
       <button
@@ -270,21 +269,19 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
         type="button"
         className="term-trigger"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setPos(null) : openPopover())}
       >
         {children ?? t.term}
       </button>
-      {open && (
+      {pos && (
         <span
-          ref={popRef}
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
-            left: 0,
-            transform: `translateX(${dx}px)`,
+            left: pos.left,
             zIndex: 10,
             display: "block",
-            width: "min(320px, calc(100vw - 2rem))",
+            width: pos.width,
             background: C.card,
             color: C.ink,
             border: `1px solid ${C.line}`,
