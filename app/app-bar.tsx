@@ -193,13 +193,23 @@ function useInAppDepth(pathname: string) {
  * 직전 칸은 읽고 있던 챕터다. 여기서 0 을 주면 뒤로가 그 챕터 대신 홈으로 가 **읽던 자리를
  * 잃는다** — 이 에픽(#246)이 없애려던 바로 그 사고다 (PR #254 Codex P1).
  *
- * referrer 가 이 판정에 맞는 유일한 단서다: 리마운트로 잃은 것이 "직전 문서가 우리 것인가"이고
- * 그걸 브라우저가 여기 남긴다. 같은 출처면 1, 아니면(외부 유입·빈 문자열) 0.
+ * referrer 가 이 판정에 맞는 단서다: 리마운트로 잃은 것이 "직전 문서가 우리 것인가"이고
+ * 그걸 브라우저가 여기 남긴다. 다만 referrer 만으로는 모자란다 — **새 탭**(Cmd·Ctrl 클릭,
+ * 컨텍스트 메뉴 "새 탭에서 열기")은 같은 출처 referrer 를 들고 오면서도 그 탭의 히스토리에는
+ * 앞 칸이 없다. 그 상태에서 1 을 주면 뒤로가 `back()` 을 불러 **아무 일도 일어나지 않는
+ * 죽은 버튼**이 된다 (PR #254 Codex 라운드 2).
+ *
+ * 그래서 둘을 함께 본다. `history.length > 1` 은 그 자체로는 앱 내 히스토리의 증거가 못 되지만
+ * (같은 탭에서 열었던 남의 사이트도 세므로 — 이 훅이 애초에 직접 세는 이유다) **"앞 칸이 아예
+ * 없다"를 걸러내는 데는 정확하다**. 두 조건이 함께 참일 때만: 앞 칸이 있고, 그 앞 칸은 우리 것.
+ *
  * depth 는 화면에 그려지지 않으므로 서버 렌더(0)와 값이 갈려도 하이드레이션은 어긋나지 않는다.
  */
 function entryDepth(): number {
   if (typeof document === "undefined") return 0;
   if (!document.referrer) return 0;
+  // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다
+  if (window.history.length <= 1) return 0;
   try {
     return new URL(document.referrer).origin === window.location.origin ? 1 : 0;
   } catch {
