@@ -87,8 +87,31 @@ export default function Home() {
                       {meta.id} · {meta.title}
                     </Link>{" "}
                     <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-                      {meta.domain} · 출제빈도 {meta.examWeight}/5
-                      {minutes !== undefined && ` · 약 ${minutes}분`}
+                      {/*
+                        토막을 nowrap 으로 묶는다 (#245). 한국어는 음절 단위로 꺾이므로 묶지
+                        않으면 "빈출 5/5" 가 "빈" / "출 5/5" 처럼 낱말 **중간에서** 갈린다 —
+                        토막이 통째로 다음 줄로 내려가는 것과 달리 그건 고장으로 읽힌다.
+                        `·` 를 span 안에 넣어야 구분자가 앞 토막에 붙어 남지 않는다.
+
+                        라벨이 "출제빈도" 가 아니라 "빈출" 인 것도 폭 때문이다. 라벨이 24px
+                        짧아지는 만큼 그대로 제목 예산이 된다 (#245 실측):
+
+                          375px — 제목 예산 165px → 189px. "출제빈도" 로는 Step Functions(166)
+                                  ·CloudFormation(173)·Elastic Beanstalk(179) 가 못 들어가고
+                                  "빈출" 로는 다 들어간다. #29 로 올 24챕터가 이 이름들이다.
+                          320px — 제목 예산 110px → 134px. "ch1-2 · Lambda"(115) 가 2px 초과에서
+                                  19px 여유로 바뀐다. **여기까지다** — DynamoDB(138) 부터는
+                                  라벨을 줄여도 어차피 안 들어가고, 토막 단위로 접힌다.
+
+                        즉 이 라벨 교체가 사는 건 375px 의 긴 서비스명이고, 320px 은 "지금 4챕터가
+                        한 줄에 들어간다" 까지다. 그 밖은 위 nowrap 이 받는다.
+
+                        새 용어를 만든 게 아니라 이 리포가 이미 쓰는 말로 맞춘 것이다: 목록
+                        아래 FREQ_EVIDENCE_NOTE 가 "빈출 표기는…" 이고 본문 섹션 배지도 빈출
+                        배지다 (content/chapters/ui.tsx). 챕터 헤더도 같은 말을 쓴다.
+                      */}
+                      {meta.domain}{" "}
+                      <span style={{ whiteSpace: "nowrap" }}>· 빈출 {meta.examWeight}/5</span>
                     </span>
                     {/*
                       읽음 진도 (이슈 #7 확정: 진도 바 + % 병기) + 완료 배지 (#224).
@@ -105,6 +128,34 @@ export default function Home() {
                       }}
                     >
                       <HomeProgress chapterId={meta.id} total={sectionCount(entry)} />
+                      {/*
+                        예상 소요는 **콘텐츠 사실**이라 원래 위 메타 줄에 있었는데, 그 줄이
+                        (링크 + 도메인 + 빈출 + 소요)로 가장 길고 이 줄이 가장 짧아 모바일에서
+                        위만 넘쳤다 (#245). 아래로 내려도 읽히는 문장이 어긋나지 않는다 —
+                        "0% (0/19) · 약 116분" = "19개 중 0개 읽음, 전체 약 116분".
+                        제 줄로 빼지 않은 이유는 항목당 줄 수다: 목록이 28챕터로 늘면(#29)
+                        한 줄 추가가 챕터 수만큼 곱해진다.
+                      */}
+                      {minutes !== undefined && (
+                        <span
+                          style={{
+                            fontSize: "0.8rem",
+                            color: "var(--muted)",
+                            fontVariantNumeric: "tabular-nums",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {/*
+                            숨기는 건 **구분자뿐**이다 (PR #252 Codex P2). 처음엔 바깥 span 에
+                            aria-label 을 걸고 안쪽 텍스트를 통째로 aria-hidden 했는데, 그러면
+                            소요가 접근성 트리에서 사라진다: 밋밋한 span 의 암묵 role 은
+                            `generic` 이고 ARIA 는 generic 에 author 이름 부여를 금지하므로
+                            aria-label 이 그 자리를 대신해 주지 않는다. 글자를 그대로 노출하면
+                            "약 116분" 이 읽히므로 label 자체가 필요 없다.
+                          */}
+                          <span aria-hidden>· </span>약 {minutes}분
+                        </span>
+                      )}
                       <CompletionBadge
                         chapterId={meta.id}
                         sectionTotal={sectionCount(entry)}
