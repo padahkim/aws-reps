@@ -101,9 +101,9 @@ export default async function ChapterPage({
 
   return (
     <article>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <Link href="/">← 챕터 목록</Link>
-      </nav>
+      {/* 예전에 여기 있던 `← 챕터 목록`은 없앴다 (#247) — 목적지가 홈이라 전역 앱바의 홈과
+          같은 곳이고, 왼쪽 화살표라 앱바의 뒤로와도 뜻이 겹쳤다. 같은 줄에 화살표가 둘이고
+          서로 다른 데로 가는 것이 이 정리로 막으려던 것이다. */}
       <header
         style={{
           paddingBottom: "1rem",
