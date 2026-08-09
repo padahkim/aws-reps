@@ -5,6 +5,7 @@ import { useReadSections } from "@/lib/progress/read";
 import { useQuestionRecords, type QuestionRecord } from "@/lib/progress/records";
 import { CompletionBadge } from "../../completion-badge";
 import { ProgressBar } from "../../progress-bar";
+import { VisuallyHidden } from "../../visually-hidden";
 
 /** 목차 한 줄에 필요한 직렬화 가능 데이터 — 서버(page.tsx)가 meta.sections에서 만들어 내려준다. */
 export interface TocItem {
@@ -38,15 +39,19 @@ const FILLED: Record<"hi" | "mid" | "lo", number> = { hi: 3, mid: 2, lo: 1 };
  * 빈출 별점 — 색 배지가 아니라 별로 낸다 (본문 <Sec> 의 컬러 배지와 역할이 겹치지 않게,
  * 목차는 훑기용). 빈 자리를 ☆ 로 두는 이유: 색만 흐리게 하면 텍스트로 뽑았을 때
  * ★☆☆ 섹션도 "★★★" 로 읽힌다.
+ *
+ * 낭독은 별이 아니라 **숨은 글자**가 맡는다 (#253). 예전에는 바깥 span 에 `aria-label` 을
+ * 걸었는데 그건 동작하지 않았다 — 밋밋한 span 의 암묵 role 은 `generic` 이고 ARIA 는
+ * generic 에 author 이름 부여를 금지하므로, 라벨은 못 읽히고 `aria-hidden` 만 확실히 먹어
+ * 별점이 통째로 사라졌다. 여기는 글자를 그대로 노출하는 처방(#252)이 안 통하는 자리다:
+ * "★★☆" 는 낭독되면 기호 이름("검은 별 검은 별 흰 별")이라 뜻이 서지 않는다. 그래서 별은
+ * 장식으로 숨기고 등급을 말로 낸다 — 3단 척도라는 사실까지 실려야 2가 상인지 중인지가 선다.
  */
 function FreqStars({ freq }: { freq: "hi" | "mid" | "lo" }) {
   const filled = FILLED[freq];
-  const stars = "★".repeat(filled) + "☆".repeat(3 - filled);
   return (
-    <span
-      aria-label={`빈출 ${stars}`}
-      style={{ fontSize: "0.8rem", letterSpacing: "0.05em", whiteSpace: "nowrap" }}
-    >
+    <span style={{ fontSize: "0.8rem", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+      <VisuallyHidden>빈출 3단계 중 {filled}단계</VisuallyHidden>
       <span aria-hidden style={{ color: "var(--fg)" }}>{"★".repeat(filled)}</span>
       <span aria-hidden style={{ color: "var(--border)" }}>{"☆".repeat(3 - filled)}</span>
     </span>
@@ -92,7 +97,6 @@ function ScoreBadge({
   const perfect = attempted === total && passed === total;
   return (
     <span
-      aria-label={`퀴즈 점수 — 푼 ${attempted}문항 중 ${passed}문항 정답`}
       style={{
         fontSize: "0.78rem",
         fontWeight: 700,
@@ -104,9 +108,14 @@ function ScoreBadge({
         color: perfect ? "var(--accent)" : "var(--muted)",
       }}
     >
-      <span aria-hidden>
-        {passed}/{attempted}
-      </span>
+      {/*
+        숫자는 실제 텍스트로 노출하고(#253 — 예전의 `aria-label` + 전체 `aria-hidden` 은
+        generic 에 이름을 걸어 둔 꼴이라 배지가 통째로 안 읽혔다) 맥락만 숨은 글자로 준다:
+        이 배지가 붙는 줄의 제목은 "마무리 세션" 일 수도 있어 "퀴즈" 라는 말이 근처 어디에도
+        안 나오는 경우가 있고, 그러면 "3/11" 이 무엇의 3/11 인지 서지 않는다.
+      */}
+      <VisuallyHidden>퀴즈 점수 </VisuallyHidden>
+      {passed}/{attempted}
     </span>
   );
 }
@@ -242,14 +251,18 @@ export function SectionToc({
                           total={score.total}
                         />
                       )}
+                      {/* 읽음 표시는 **색으로만** 갈린다 — ✓ 자체는 두 상태에 다 뜬다. 그래서
+                          글자를 그대로 읽히게 두면 읽은 줄과 안 읽은 줄이 똑같이 들리고,
+                          예전처럼 `aria-label` 을 걸어 두면 generic 이라 그마저 노출이
+                          보장되지 않는다 (#253). ✓ 는 장식으로 숨기고 상태를 말로 낸다. */}
                       <span
-                        aria-label={isRead ? "읽음" : "안 읽음"}
                         style={{
                           fontWeight: 900,
                           color: isRead ? "var(--accent)" : "var(--border)",
                         }}
                       >
-                        ✓
+                        <VisuallyHidden>{isRead ? "읽음" : "안 읽음"}</VisuallyHidden>
+                        <span aria-hidden>✓</span>
                       </span>
                     </Link>
                   </li>

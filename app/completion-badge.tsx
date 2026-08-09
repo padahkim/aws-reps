@@ -81,11 +81,13 @@ export function CompletionBadge({
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
       {status !== "미완료" && <StatusPill status={status} />}
       {status === "미완료" && allRead && (
-        <Hint passed={outcome.passed} total={outcome.total} attempted={outcome.attempted} />
+        <Hint passed={outcome.passed} total={outcome.total} />
       )}
       {due > 0 && (
+        // `aria-label` 을 걸지 않는다 (#253): 밋밋한 span 의 암묵 role 은 `generic` 이고
+        // ARIA 는 generic 에 author 이름 부여를 금지하므로 라벨이 노출된다는 보장이 없다.
+        // 안쪽 "복습 3" 은 그 자체로 뜻이 서는 글자라 라벨 없이 그대로 읽히면 된다.
         <span
-          aria-label={`복습할 문항 ${due}개`}
           style={{
             fontSize: "0.75rem",
             fontWeight: 700,
@@ -138,18 +140,9 @@ function StatusPill({ status }: { status: "열람 완료" | "완료" }) {
  * 다른 게 맞다 — 그래서 통과선을 같이 적어 이 숫자가 완료 조건임을 드러낸다.
  * 진도 바가 100% 가 아닌 동안에는 띄우지 않는다: 아직 읽는 중인 챕터에 "퀴즈 0/11" 은 재촉일 뿐이다.
  */
-function Hint({
-  passed,
-  total,
-  attempted,
-}: {
-  passed: number;
-  total: number;
-  attempted: number;
-}) {
+function Hint({ passed, total }: { passed: number; total: number }) {
   return (
     <span
-      aria-label={`완료 조건 — 퀴즈 ${total}문항 중 ${attempted}문항 시도, 마지막 시도가 정답인 문항 ${passed}개. 통과선 ${PASS_PERCENT}%`}
       style={{
         fontSize: "0.75rem",
         fontVariantNumeric: "tabular-nums",
@@ -157,9 +150,14 @@ function Hint({
         color: "var(--muted)",
       }}
     >
-      <span aria-hidden>
-        퀴즈 {passed}/{total} · 완료까지 {PASS_PERCENT}%
-      </span>
+      {/*
+        숨기는 건 **구분자뿐**이다 (#253 — PR #252 `02ec8bf` 와 같은 처방). 처음엔 바깥 span 에
+        aria-label 을 걸고 안쪽 글자를 통째로 aria-hidden 했는데, 그러면 이 힌트가 접근성
+        트리에서 사라진다: 밋밋한 span 의 암묵 role 은 `generic` 이고 ARIA 는 generic 에
+        author 이름 부여를 금지하므로 aria-label 이 그 자리를 대신해 주지 않는다. 글자를
+        그대로 노출하면 화면과 같은 말이 읽히므로 라벨 자체가 필요 없다.
+      */}
+      퀴즈 {passed}/{total} <span aria-hidden>· </span>완료까지 {PASS_PERCENT}%
     </span>
   );
 }
