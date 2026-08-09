@@ -115,7 +115,10 @@ export default async function ChapterPage({
           {meta.id} · {meta.title}
         </h1>
         <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
-          {meta.phase} · {meta.domain} · 출제빈도 {meta.examWeight}/5
+          {/* 라벨·nowrap 모두 홈 목록과 같은 규칙이다 (#245) — 두 화면이 같은 수치를 다른
+              말로 부르지 않게. 정본 근거는 app/page.tsx 의 같은 자리 주석. */}
+          {meta.phase} · {meta.domain}{" "}
+          <span style={{ whiteSpace: "nowrap" }}>· 빈출 {meta.examWeight}/5</span>
           {meta.prerequisites.length > 0 && (
             <>
               {" · 선행: "}
