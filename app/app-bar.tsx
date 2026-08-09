@@ -116,8 +116,13 @@ function useInAppDepth(pathname: string) {
   const seen = useRef<string | null>(null);
   const wentBack = useRef(false);
   const climbed = useRef(false);
-  // 지금 경로에서 해시만 바꿔 쌓인 히스토리 칸들 (아래 onHash 참조)
+  // 지금 경로에서 해시만 바꿔 **쌓인** 히스토리 칸들 (아래 onHash 참조)
   const hashTrail = useRef<string[]>([]);
+  // 그 바닥 칸이 원래 들고 있던 해시. 0 이 아닐 수 있다 — 용어 팝오버의 `/glossary#id` 는
+  // 전체 새로고침으로 들어오므로 `#id` 자체가 바닥이고 그 아래엔 챕터가 있다. 이 값을 안 들면
+  // 바닥으로 되돌아온 것을 "새 칸이 쌓였다"로 세어, 뒤로가 있지도 않은 칸까지 건너뛴다
+  // (PR #254 Codex 라운드 3).
+  const baseHash = useRef<string>("");
 
   // 계층 상위로 갈아끼우는 중임을 알린다 (위 `back` 의 replace). 경로는 바뀌지만 히스토리에
   // 쌓인 건 없으므로 깊이도 그대로여야 한다 — 여기서 세면 replace 를 push 로 오인하게 된다.
@@ -143,12 +148,13 @@ function useInAppDepth(pathname: string) {
     // 탭할 때마다 히스토리 칸이 하나 쌓이는데, 되돌아가 봐야 같은 화면이라 뒤로가 먹지 않은
     // 것처럼 보인다. 그래서 세 뒀다가 `back` 이 한 번에 건너뛴다.
     // 뒤로/앞으로가 만든 해시 변화와 새 칸을 시각이 아니라 **밟아 온 해시 대조**로 가른다:
-    // 새 해시가 직전 칸의 것이면 되돌아온 것이고, 아니면 새로 쌓인 것이다. 같은 앵커를 오가는
-    // 드문 순서에서는 덜 세는데, 그때의 결과는 "뒤로를 한 번 더 눌러야 한다" 뿐이다.
+    // 새 해시가 한 칸 아래의 것이면 되돌아온 것이고, 아니면 새로 쌓인 것이다. 한 칸 아래가
+    // 없으면 그 아래는 바닥이므로 `baseHash` 와 견준다. 같은 앵커를 오가는 드문 순서에서는
+    // 덜 세는데, 그때의 결과는 "뒤로를 한 번 더 눌러야 한다" 뿐이다.
     const onHash = () => {
       const h = window.location.hash;
       const tr = hashTrail.current;
-      if (tr.length > 0 && (tr[tr.length - 2] ?? "") === h) tr.pop();
+      if (tr.length > 0 && (tr[tr.length - 2] ?? baseHash.current) === h) tr.pop();
       else tr.push(h);
     };
     window.addEventListener("popstate", onPop);
@@ -162,12 +168,15 @@ function useInAppDepth(pathname: string) {
   useEffect(() => {
     if (seen.current === null) {
       seen.current = pathname;
+      // 이 문서로 들어온 자리의 해시가 이 경로의 바닥이다 (`/glossary#id` 직행이 그렇다)
+      baseHash.current = window.location.hash;
       return;
     }
     if (seen.current === pathname) return;
     seen.current = pathname;
-    // 화면이 바뀌었으면 앞 화면에 쌓였던 해시 칸은 더 셀 것이 없다
+    // 화면이 바뀌었으면 앞 화면에 쌓였던 해시 칸은 더 셀 것이 없다 — 새 화면의 바닥을 다시 잡는다
     hashTrail.current = [];
+    baseHash.current = window.location.hash;
     if (climbed.current) {
       climbed.current = false;
       wentBack.current = false;
@@ -210,6 +219,15 @@ function entryDepth(): number {
   if (!document.referrer) return 0;
   // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다
   if (window.history.length <= 1) return 0;
+  // **새로고침으로 들어온 문서의 referrer 는 이 판정에 쓸 수 없다.** 브라우저마다 원래 값을
+  // 유지하기도, 이 페이지 자신의 URL 로 바꾸기도 한다. 후자면 외부에서 딥링크로 들어온 뒤
+  // 갱신 배너(`app/service-worker.tsx` 의 `location.reload()`)를 누르기만 해도 같은 출처
+  // referrer 가 생겨, 뒤로가 `back()` 을 불러 **앱 밖으로 나간다** (PR #254 Codex 라운드 3).
+  // 앞뒤 이동으로 되살아난 문서도 같은 이유로 제외한다 — 둘 다 0 이면 계층 폴백이라 안전하다.
+  const nav = performance.getEntriesByType("navigation")[0] as
+    | PerformanceNavigationTiming
+    | undefined;
+  if (nav && nav.type !== "navigate") return 0;
   try {
     return new URL(document.referrer).origin === window.location.origin ? 1 : 0;
   } catch {
