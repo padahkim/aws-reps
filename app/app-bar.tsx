@@ -24,7 +24,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function AppBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { depth, markClimb } = useInAppDepth(pathname);
+  const { depth, markClimb, takeHashSteps } = useInAppDepth(pathname);
 
   const isHome = pathname === "/";
 
@@ -32,7 +32,11 @@ export function AppBar() {
     // 앱 안에서 밟아 온 자리가 있으면 진짜 뒤로 — 스크롤 위치 복원은 이 경로에만 있다
     // (App Router 가 back/forward 에 한해 복원한다). 계층 상위로 "이동"하면 늘 맨 위로 간다.
     if (depth > 0) {
-      router.back();
+      // 같은 화면에 해시 칸이 쌓여 있으면 한 번에 건너뛴다. 그 칸으로 돌아가 봐야 화면은
+      // 그대로라, 한 칸씩 물리면 "눌렀는데 아무 일도 안 일어난다"가 된다 (PR #254 Codex P2).
+      const hashSteps = takeHashSteps();
+      if (hashSteps > 0) window.history.go(-(hashSteps + 1));
+      else router.back();
       return;
     }
     // 앱 내 히스토리가 없다 = 딥링크·새로고침·설치 후 첫 실행. 계층 상위로 올려 보내는데,
@@ -42,7 +46,7 @@ export function AppBar() {
     // 것이라 계속 누르면 목차 → 홈으로 계층을 타고 올라간다.
     markClimb();
     router.replace(parentOf(pathname));
-  }, [depth, markClimb, pathname, router]);
+  }, [depth, markClimb, pathname, router, takeHashSteps]);
 
   // 원본 검수 도구(/_source)는 dev·preview 전용 화면이고 앱의 라우트 체계 밖이라 제외한다.
   // 생성된 라우트가 app/%5Fsource/ 라 이 레이아웃에 딸려 들어오는 것뿐이다
@@ -100,19 +104,20 @@ function parentOf(pathname: string): string {
  * 세므로 검색 결과에서 막 들어온 첫 화면에서도 2 이상이고, 그 값으로 back() 을 부르면 앱을
  * 벗어난다. 그래서 직접 센다: 클라이언트 이동마다 +1, 뒤로 갈 때마다 -1.
  *
- * 0 에서 시작하는 것이 정확히 "이 문서로 들어온 자리"다 — 새로고침·딥링크·설치형 PWA 의 첫
- * 실행이 모두 여기다. 그 상태에서 back() 은 앱 밖(또는 아무 데도 아닌 곳)으로 가므로 쓰지 않는다.
+ * 시작값은 `entryDepth()` 가 정한다 — 0 이 아닐 수 있다. 아래 주석 참조.
  *
  * **앞으로 가기는 뒤로로 잘못 센다** (브라우저 탭에서 앞으로 버튼을 눌렀을 때). 구분하려면
  * 밟아 온 경로 전체를 들고 대조해야 하는데, 이 앱의 주 무대인 설치형 PWA 에는 앞으로 버튼이
  * 아예 없고, 틀렸을 때의 결과도 "뒤로가 계층 상위로 간다"는 안전한 쪽이라 세지 않는다.
  */
 function useInAppDepth(pathname: string) {
-  const [depth, setDepth] = useState(0);
+  const [depth, setDepth] = useState(entryDepth);
   // 마지막으로 센 경로. null 이면 아직 첫 렌더 — 그 자리는 이동이 아니라 진입 지점이다.
   const seen = useRef<string | null>(null);
   const wentBack = useRef(false);
   const climbed = useRef(false);
+  // 지금 경로에서 해시만 바꿔 쌓인 히스토리 칸들 (아래 onHash 참조)
+  const hashTrail = useRef<string[]>([]);
 
   // 계층 상위로 갈아끼우는 중임을 알린다 (위 `back` 의 replace). 경로는 바뀌지만 히스토리에
   // 쌓인 건 없으므로 깊이도 그대로여야 한다 — 여기서 세면 replace 를 push 로 오인하게 된다.
@@ -120,14 +125,38 @@ function useInAppDepth(pathname: string) {
     climbed.current = true;
   }, []);
 
+  // 건너뛸 해시 칸 수를 넘기고 비운다. 넘긴 직후 `history.go` 가 여러 칸을 한 번에 지나가므로
+  // 세던 값은 그 자리에서 무효다 (착지한 경로에서 아래 pathname 효과가 한 번 더 비운다).
+  const takeHashSteps = useCallback(() => {
+    const n = hashTrail.current.length;
+    hashTrail.current = [];
+    return n;
+  }, []);
+
   useEffect(() => {
     const onPop = () => {
       // 경로가 그대로면 해시만 오간 것이다 (용어집의 `/glossary#용어id` 앵커).
-      // 그건 화면 이동이 아니므로 깊이를 건드리지 않는다.
+      // 그건 화면 이동이 아니므로 깊이를 건드리지 않는다 — 칸 수는 onHash 가 센다.
       if (window.location.pathname !== seen.current) wentBack.current = true;
     };
+    // 해시 칸 세기. 용어집의 용어 제목은 자기 앵커라(`<a href="#id">`, glossary-view.tsx)
+    // 탭할 때마다 히스토리 칸이 하나 쌓이는데, 되돌아가 봐야 같은 화면이라 뒤로가 먹지 않은
+    // 것처럼 보인다. 그래서 세 뒀다가 `back` 이 한 번에 건너뛴다.
+    // 뒤로/앞으로가 만든 해시 변화와 새 칸을 시각이 아니라 **밟아 온 해시 대조**로 가른다:
+    // 새 해시가 직전 칸의 것이면 되돌아온 것이고, 아니면 새로 쌓인 것이다. 같은 앵커를 오가는
+    // 드문 순서에서는 덜 세는데, 그때의 결과는 "뒤로를 한 번 더 눌러야 한다" 뿐이다.
+    const onHash = () => {
+      const h = window.location.hash;
+      const tr = hashTrail.current;
+      if (tr.length > 0 && (tr[tr.length - 2] ?? "") === h) tr.pop();
+      else tr.push(h);
+    };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("hashchange", onHash);
+    };
   }, []);
 
   useEffect(() => {
@@ -137,6 +166,8 @@ function useInAppDepth(pathname: string) {
     }
     if (seen.current === pathname) return;
     seen.current = pathname;
+    // 화면이 바뀌었으면 앞 화면에 쌓였던 해시 칸은 더 셀 것이 없다
+    hashTrail.current = [];
     if (climbed.current) {
       climbed.current = false;
       wentBack.current = false;
@@ -148,7 +179,32 @@ function useInAppDepth(pathname: string) {
     }
   }, [pathname]);
 
-  return { depth, markClimb };
+  return { depth, markClimb, takeHashSteps };
+}
+
+/**
+ * 이 문서로 들어온 자리의 깊이. 보통은 0 이다 — 주소 직접 입력·딥링크·설치형 PWA 의 첫 실행이
+ * 그렇고, 그 상태에서 `back()` 은 앱 밖으로 나가므로 계층 상위로 올려 보내야 한다.
+ *
+ * **1 이 되는 경우가 하나 있다: 앱 안의 다른 문서에서 전체 새로고침으로 넘어온 것.** 본문 용어
+ * 팝오버의 `용어집에서 자세히 →`(`content/chapters/interactive.tsx`)가 그 경로다 — 거기는
+ * `:target` 하이라이트(#192)를 켜려고 **일부러** next/link 를 안 쓰고 일반 `<a>` 로 문서를
+ * 새로 띄운다. 그러면 이 훅도 리마운트돼서 "앱 내 히스토리 없음"으로 보이는데, 실제 히스토리
+ * 직전 칸은 읽고 있던 챕터다. 여기서 0 을 주면 뒤로가 그 챕터 대신 홈으로 가 **읽던 자리를
+ * 잃는다** — 이 에픽(#246)이 없애려던 바로 그 사고다 (PR #254 Codex P1).
+ *
+ * referrer 가 이 판정에 맞는 유일한 단서다: 리마운트로 잃은 것이 "직전 문서가 우리 것인가"이고
+ * 그걸 브라우저가 여기 남긴다. 같은 출처면 1, 아니면(외부 유입·빈 문자열) 0.
+ * depth 는 화면에 그려지지 않으므로 서버 렌더(0)와 값이 갈려도 하이드레이션은 어긋나지 않는다.
+ */
+function entryDepth(): number {
+  if (typeof document === "undefined") return 0;
+  if (!document.referrer) return 0;
+  try {
+    return new URL(document.referrer).origin === window.location.origin ? 1 : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /* 글리프는 인라인 SVG 다 — 이모지·문자 글리프는 기기마다 크기와 세로 정렬이 제각각이고,
