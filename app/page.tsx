@@ -138,7 +138,6 @@ export default function Home() {
                       */}
                       {minutes !== undefined && (
                         <span
-                          aria-label={`예상 소요 약 ${minutes}분`}
                           style={{
                             fontSize: "0.8rem",
                             color: "var(--muted)",
@@ -146,7 +145,15 @@ export default function Home() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          <span aria-hidden>· 약 {minutes}분</span>
+                          {/*
+                            숨기는 건 **구분자뿐**이다 (PR #252 Codex P2). 처음엔 바깥 span 에
+                            aria-label 을 걸고 안쪽 텍스트를 통째로 aria-hidden 했는데, 그러면
+                            소요가 접근성 트리에서 사라진다: 밋밋한 span 의 암묵 role 은
+                            `generic` 이고 ARIA 는 generic 에 author 이름 부여를 금지하므로
+                            aria-label 이 그 자리를 대신해 주지 않는다. 글자를 그대로 노출하면
+                            "약 116분" 이 읽히므로 label 자체가 필요 없다.
+                          */}
+                          <span aria-hidden>· </span>약 {minutes}분
                         </span>
                       )}
                       <CompletionBadge
