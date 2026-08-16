@@ -190,8 +190,16 @@ function useInAppDepth(pathname: string) {
 
   // 돌아갈 칸이 있는 자리에 설 때마다 그 주소를 적어 둔다. 새로고침이 이 훅을 리마운트해도
   // (`entryDepth` 가 referrer 를 못 믿는 그 경우) 여기서 남긴 표식이 사실을 이어 준다.
+  //
+  // **0 일 때 지우는 쪽이 이 효과의 핵심이다** (PR #254 Codex 라운드 5). 위 경로 효과가 깊이를
+  // 낮추는 그 순간, 이 효과는 **같은 플러시에서 아직 낡은 깊이를 들고** 돈다 — setState 는 그
+  // 렌더에 반영되지 않으므로. 그래서 깊이 0 인 자리로 뒤로 돌아왔는데도 1 로 보고 표식을 남기고,
+  // 그 뒤 새로고침 한 번이면 `entryDepth` 가 그 표식을 믿어 뒤로가 **앱 밖으로 나간다**.
+  // 지우기를 붙여 두면 깊이가 확정된 다음 렌더에서 스스로 바로잡는다 — 효과 순서에 기대지 않고
+  // 마지막에 남는 상태가 늘 옳다.
   useEffect(() => {
     if (depth > 0) markInApp(window.location.href);
+    else clearInApp(window.location.href);
   }, [depth, pathname]);
 
   return { depth, markClimb, takeHashSteps };
@@ -269,6 +277,15 @@ function wasInApp(href: string) {
     return sessionStorage.getItem(IN_APP_KEY + href) === "1";
   } catch {
     return false;
+  }
+}
+
+/** 이 주소가 더는 돌아갈 칸을 안 갖는다는 뜻 — 낡은 표식을 남겨 두면 새로고침이 그걸 믿는다 */
+function clearInApp(href: string) {
+  try {
+    sessionStorage.removeItem(IN_APP_KEY + href);
+  } catch {
+    // 저장이 막힌 환경 — 읽기도 실패하므로 표식이 없는 것과 같다
   }
 }
 
