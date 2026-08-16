@@ -118,11 +118,11 @@ function useInAppDepth(pathname: string) {
   const climbed = useRef(false);
   // 지금 경로에서 해시만 바꿔 **쌓인** 히스토리 칸들 (아래 onHash 참조)
   const hashTrail = useRef<string[]>([]);
-  // 그 바닥 칸이 원래 들고 있던 해시. 0 이 아닐 수 있다 — 용어 팝오버의 `/glossary#id` 는
-  // 전체 새로고침으로 들어오므로 `#id` 자체가 바닥이고 그 아래엔 챕터가 있다. 이 값을 안 들면
-  // 바닥으로 되돌아온 것을 "새 칸이 쌓였다"로 세어, 뒤로가 있지도 않은 칸까지 건너뛴다
-  // (PR #254 Codex 라운드 3).
+  // 그 바닥 칸이 들고 있던 해시. 빈 문자열이 아닐 수 있다 — 용어 팝오버의 `/glossary#id` 는
+  // 전체 새로고침으로 들어오므로 `#id` 자체가 바닥이고 그 아래엔 챕터가 있다.
   const baseHash = useRef<string>("");
+  // 해시 핸들러가 읽을 최신 깊이 — 리스너는 마운트 때 한 번만 달리므로 state 를 직접 못 본다
+  const depthRef = useRef(depth);
 
   // 계층 상위로 갈아끼우는 중임을 알린다 (위 `back` 의 replace). 경로는 바뀌지만 히스토리에
   // 쌓인 건 없으므로 깊이도 그대로여야 한다 — 여기서 세면 replace 를 push 로 오인하게 된다.
@@ -147,15 +147,22 @@ function useInAppDepth(pathname: string) {
     // 해시 칸 세기. 용어집의 용어 제목은 자기 앵커라(`<a href="#id">`, glossary-view.tsx)
     // 탭할 때마다 히스토리 칸이 하나 쌓이는데, 되돌아가 봐야 같은 화면이라 뒤로가 먹지 않은
     // 것처럼 보인다. 그래서 세 뒀다가 `back` 이 한 번에 건너뛴다.
-    // 뒤로/앞으로가 만든 해시 변화와 새 칸을 시각이 아니라 **밟아 온 해시 대조**로 가른다:
-    // 새 해시가 한 칸 아래의 것이면 되돌아온 것이고, 아니면 새로 쌓인 것이다. 한 칸 아래가
-    // 없으면 그 아래는 바닥이므로 `baseHash` 와 견준다. 같은 앵커를 오가는 드문 순서에서는
-    // 덜 세는데, 그때의 결과는 "뒤로를 한 번 더 눌러야 한다" 뿐이다.
+    //
+    // 새 칸과 되돌아옴을 **밟아 온 해시 대조**로 가른다: 새 해시가 한 칸 아래의 것이면 되돌아온
+    // 것이고, 아니면 새로 쌓인 것이다. 한 칸 아래가 없으면 그 아래는 바닥이므로 `baseHash` 와
+    // 견준다. `popstate` 로 가르는 쪽은 **쓸 수 없다** — 이 앱에서는 앵커 클릭(전진)에도
+    // popstate 가 먼저 뜬다(실측: `popstate→#latest` 다음 `hashchange→#latest`). 라우터가
+    // 개입하기 때문이고, 그래서 그 신호로는 앞뒤가 구분되지 않는다.
+    // 같은 앵커를 오가는 드문 순서에서는 덜 세는데, 그때의 결과는 "뒤로를 한 번 더" 뿐이다.
     const onHash = () => {
       const h = window.location.hash;
       const tr = hashTrail.current;
       if (tr.length > 0 && (tr[tr.length - 2] ?? baseHash.current) === h) tr.pop();
       else tr.push(h);
+      // 해시 이동은 경로를 안 바꾸므로 아래 표식 효과가 돌지 않는다. 그런데 히스토리 칸은
+      // 새로 생겼고 그 칸의 state 는 비어 있다 — 여기서 직접 찍지 않으면 그 칸에서 새로고침한
+      // 뒤 뒤로가 챕터 대신 홈으로 간다 (PR #254 Codex 라운드 6).
+      stampEntry(depthRef.current > 0, { base: baseHash.current, trail: tr });
     };
     window.addEventListener("popstate", onPop);
     window.addEventListener("hashchange", onHash);
@@ -168,8 +175,10 @@ function useInAppDepth(pathname: string) {
   useEffect(() => {
     if (seen.current === null) {
       seen.current = pathname;
-      // 이 문서로 들어온 자리의 해시가 이 경로의 바닥이다 (`/glossary#id` 직행이 그렇다)
-      baseHash.current = window.location.hash;
+      // 새로고침이면 이 칸에 적어 둔 셈을 되살린다. 없으면 지금 해시가 이 경로의 바닥이다.
+      const saved = readEntryHash();
+      baseHash.current = saved ? saved.base : window.location.hash;
+      hashTrail.current = saved ? saved.trail : [];
       return;
     }
     if (seen.current === pathname) return;
@@ -198,8 +207,8 @@ function useInAppDepth(pathname: string) {
   // 지우기를 붙여 두면 깊이가 확정된 다음 렌더에서 스스로 바로잡는다 — 효과 순서에 기대지 않고
   // 마지막에 남는 상태가 늘 옳다.
   useEffect(() => {
-    if (depth > 0) markInApp(window.location.href);
-    else clearInApp(window.location.href);
+    depthRef.current = depth;
+    stampEntry(depth > 0, { base: baseHash.current, trail: hashTrail.current });
   }, [depth, pathname]);
 
   return { depth, markClimb, takeHashSteps };
@@ -227,21 +236,19 @@ function useInAppDepth(pathname: string) {
  * 없다"를 걸러내는 데는 정확하다**. 두 조건이 함께 참일 때만: 앞 칸이 있고, 그 앞 칸은 우리 것.
  *
  * **새로고침은 referrer 로 판정할 수 없다** (실측: Chrome 은 `location.reload()` 뒤 referrer 를
- * 이 페이지 자신의 URL 로 바꾼다). 그래서 referrer 는 `navigate` 일 때만 보고, 대신 **이 탭이
- * 앱 안을 거쳐 이 주소에 닿았다는 사실을 우리가 적어 둔다** (`markInApp`). 그 표식이 새로고침을
- * 건너뛰는 다리다 — 없으면 갱신 배너 한 번에 읽던 자리를 잃고(라운드 4), 표식만 믿으면 외부
- * 딥링크 새로고침이 앱 밖으로 나간다(라운드 3). 둘 다 막으려면 둘이 다 있어야 한다.
+ * 이 페이지 자신의 URL 로 바꾼다). 그래서 referrer 는 `navigate` 일 때만 보고, 대신 **이 칸이
+ * 돌아갈 데를 가졌다는 사실을 우리가 히스토리 칸에 적어 둔다** (`stampEntry`). 그 표식이
+ * 새로고침을 건너뛰는 다리다 — 없으면 갱신 배너 한 번에 읽던 자리를 잃고(라운드 4), 표식만
+ * 믿으면 외부 딥링크 새로고침이 앱 밖으로 나간다(라운드 3). 둘 다 막으려면 둘이 다 있어야 한다.
  *
  * depth 는 화면에 그려지지 않으므로 서버 렌더(0)와 값이 갈려도 하이드레이션은 어긋나지 않는다.
  */
 function entryDepth(): number {
   if (typeof window === "undefined") return 0;
-  // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다.
-  // 이 관문이 아래 표식보다 **먼저** 와야 한다: sessionStorage 는 target=_blank 로 열린 탭에
-  // 복사되므로, 표식만 보면 Cmd 클릭 새 탭에서 거짓 양성이 날 수 있다.
+  // 이 칸에 적어 둔 표식이 있으면 새로고침을 건너서도 그 사실이 남는다
+  if (entryHasBack()) return 1;
+  // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다
   if (window.history.length <= 1) return 0;
-  // 이 탭에서 앱 안을 거쳐 닿았다고 적어 둔 주소면, 새로고침을 건너서도 그 사실이 남는다
-  if (wasInApp(window.location.href)) return 1;
   if (!document.referrer) return 0;
   const nav = performance.getEntriesByType("navigation")[0] as
     | PerformanceNavigationTiming
@@ -255,37 +262,66 @@ function entryDepth(): number {
 }
 
 /**
- * "이 탭에서 앱 안을 거쳐 이 주소에 닿았다" 표식. 저장소로 sessionStorage 를 쓰는 이유는
- * **탭 단위**라서다 — 새로고침을 넘어 살아남되 다른 탭·다음 실행으로는 새지 않는다.
+ * "이 칸에는 돌아갈 데가 있다" 표식. **히스토리 칸(`history.state`)에 적는다** — 앞서 쓰던
+ * URL 별 sessionStorage 키는 두 군데서 샜다 (PR #254 Codex 라운드 6):
  *
- * **주소별로 적는 것이 요점이다.** 통짜 플래그였다면 target=_blank 복사본이 그대로 참이 되지만,
- * 주소별이면 새 탭이 여는 주소는 원래 탭이 방문한 적 없는 주소라 표식이 없다 (게다가 그 경우는
- * 위 `history.length` 관문에서 이미 걸린다 — 관문 두 개가 동시에 뚫려야 오판이 난다).
+ *   - **칸이 아니라 주소를 가리켰다.** 한 번 표식이 붙은 주소는 탭이 사는 동안 남아서, 앱을
+ *     떠났다가 외부 사이트의 링크로 **그 주소에 다시 들어오면** 앞 칸이 외부인데도 참이 됐다.
+ *     그러면 뒤로가 사용자를 앱 밖으로 내보낸다.
+ *   - **해시 이동을 못 따라갔다.** 표식을 경로 변화에만 붙였는데 `/glossary#A` → `#B` 는 경로가
+ *     그대로다. 그 칸에 표식이 없으니 새로고침 뒤 뒤로가 챕터 대신 홈으로 갔다.
+ *
+ * `history.state` 는 칸마다 따로 있고, 새로고침을 넘어 복원되며(실측), 새 탭으로 복사되지
+ * 않는다 — 세 성질이 정확히 필요한 것이다. Next 는 자기 키(`__NA`·내부 트리)를 함께 두는데
+ * 스프레드로 보존하면 새로고침 뒤에도 남는 것을 확인했다.
  */
-const IN_APP_KEY = "dva.appbar.inapp.v1:";
+const ENTRY_FLAG = "__dvaBackable";
+const ENTRY_HASH = "__dvaHash";
 
-function markInApp(href: string) {
+type HashSnapshot = { base: string; trail: string[] };
+
+/**
+ * 해시 셈도 함께 싣는 이유: 새로고침은 훅의 메모리를 날리는데, 그 자리가 `/glossary#B` 처럼
+ * 해시 칸 위라면 셈이 0 으로 되살아난다. 그러면 뒤로가 한 칸만 물러 같은 화면에 남고(헛누름),
+ * 이어지는 대조가 기준을 잃어 **있지도 않은 칸까지 건너뛰려다 아무 데도 못 가기도** 한다.
+ * 칸마다 제 셈을 들고 있으면 새로고침 뒤에도 첫 뒤로가 곧장 챕터로 간다.
+ */
+function stampEntry(hasBack: boolean, hash: HashSnapshot) {
   try {
-    sessionStorage.setItem(IN_APP_KEY + href, "1");
+    const s = (window.history.state ?? {}) as Record<string, unknown>;
+    const next: HashSnapshot = { base: hash.base, trail: [...hash.trail] };
+    const prev = s[ENTRY_HASH] as HashSnapshot | undefined;
+    const same =
+      Boolean(s[ENTRY_FLAG]) === hasBack &&
+      prev?.base === next.base &&
+      prev?.trail.length === next.trail.length &&
+      (prev?.trail ?? []).every((v, i) => v === next.trail[i]);
+    // 값이 같으면 건드리지 않는다 — 의미 없는 replaceState 로 라우터 상태를 흔들지 않으려고
+    if (same) return;
+    window.history.replaceState({ ...s, [ENTRY_FLAG]: hasBack, [ENTRY_HASH]: next }, "");
   } catch {
-    // 사파리 프라이빗 모드 등 저장이 막힌 환경 — 표식이 없으면 계층 폴백이라 안전하다
+    // 표식을 못 남기면 새로고침 뒤 계층 폴백이 된다 — 안전한 쪽이다
   }
 }
 
-function wasInApp(href: string) {
+function entryHasBack(): boolean {
   try {
-    return sessionStorage.getItem(IN_APP_KEY + href) === "1";
+    return Boolean((window.history.state as Record<string, unknown> | null)?.[ENTRY_FLAG]);
   } catch {
     return false;
   }
 }
 
-/** 이 주소가 더는 돌아갈 칸을 안 갖는다는 뜻 — 낡은 표식을 남겨 두면 새로고침이 그걸 믿는다 */
-function clearInApp(href: string) {
+/** 새로고침으로 리마운트됐을 때 이 칸이 들고 있던 해시 셈. 없으면 null. */
+function readEntryHash(): HashSnapshot | null {
   try {
-    sessionStorage.removeItem(IN_APP_KEY + href);
+    const v = (window.history.state as Record<string, unknown> | null)?.[ENTRY_HASH] as
+      | HashSnapshot
+      | undefined;
+    if (!v || typeof v.base !== "string" || !Array.isArray(v.trail)) return null;
+    return { base: v.base, trail: v.trail.filter((x): x is string => typeof x === "string") };
   } catch {
-    // 저장이 막힌 환경 — 읽기도 실패하므로 표식이 없는 것과 같다
+    return null;
   }
 }
 
