@@ -188,6 +188,12 @@ function useInAppDepth(pathname: string) {
     }
   }, [pathname]);
 
+  // 돌아갈 칸이 있는 자리에 설 때마다 그 주소를 적어 둔다. 새로고침이 이 훅을 리마운트해도
+  // (`entryDepth` 가 referrer 를 못 믿는 그 경우) 여기서 남긴 표식이 사실을 이어 준다.
+  useEffect(() => {
+    if (depth > 0) markInApp(window.location.href);
+  }, [depth, pathname]);
+
   return { depth, markClimb, takeHashSteps };
 }
 
@@ -212,18 +218,23 @@ function useInAppDepth(pathname: string) {
  * (같은 탭에서 열었던 남의 사이트도 세므로 — 이 훅이 애초에 직접 세는 이유다) **"앞 칸이 아예
  * 없다"를 걸러내는 데는 정확하다**. 두 조건이 함께 참일 때만: 앞 칸이 있고, 그 앞 칸은 우리 것.
  *
+ * **새로고침은 referrer 로 판정할 수 없다** (실측: Chrome 은 `location.reload()` 뒤 referrer 를
+ * 이 페이지 자신의 URL 로 바꾼다). 그래서 referrer 는 `navigate` 일 때만 보고, 대신 **이 탭이
+ * 앱 안을 거쳐 이 주소에 닿았다는 사실을 우리가 적어 둔다** (`markInApp`). 그 표식이 새로고침을
+ * 건너뛰는 다리다 — 없으면 갱신 배너 한 번에 읽던 자리를 잃고(라운드 4), 표식만 믿으면 외부
+ * 딥링크 새로고침이 앱 밖으로 나간다(라운드 3). 둘 다 막으려면 둘이 다 있어야 한다.
+ *
  * depth 는 화면에 그려지지 않으므로 서버 렌더(0)와 값이 갈려도 하이드레이션은 어긋나지 않는다.
  */
 function entryDepth(): number {
-  if (typeof document === "undefined") return 0;
-  if (!document.referrer) return 0;
-  // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다
+  if (typeof window === "undefined") return 0;
+  // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다.
+  // 이 관문이 아래 표식보다 **먼저** 와야 한다: sessionStorage 는 target=_blank 로 열린 탭에
+  // 복사되므로, 표식만 보면 Cmd 클릭 새 탭에서 거짓 양성이 날 수 있다.
   if (window.history.length <= 1) return 0;
-  // **새로고침으로 들어온 문서의 referrer 는 이 판정에 쓸 수 없다.** 브라우저마다 원래 값을
-  // 유지하기도, 이 페이지 자신의 URL 로 바꾸기도 한다. 후자면 외부에서 딥링크로 들어온 뒤
-  // 갱신 배너(`app/service-worker.tsx` 의 `location.reload()`)를 누르기만 해도 같은 출처
-  // referrer 가 생겨, 뒤로가 `back()` 을 불러 **앱 밖으로 나간다** (PR #254 Codex 라운드 3).
-  // 앞뒤 이동으로 되살아난 문서도 같은 이유로 제외한다 — 둘 다 0 이면 계층 폴백이라 안전하다.
+  // 이 탭에서 앱 안을 거쳐 닿았다고 적어 둔 주소면, 새로고침을 건너서도 그 사실이 남는다
+  if (wasInApp(window.location.href)) return 1;
+  if (!document.referrer) return 0;
   const nav = performance.getEntriesByType("navigation")[0] as
     | PerformanceNavigationTiming
     | undefined;
@@ -232,6 +243,32 @@ function entryDepth(): number {
     return new URL(document.referrer).origin === window.location.origin ? 1 : 0;
   } catch {
     return 0;
+  }
+}
+
+/**
+ * "이 탭에서 앱 안을 거쳐 이 주소에 닿았다" 표식. 저장소로 sessionStorage 를 쓰는 이유는
+ * **탭 단위**라서다 — 새로고침을 넘어 살아남되 다른 탭·다음 실행으로는 새지 않는다.
+ *
+ * **주소별로 적는 것이 요점이다.** 통짜 플래그였다면 target=_blank 복사본이 그대로 참이 되지만,
+ * 주소별이면 새 탭이 여는 주소는 원래 탭이 방문한 적 없는 주소라 표식이 없다 (게다가 그 경우는
+ * 위 `history.length` 관문에서 이미 걸린다 — 관문 두 개가 동시에 뚫려야 오판이 난다).
+ */
+const IN_APP_KEY = "dva.appbar.inapp.v1:";
+
+function markInApp(href: string) {
+  try {
+    sessionStorage.setItem(IN_APP_KEY + href, "1");
+  } catch {
+    // 사파리 프라이빗 모드 등 저장이 막힌 환경 — 표식이 없으면 계층 폴백이라 안전하다
+  }
+}
+
+function wasInApp(href: string) {
+  try {
+    return sessionStorage.getItem(IN_APP_KEY + href) === "1";
+  } catch {
+    return false;
   }
 }
 
