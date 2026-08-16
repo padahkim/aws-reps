@@ -1,6 +1,6 @@
 import { C, Code, ExamLi, ExamPoint, Fig, SubTitle, WarnBox } from "../../ui";
 import { Term } from "../../interactive";
-import { AccentRow, CardGrid, InfoCard, PolicyTypesSvg } from "../figs";
+import { AccentRow, CardGrid, InfoCard, PointBox, PolicyTypesSvg } from "../figs";
 
 정책은 여러 종류가 있고, 실제 허용되는 권한(<b>유효 권한</b>)은 이들의 **교집합**입니다. 어느 한 경계라도 막으면 그 동작은 불가능합니다.
 
@@ -23,17 +23,24 @@ import { AccentRow, CardGrid, InfoCard, PolicyTypesSvg } from "../figs";
 
 <SubTitle>Managed vs Inline</SubTitle>
 
+앞의 다섯 종류가 “정책이 **어디에 작용하는가**”의 분류였다면, 여기는 “정책이 **어떻게 보관되는가**”의 분류입니다. 갈림길은 하나 — <b>정책이 독립된 객체인가</b>. 관리형 정책은 자기 <Term id="arn">ARN</Term>을 가진 독립 객체라서 유저 A·역할 B·그룹 C에 <b>동시에 연결(attach)</b>됩니다. 코드로 치면 여러 파일이 import하는 공용 모듈이죠. 인라인 정책은 주체 안에 박힌 필드라 그 주체 밖에서는 존재하지 않습니다 — 그 파일 안에만 있는 로컬 상수. 관리형이 다시 AWS/고객으로 갈리는 건 <b>누가 그것을 고치느냐</b>의 차이뿐입니다.
+
 <CardGrid>
-  <InfoCard title="AWS 관리형" sub="관리 주체: AWS">AWS가 유지·업데이트하는 기성 정책. 신규 서비스/API 출시 시 자동 반영. 예: <Code>AdministratorAccess</Code>, <Code>PowerUserAccess</Code>.</InfoCard>
-  <InfoCard tone="teal" title="고객 관리형" sub="관리 주체: 고객">독립적으로 존재하며 여러 주체에 재사용. <b>버전 관리·롤백 지원</b>, 세밀한 제어 — 재사용성·감사 편의 때문에 모범 사례로 권장.</InfoCard>
-  <InfoCard tone="red" title="인라인" sub="관리 주체: 고객">특정 주체 하나에 1:1로 박혀 있는 정책. <b>주체를 삭제하면 정책도 함께 삭제</b>됩니다.</InfoCard>
+  <InfoCard title="AWS 관리형" sub="관리 주체: AWS">AWS가 만들어 유지하는 기성 정책 — <Code>AdministratorAccess</Code>(전권), <Code>PowerUserAccess</Code>(IAM·Organizations·계정 관리를 뺀 전권 — 개발자용). 신규 서비스·API가 나오면 AWS가 알아서 반영해 주는 대신 <b>권한 내용을 내가 바꿀 수 없고</b>, 범위가 넉넉하게 잡혀 있어 편의와 최소 권한이 맞바뀝니다.</InfoCard>
+  <InfoCard tone="teal" title="고객 관리형" sub="관리 주체: 고객">내가 만들어 계정에 두는 독립 정책. 여러 주체에 재사용되고, 수정할 때마다 <b>새 버전이 쌓입니다(최대 5개 보관)</b> — 잘못 넓힌 정책은 이전 버전을 <b>기본 버전</b>으로 되돌려 원복할 수 있습니다. 그래서 기본 선택입니다.</InfoCard>
+  <InfoCard tone="red" title="인라인" sub="관리 주체: 고객">주체 하나에 박혀 있어 별도 ARN도, 재사용도, <b>버전도 없습니다</b> — 고치면 그걸로 끝입니다. <b>주체를 삭제하면 정책도 함께 사라집니다</b> — 권한 잔재가 남지 않는다는 점에서 한계이자 쓸모.</InfoCard>
 </CardGrid>
 
-<WarnBox>“여러 유저가 같은 인라인 정책을 공유한다”는 서술은 성립하지 않습니다 — 인라인은 1:1 전속이고, 공유·재사용이 필요하면 관리형 정책입니다.</WarnBox>
+<PointBox tone="amber" title="고르는 기준 — 세 문장">
+  기본은 <b>고객 관리형</b>입니다 (재사용·버전·감사). <b>AWS 관리형</b>은 빠른 시작·표준 역할용입니다 — 다만 최소 권한의 기준은 정책 이름이 아니라 <b>부여 범위가 그 작업에 필요한 만큼을 넘느냐</b>이고, <Code>…FullAccess</Code> 계열은 대개 넘습니다. “최소 권한” 시나리오에서 그 선택지가 오답이 되는 이유가 이것이고, 액션·리소스를 필요한 만큼만 담은 고객 관리형이 정답이 됩니다. <b>인라인</b>은 “이 주체에만 존재해야 하는 하나뿐인 예외”, 즉 정책이 주체와 운명을 같이해도 될 때입니다.
+</PointBox>
+
+<WarnBox>“여러 유저가 같은 인라인 정책을 공유한다”는 서술은 성립하지 않습니다 — 같은 내용을 두 역할에 인라인으로 넣어도 그건 <b>각자의 복사본</b>이지 공유가 아닙니다 (한쪽을 고쳐도 다른 쪽은 그대로). 공유·재사용이 필요하면 관리형 정책입니다.</WarnBox>
 
 <ExamPoint>
   <ExamLi><b>유효 권한 = 교집합</b> — Boundary/SCP는 권한을 “부여”하지 않고 “상한”만 설정</ExamLi>
   <ExamLi>Permission Boundary는 <b>그룹에 못 건다</b> — 유저·역할만</ExamLi>
   <ExamLi>재사용·버전 관리가 필요하면 <b>고객 관리형</b>, 주체와 운명을 같이해도 되면 인라인</ExamLi>
+  <ExamLi>“최소 권한으로…” 시나리오 — 기준은 정책 이름이 아니라 <b>부여 범위가 필요를 넘느냐</b>. 작업에 비해 넓은 <Code>…FullAccess</Code> 연결이 전형적 오답이고, 액션·리소스를 좁힌 고객 관리형이 정답</ExamLi>
   <ExamLi>교차 계정 접근을 여는 쪽은 <b>Resource-based 정책의 Principal</b></ExamLi>
 </ExamPoint>
