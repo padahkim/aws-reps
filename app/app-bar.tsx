@@ -162,7 +162,7 @@ function useInAppDepth(pathname: string) {
       // 해시 이동은 경로를 안 바꾸므로 아래 표식 효과가 돌지 않는다. 그런데 히스토리 칸은
       // 새로 생겼고 그 칸의 state 는 비어 있다 — 여기서 직접 찍지 않으면 그 칸에서 새로고침한
       // 뒤 뒤로가 챕터 대신 홈으로 간다 (PR #254 Codex 라운드 6).
-      stampEntry(depthRef.current > 0, { base: baseHash.current, trail: tr });
+      stampEntry(depthRef.current, { base: baseHash.current, trail: tr });
     };
     window.addEventListener("popstate", onPop);
     window.addEventListener("hashchange", onHash);
@@ -208,7 +208,7 @@ function useInAppDepth(pathname: string) {
   // 마지막에 남는 상태가 늘 옳다.
   useEffect(() => {
     depthRef.current = depth;
-    stampEntry(depth > 0, { base: baseHash.current, trail: hashTrail.current });
+    stampEntry(depth, { base: baseHash.current, trail: hashTrail.current });
   }, [depth, pathname]);
 
   return { depth, markClimb, takeHashSteps };
@@ -246,7 +246,8 @@ function useInAppDepth(pathname: string) {
 function entryDepth(): number {
   if (typeof window === "undefined") return 0;
   // 이 칸에 적어 둔 표식이 있으면 새로고침을 건너서도 그 사실이 남는다
-  if (entryHasBack()) return 1;
+  const saved = entryStateDepth();
+  if (saved !== null) return saved;
   // 새 탭에는 돌아갈 칸이 없다 — 갓 연 탭의 세션 히스토리는 이 문서 하나뿐이다
   if (window.history.length <= 1) return 0;
   if (!document.referrer) return 0;
@@ -275,7 +276,7 @@ function entryDepth(): number {
  * 않는다 — 세 성질이 정확히 필요한 것이다. Next 는 자기 키(`__NA`·내부 트리)를 함께 두는데
  * 스프레드로 보존하면 새로고침 뒤에도 남는 것을 확인했다.
  */
-const ENTRY_FLAG = "__dvaBackable";
+const ENTRY_DEPTH = "__dvaDepth";
 const ENTRY_HASH = "__dvaHash";
 
 type HashSnapshot = { base: string; trail: string[] };
@@ -286,29 +287,35 @@ type HashSnapshot = { base: string; trail: string[] };
  * 이어지는 대조가 기준을 잃어 **있지도 않은 칸까지 건너뛰려다 아무 데도 못 가기도** 한다.
  * 칸마다 제 셈을 들고 있으면 새로고침 뒤에도 첫 뒤로가 곧장 챕터로 간다.
  */
-function stampEntry(hasBack: boolean, hash: HashSnapshot) {
+function stampEntry(depth: number, hash: HashSnapshot) {
   try {
     const s = (window.history.state ?? {}) as Record<string, unknown>;
     const next: HashSnapshot = { base: hash.base, trail: [...hash.trail] };
     const prev = s[ENTRY_HASH] as HashSnapshot | undefined;
     const same =
-      Boolean(s[ENTRY_FLAG]) === hasBack &&
+      s[ENTRY_DEPTH] === depth &&
       prev?.base === next.base &&
       prev?.trail.length === next.trail.length &&
       (prev?.trail ?? []).every((v, i) => v === next.trail[i]);
     // 값이 같으면 건드리지 않는다 — 의미 없는 replaceState 로 라우터 상태를 흔들지 않으려고
     if (same) return;
-    window.history.replaceState({ ...s, [ENTRY_FLAG]: hasBack, [ENTRY_HASH]: next }, "");
+    window.history.replaceState({ ...s, [ENTRY_DEPTH]: depth, [ENTRY_HASH]: next }, "");
   } catch {
     // 표식을 못 남기면 새로고침 뒤 계층 폴백이 된다 — 안전한 쪽이다
   }
 }
 
-function entryHasBack(): boolean {
+/**
+ * 이 칸에 적어 둔 깊이. **참/거짓이 아니라 수여야 한다** (PR #254 Codex 라운드 7): 홈 → 용어집
+ * → 챕터 → 섹션까지 3 을 밟고 새로고침했는데 1 로 되살리면, 뒤로 한 번에 0 이 되어 다음 뒤로가
+ * 계층 폴백을 타고 홈으로 튄다 — 용어집으로 이어지던 길이 끊긴다.
+ */
+function entryStateDepth(): number | null {
   try {
-    return Boolean((window.history.state as Record<string, unknown> | null)?.[ENTRY_FLAG]);
+    const v = (window.history.state as Record<string, unknown> | null)?.[ENTRY_DEPTH];
+    return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
