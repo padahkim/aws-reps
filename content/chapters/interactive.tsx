@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
 import { glossary } from "../glossary";
@@ -325,6 +325,132 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
               용어집에서 자세히 →
             </a>
           )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * 본문 약어 힌트 (#259) — 트리거에 커서를 올리거나(마우스) 탭하면(터치) 풀이름 + 한 줄
+ * 설명이 뜬다. 대상은 "RW Allow" 처럼 **그 자리에서만 쓰는 약식 표기**다 — 용어집 표제어는
+ * Term 이 맡으므로 여기 쓰지 않는다.
+ *
+ * Term 과 별개 구현인 이유는 놓이는 자리다: 이 힌트는 Table 셀에서 쓰이는데, Term 의
+ * absolute 팝오버는 Table 의 overflow 에 잘린다(Term 주석의 배치 제약). 여기서는 fixed 로
+ * 띄워 조상 overflow 를 벗어난다 — 대신 fixed 는 스크롤을 따라오지 못하므로 스크롤·리사이즈
+ * 에 닫는다(표의 가로 스크롤도 capture 로 잡는다). Term 과 같은 이유로 배치 계산은 열기 전에
+ * 끝내고(#250 모바일 축소), flip 같은 정밀 포지셔닝은 하지 않는다.
+ *
+ * 카드는 읽기 전용이라 pointerEvents 를 끈다 — 마우스가 카드로 들어가며 트리거의
+ * pointerleave 가 떠 닫히는 깜빡임이 없어지고, 바깥 클릭 판정도 단순해진다.
+ */
+export function Abbr({ full, note, children }: { full: string; note: string; children: ReactNode }) {
+  // 뷰포트 기준 배치(px) — 열 때 한 번 계산한다. null = 닫힘.
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const open = pos !== null;
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const hintId = useId();
+
+  // 트리거 아래 왼쪽 정렬을 기본으로, 본문 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  const openHint = () => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const col = wrap.closest("main") ?? document.documentElement;
+    const pad = 8;
+    const r = wrap.getBoundingClientRect();
+    const colRect = col.getBoundingClientRect();
+    const width = Math.min(300, colRect.width - pad * 2);
+    const left = Math.max(colRect.left + pad, Math.min(r.left, colRect.right - pad - width));
+    setPos({ top: r.bottom + 6, left, width });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPos(null);
+        btnRef.current?.focus();
+      }
+    };
+    const onShift = () => setPos(null);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onShift);
+    // capture — 표 래퍼의 가로 스크롤처럼 버블링하지 않는 스크롤도 잡아야 한다
+    window.addEventListener("scroll", onShift, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onShift);
+      window.removeEventListener("scroll", onShift, true);
+    };
+  }, [open]);
+
+  return (
+    <span
+      ref={wrapRef}
+      style={{ position: "relative", display: "inline-block" }}
+      onBlur={(e) => {
+        const to = e.relatedTarget as Node | null;
+        if (to && !wrapRef.current?.contains(to)) setPos(null);
+      }}
+    >
+      <button
+        ref={btnRef}
+        type="button"
+        className="term-trigger"
+        aria-expanded={open}
+        aria-describedby={open ? hintId : undefined}
+        // 마우스는 올리면 열리고 벗어나면 닫힌다. 터치·펜은 hover 가 없으므로 탭(click)이
+        // 토글이다 — pointerType 으로 갈라 두 입력이 서로를 방해하지 않게 한다.
+        onPointerEnter={(e) => {
+          if (e.pointerType === "mouse" && !open) openHint();
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType === "mouse") setPos(null);
+        }}
+        // 키보드 초점에서만 연다 — 탭·클릭으로 들어온 초점에도 열면 뒤이어 오는 click 이
+        // 토글로 곧장 닫아 버려(focus → click 순서) 터치에서 아무 일도 안 일어난다.
+        onFocus={(e) => {
+          if (!open && e.currentTarget.matches(":focus-visible")) openHint();
+        }}
+        onClick={() => (open ? setPos(null) : openHint())}
+      >
+        {children}
+      </button>
+      {pos && (
+        <span
+          id={hintId}
+          role="tooltip"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            zIndex: 30,
+            display: "block",
+            width: pos.width,
+            pointerEvents: "none",
+            background: C.card,
+            color: C.ink,
+            border: `1px solid ${C.line}`,
+            borderRadius: 10,
+            boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+            padding: "10px 12px",
+            // 트리거가 굵은 표 셀 안에 있어도 카드는 본문 톤을 유지한다
+            fontSize: "0.82rem",
+            fontWeight: 400,
+            lineHeight: 1.65,
+            textAlign: "left",
+            whiteSpace: "normal",
+          }}
+        >
+          <span style={{ display: "block", fontWeight: 700 }}>{full}</span>
+          <span style={{ display: "block", marginTop: 4 }}>{note}</span>
         </span>
       )}
     </span>
