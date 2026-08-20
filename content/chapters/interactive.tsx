@@ -331,6 +331,9 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
   );
 }
 
+/** 힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
+const CARD_ROOM = 180;
+
 /**
  * 본문 약어 힌트 (#259) — 트리거에 커서를 올리거나(마우스) 탭하면(터치) 풀이름 + 한 줄
  * 설명이 뜬다. 대상은 "RW Allow" 처럼 **그 자리에서만 쓰는 약식 표기**다 — 용어집 표제어는
@@ -340,20 +343,27 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
  * absolute 팝오버는 Table 의 overflow 에 잘린다(Term 주석의 배치 제약). 여기서는 fixed 로
  * 띄워 조상 overflow 를 벗어난다 — 대신 fixed 는 스크롤을 따라오지 못하므로 스크롤·리사이즈
  * 에 닫는다(표의 가로 스크롤도 capture 로 잡는다). Term 과 같은 이유로 배치 계산은 열기 전에
- * 끝내고(#250 모바일 축소), flip 같은 정밀 포지셔닝은 하지 않는다.
+ * 끝낸다 (#250 모바일 축소).
  *
- * 카드는 읽기 전용이라 pointerEvents 를 끈다 — 마우스가 카드로 들어가며 트리거의
- * pointerleave 가 떠 닫히는 깜빡임이 없어지고, 바깥 클릭 판정도 단순해진다.
+ * 위아래 뒤집기는 Term 과 달리 **한다** (PR #260 Codex P2). Term 은 absolute 라 카드가
+ * 문서에 얹혀 스크롤로 따라가 볼 수 있지만, 여기 카드는 fixed 인 데다 스크롤이 곧 닫기라
+ * 뷰포트 아래로 삐져나간 글자는 **영영 읽을 방법이 없다**. 뒤집기 판정에 측정은 쓰지 않는다
+ * — 위아래 여유 공간만 비교해 좁은 쪽을 피하고, 위로 뒤집을 때는 top 이 아니라 bottom 을
+ * 앵커로 잡아 카드가 위로 자라게 한다(높이를 몰라도 아래로 넘칠 일이 없다).
  */
 export function Abbr({ full, note, children }: { full: string; note: string; children: ReactNode }) {
   // 뷰포트 기준 배치(px) — 열 때 한 번 계산한다. null = 닫힘.
-  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  // 세로는 top(아래로 펼침) 또는 bottom(위로 펼침) 중 하나만 값을 갖는다.
+  type Pos = { top?: number; bottom?: number; left: number; width: number; flip: boolean };
+  const [pos, setPos] = useState<Pos | null>(null);
   const open = pos !== null;
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
   const hintId = useId();
 
-  // 트리거 아래 왼쪽 정렬을 기본으로, 본문 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  // 가로: 트리거 왼쪽 정렬을 기본으로, 본문 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  // 세로: 아래를 기본으로 하되, 아래 여유가 카드 하나 들어갈 만큼도 안 되고 위가 더 넓으면
+  //       위로 뒤집는다. 카드 높이는 재지 않는다 — 위로 뒤집을 때 bottom 앵커를 쓰므로
+  //       높이를 몰라도 아래로 넘치지 않는다.
   const openHint = () => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -361,9 +371,16 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
     const pad = 8;
     const r = wrap.getBoundingClientRect();
     const colRect = col.getBoundingClientRect();
+    const vh = document.documentElement.clientHeight;
     const width = Math.min(300, colRect.width - pad * 2);
     const left = Math.max(colRect.left + pad, Math.min(r.left, colRect.right - pad - width));
-    setPos({ top: r.bottom + 6, left, width });
+
+    const below = vh - r.bottom - pad;
+    const above = r.top - pad;
+    const flip = below < CARD_ROOM && above > below;
+    return setPos(
+      flip ? { bottom: vh - r.top, left, width, flip } : { top: r.bottom, left, width, flip },
+    );
   };
 
   useEffect(() => {
@@ -371,11 +388,11 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
     const onDown = (e: PointerEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
     };
+    // 닫기만 하고 초점은 건드리지 않는다 (PR #260 Codex P2) — 호버로 열린 카드는 트리거가
+    // 초점을 갖고 있지 않으므로, 되돌리면 사용자가 조작 중이던 컨트롤에서 초점을 빼앗는다.
+    // Term 과 달리 카드 안에 초점 가능한 요소가 없어 되돌릴 초점 자체가 없다.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setPos(null);
-        btnRef.current?.focus();
-      }
+      if (e.key === "Escape") setPos(null);
     };
     const onShift = () => setPos(null);
     document.addEventListener("pointerdown", onDown);
@@ -395,25 +412,28 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
     <span
       ref={wrapRef}
       style={{ position: "relative", display: "inline-block" }}
+      // 마우스는 올리면 열리고 벗어나면 닫힌다. 터치·펜은 hover 가 없으므로 탭(click)이
+      // 토글이다 — pointerType 으로 갈라 두 입력이 서로를 방해하지 않게 한다.
+      //
+      // 핸들러가 트리거가 아니라 **래퍼**에 붙는 이유 (PR #260 Codex P2): 카드는 fixed 여도
+      // DOM 상으로는 래퍼의 자손이라, 여기 걸면 카드로 들어가도 pointerleave 가 뜨지 않는다.
+      // 그래서 확대된 설명을 마우스로 좇아가 읽을 수 있다 — 저시력 사용자에게 그게 요점이다.
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse" && !open) openHint();
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") setPos(null);
+      }}
       onBlur={(e) => {
         const to = e.relatedTarget as Node | null;
         if (to && !wrapRef.current?.contains(to)) setPos(null);
       }}
     >
       <button
-        ref={btnRef}
         type="button"
         className="term-trigger"
         aria-expanded={open}
         aria-describedby={open ? hintId : undefined}
-        // 마우스는 올리면 열리고 벗어나면 닫힌다. 터치·펜은 hover 가 없으므로 탭(click)이
-        // 토글이다 — pointerType 으로 갈라 두 입력이 서로를 방해하지 않게 한다.
-        onPointerEnter={(e) => {
-          if (e.pointerType === "mouse" && !open) openHint();
-        }}
-        onPointerLeave={(e) => {
-          if (e.pointerType === "mouse") setPos(null);
-        }}
         // 키보드 초점에서만 연다 — 탭·클릭으로 들어온 초점에도 열면 뒤이어 오는 click 이
         // 토글로 곧장 닫아 버려(focus → click 순서) 터치에서 아무 일도 안 일어난다.
         onFocus={(e) => {
@@ -424,33 +444,43 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
         {children}
       </button>
       {pos && (
+        // 바깥 span 은 자리만 잡는다. 트리거와 카드 사이의 6px 틈을 **투명 패딩으로** 가져가는
+        // 것이 요점이다 (PR #260 Codex P2) — margin 으로 띄우면 그 틈이 래퍼 밖이라 마우스가
+        // 카드로 건너가는 도중 pointerleave 가 떠 카드가 사라진다.
         <span
           id={hintId}
           role="tooltip"
           style={{
             position: "fixed",
             top: pos.top,
+            bottom: pos.bottom,
             left: pos.left,
             zIndex: 30,
             display: "block",
             width: pos.width,
-            pointerEvents: "none",
-            background: C.card,
-            color: C.ink,
-            border: `1px solid ${C.line}`,
-            borderRadius: 10,
-            boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
-            padding: "10px 12px",
-            // 트리거가 굵은 표 셀 안에 있어도 카드는 본문 톤을 유지한다
-            fontSize: "0.82rem",
-            fontWeight: 400,
-            lineHeight: 1.65,
-            textAlign: "left",
-            whiteSpace: "normal",
+            [pos.flip ? "paddingBottom" : "paddingTop"]: 6,
           }}
         >
-          <span style={{ display: "block", fontWeight: 700 }}>{full}</span>
-          <span style={{ display: "block", marginTop: 4 }}>{note}</span>
+          <span
+            style={{
+              display: "block",
+              background: C.card,
+              color: C.ink,
+              border: `1px solid ${C.line}`,
+              borderRadius: 10,
+              boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+              padding: "10px 12px",
+              // 트리거가 굵은 표 셀 안에 있어도 카드는 본문 톤을 유지한다
+              fontSize: "0.82rem",
+              fontWeight: 400,
+              lineHeight: 1.65,
+              textAlign: "left",
+              whiteSpace: "normal",
+            }}
+          >
+            <span style={{ display: "block", fontWeight: 700 }}>{full}</span>
+            <span style={{ display: "block", marginTop: 4 }}>{note}</span>
+          </span>
         </span>
       )}
     </span>
