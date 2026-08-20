@@ -333,6 +333,8 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
 
 /** 힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
 const CARD_ROOM = 180;
+/** 양쪽 다 좁을 때 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
+const MIN_CARD = 96;
 
 /**
  * 본문 약어 힌트 (#259) — 트리거에 커서를 올리거나(마우스) 탭하면(터치) 풀이름 + 한 줄
@@ -354,7 +356,7 @@ const CARD_ROOM = 180;
 export function Abbr({ full, note, children }: { full: string; note: string; children: ReactNode }) {
   // 뷰포트 기준 배치(px) — 열 때 한 번 계산한다. null = 닫힘.
   // 세로는 top(아래로 펼침) 또는 bottom(위로 펼침) 중 하나만 값을 갖는다.
-  type Pos = { top?: number; bottom?: number; left: number; width: number; flip: boolean };
+  type Pos = { top?: number; bottom?: number; left: number; width: number; flip: boolean; room: number };
   const [pos, setPos] = useState<Pos | null>(null);
   const open = pos !== null;
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -378,8 +380,14 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
     const below = vh - r.bottom - pad;
     const above = r.top - pad;
     const flip = below < CARD_ROOM && above > below;
+    // 고른 쪽의 실제 여유를 그대로 상한으로 준다 (PR #260 Codex 라운드 2) — 뒤집기는 "더 넓은
+    // 쪽"을 고를 뿐이라 양쪽 다 좁으면(가로 모드 짧은 화면 등) 여전히 넘친다. 넘칠 땐 카드가
+    // 스스로 스크롤되고, 안 넘치면 이 값은 아무것도 하지 않는다.
+    const room = Math.max(flip ? above : below, MIN_CARD);
     return setPos(
-      flip ? { bottom: vh - r.top, left, width, flip } : { top: r.bottom, left, width, flip },
+      flip
+        ? { bottom: vh - r.top, left, width, flip, room }
+        : { top: r.bottom, left, width, flip, room },
     );
   };
 
@@ -395,16 +403,21 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
       if (e.key === "Escape") setPos(null);
     };
     const onShift = () => setPos(null);
+    // 카드가 넘쳐 스스로 스크롤될 때, 그 스크롤까지 닫기로 읽으면 넘친 글자를 읽을 방법이
+    // 다시 없어진다 (PR #260 Codex 라운드 2) — 카드 안에서 난 스크롤만 걸러낸다.
+    const onScroll = (e: Event) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
+    };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", onShift);
     // capture — 표 래퍼의 가로 스크롤처럼 버블링하지 않는 스크롤도 잡아야 한다
-    window.addEventListener("scroll", onShift, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onShift);
-      window.removeEventListener("scroll", onShift, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [open]);
 
@@ -421,8 +434,13 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
       onPointerEnter={(e) => {
         if (e.pointerType === "mouse" && !open) openHint();
       }}
+      // 초점이 아직 안에 있으면 닫지 않는다 (PR #260 Codex 라운드 2) — 호버와 초점은 카드를
+      // 띄우는 **독립된 이유**다. 키보드로 열어 둔 카드가 마우스가 스쳐 지나갔다는 이유로
+      // 닫히면, 키보드·마우스를 섞어 쓰는 사용자는 설명을 잃는다.
       onPointerLeave={(e) => {
-        if (e.pointerType === "mouse") setPos(null);
+        if (e.pointerType !== "mouse") return;
+        if (wrapRef.current?.contains(document.activeElement)) return;
+        setPos(null);
       }}
       onBlur={(e) => {
         const to = e.relatedTarget as Node | null;
@@ -459,11 +477,19 @@ export function Abbr({ full, note, children }: { full: string; note: string; chi
             display: "block",
             width: pos.width,
             [pos.flip ? "paddingBottom" : "paddingTop"]: 6,
+            boxSizing: "border-box",
+            maxHeight: pos.room,
           }}
         >
           <span
             style={{
               display: "block",
+              // 여유를 넘기면 카드가 스스로 스크롤된다 — 바깥 span 의 패딩 6px 을 뺀 만큼이
+              // 실제로 쓸 수 있는 높이다. touch 도 함께 허용해 폰에서도 굴릴 수 있게 한다.
+              maxHeight: pos.room - 6,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+              touchAction: "pan-y",
               background: C.card,
               color: C.ink,
               border: `1px solid ${C.line}`,
