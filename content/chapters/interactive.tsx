@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
 import { glossary } from "../glossary";
@@ -325,6 +325,188 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
               용어집에서 자세히 →
             </a>
           )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** 힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
+const CARD_ROOM = 180;
+/** 양쪽 다 좁을 때 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
+const MIN_CARD = 96;
+
+/**
+ * 본문 약어 힌트 (#259) — 트리거에 커서를 올리거나(마우스) 탭하면(터치) 풀이름 + 한 줄
+ * 설명이 뜬다. 대상은 "RW Allow" 처럼 **그 자리에서만 쓰는 약식 표기**다 — 용어집 표제어는
+ * Term 이 맡으므로 여기 쓰지 않는다.
+ *
+ * Term 과 별개 구현인 이유는 놓이는 자리다: 이 힌트는 Table 셀에서 쓰이는데, Term 의
+ * absolute 팝오버는 Table 의 overflow 에 잘린다(Term 주석의 배치 제약). 여기서는 fixed 로
+ * 띄워 조상 overflow 를 벗어난다 — 대신 fixed 는 스크롤을 따라오지 못하므로 스크롤·리사이즈
+ * 에 닫는다(표의 가로 스크롤도 capture 로 잡는다). Term 과 같은 이유로 배치 계산은 열기 전에
+ * 끝낸다 (#250 모바일 축소).
+ *
+ * 위아래 뒤집기는 Term 과 달리 **한다** (PR #260 Codex P2). Term 은 absolute 라 카드가
+ * 문서에 얹혀 스크롤로 따라가 볼 수 있지만, 여기 카드는 fixed 인 데다 스크롤이 곧 닫기라
+ * 뷰포트 아래로 삐져나간 글자는 **영영 읽을 방법이 없다**. 뒤집기 판정에 측정은 쓰지 않는다
+ * — 위아래 여유 공간만 비교해 좁은 쪽을 피하고, 위로 뒤집을 때는 top 이 아니라 bottom 을
+ * 앵커로 잡아 카드가 위로 자라게 한다(높이를 몰라도 아래로 넘칠 일이 없다).
+ */
+export function Abbr({ full, note, children }: { full: string; note: string; children: ReactNode }) {
+  // 뷰포트 기준 배치(px) — 열 때 한 번 계산한다. null = 닫힘.
+  // 세로는 top(아래로 펼침) 또는 bottom(위로 펼침) 중 하나만 값을 갖는다.
+  type Pos = { top?: number; bottom?: number; left: number; width: number; flip: boolean; room: number };
+  const [pos, setPos] = useState<Pos | null>(null);
+  const open = pos !== null;
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const hintId = useId();
+
+  // 가로: 트리거 왼쪽 정렬을 기본으로, 본문 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
+  // 세로: 아래를 기본으로 하되, 아래 여유가 카드 하나 들어갈 만큼도 안 되고 위가 더 넓으면
+  //       위로 뒤집는다. 카드 높이는 재지 않는다 — 위로 뒤집을 때 bottom 앵커를 쓰므로
+  //       높이를 몰라도 아래로 넘치지 않는다.
+  const openHint = () => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const col = wrap.closest("main") ?? document.documentElement;
+    const pad = 8;
+    const r = wrap.getBoundingClientRect();
+    const colRect = col.getBoundingClientRect();
+    const vh = document.documentElement.clientHeight;
+    const width = Math.min(300, colRect.width - pad * 2);
+    const left = Math.max(colRect.left + pad, Math.min(r.left, colRect.right - pad - width));
+
+    const below = vh - r.bottom - pad;
+    const above = r.top - pad;
+    const flip = below < CARD_ROOM && above > below;
+    // 고른 쪽의 실제 여유를 그대로 상한으로 준다 (PR #260 Codex 라운드 2) — 뒤집기는 "더 넓은
+    // 쪽"을 고를 뿐이라 양쪽 다 좁으면(가로 모드 짧은 화면 등) 여전히 넘친다. 넘칠 땐 카드가
+    // 스스로 스크롤되고, 안 넘치면 이 값은 아무것도 하지 않는다.
+    const room = Math.max(flip ? above : below, MIN_CARD);
+    return setPos(
+      flip
+        ? { bottom: vh - r.top, left, width, flip, room }
+        : { top: r.bottom, left, width, flip, room },
+    );
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
+    };
+    // 닫기만 하고 초점은 건드리지 않는다 (PR #260 Codex P2) — 호버로 열린 카드는 트리거가
+    // 초점을 갖고 있지 않으므로, 되돌리면 사용자가 조작 중이던 컨트롤에서 초점을 빼앗는다.
+    // Term 과 달리 카드 안에 초점 가능한 요소가 없어 되돌릴 초점 자체가 없다.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPos(null);
+    };
+    const onShift = () => setPos(null);
+    // 카드가 넘쳐 스스로 스크롤될 때, 그 스크롤까지 닫기로 읽으면 넘친 글자를 읽을 방법이
+    // 다시 없어진다 (PR #260 Codex 라운드 2) — 카드 안에서 난 스크롤만 걸러낸다.
+    const onScroll = (e: Event) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onShift);
+    // capture — 표 래퍼의 가로 스크롤처럼 버블링하지 않는 스크롤도 잡아야 한다
+    window.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onShift);
+      window.removeEventListener("scroll", onScroll, true);
+    };
+  }, [open]);
+
+  return (
+    <span
+      ref={wrapRef}
+      style={{ position: "relative", display: "inline-block" }}
+      // 마우스는 올리면 열리고 벗어나면 닫힌다. 터치·펜은 hover 가 없으므로 탭(click)이
+      // 토글이다 — pointerType 으로 갈라 두 입력이 서로를 방해하지 않게 한다.
+      //
+      // 핸들러가 트리거가 아니라 **래퍼**에 붙는 이유 (PR #260 Codex P2): 카드는 fixed 여도
+      // DOM 상으로는 래퍼의 자손이라, 여기 걸면 카드로 들어가도 pointerleave 가 뜨지 않는다.
+      // 그래서 확대된 설명을 마우스로 좇아가 읽을 수 있다 — 저시력 사용자에게 그게 요점이다.
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse" && !open) openHint();
+      }}
+      // 초점이 아직 안에 있으면 닫지 않는다 (PR #260 Codex 라운드 2) — 호버와 초점은 카드를
+      // 띄우는 **독립된 이유**다. 키보드로 열어 둔 카드가 마우스가 스쳐 지나갔다는 이유로
+      // 닫히면, 키보드·마우스를 섞어 쓰는 사용자는 설명을 잃는다.
+      onPointerLeave={(e) => {
+        if (e.pointerType !== "mouse") return;
+        if (wrapRef.current?.contains(document.activeElement)) return;
+        setPos(null);
+      }}
+      onBlur={(e) => {
+        const to = e.relatedTarget as Node | null;
+        if (to && !wrapRef.current?.contains(to)) setPos(null);
+      }}
+    >
+      <button
+        type="button"
+        className="term-trigger"
+        aria-expanded={open}
+        aria-describedby={open ? hintId : undefined}
+        // 키보드 초점에서만 연다 — 탭·클릭으로 들어온 초점에도 열면 뒤이어 오는 click 이
+        // 토글로 곧장 닫아 버려(focus → click 순서) 터치에서 아무 일도 안 일어난다.
+        onFocus={(e) => {
+          if (!open && e.currentTarget.matches(":focus-visible")) openHint();
+        }}
+        onClick={() => (open ? setPos(null) : openHint())}
+      >
+        {children}
+      </button>
+      {pos && (
+        // 바깥 span 은 자리만 잡는다. 트리거와 카드 사이의 6px 틈을 **투명 패딩으로** 가져가는
+        // 것이 요점이다 (PR #260 Codex P2) — margin 으로 띄우면 그 틈이 래퍼 밖이라 마우스가
+        // 카드로 건너가는 도중 pointerleave 가 떠 카드가 사라진다.
+        <span
+          id={hintId}
+          role="tooltip"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            bottom: pos.bottom,
+            left: pos.left,
+            zIndex: 30,
+            display: "block",
+            width: pos.width,
+            [pos.flip ? "paddingBottom" : "paddingTop"]: 6,
+            boxSizing: "border-box",
+            maxHeight: pos.room,
+          }}
+        >
+          <span
+            style={{
+              display: "block",
+              // 여유를 넘기면 카드가 스스로 스크롤된다 — 바깥 span 의 패딩 6px 을 뺀 만큼이
+              // 실제로 쓸 수 있는 높이다. touch 도 함께 허용해 폰에서도 굴릴 수 있게 한다.
+              maxHeight: pos.room - 6,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+              touchAction: "pan-y",
+              background: C.card,
+              color: C.ink,
+              border: `1px solid ${C.line}`,
+              borderRadius: 10,
+              boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+              padding: "10px 12px",
+              // 트리거가 굵은 표 셀 안에 있어도 카드는 본문 톤을 유지한다
+              fontSize: "0.82rem",
+              fontWeight: 400,
+              lineHeight: 1.65,
+              textAlign: "left",
+              whiteSpace: "normal",
+            }}
+          >
+            <span style={{ display: "block", fontWeight: 700 }}>{full}</span>
+            <span style={{ display: "block", marginTop: 4 }}>{note}</span>
+          </span>
         </span>
       )}
     </span>

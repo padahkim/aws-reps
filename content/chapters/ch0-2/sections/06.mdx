@@ -1,5 +1,5 @@
 import { ChLink, ExamLi, ExamPoint, Fig, SubTitle, Table, WarnBox } from "../../ui";
-import { Term } from "../../interactive";
+import { Abbr, Term } from "../../interactive";
 import { CardGrid, CrossAccountSvg, EvalEngine, InfoCard } from "../figs";
 
 여러 정책이 겹칠 때 AWS가 허용/거부를 결정하는 규칙 — **DVA 최다 출제 지점**입니다. 핵심 한 줄: <b>명시적 Deny &gt; 명시적 Allow &gt; 암묵적 Deny(기본값)</b>. 기본값은 모든 요청 거부이고, 루트 유저만 계정 안에서 정책 연결 없이 기본으로 모든 권한을 갖습니다 — 단 이것도 평가를 건너뛰는 건 아니라서, Organizations <b>멤버 계정의 루트는 <Term id="scp">SCP</Term> 제한을 그대로 받습니다</b>.
@@ -24,12 +24,23 @@ import { CardGrid, CrossAccountSvg, EvalEngine, InfoCard } from "../figs";
 
 {/* 4케이스 진리표는 조건 조합→결과 매트릭스라 표가 원형 그대로 시험 문형이다 — 표 유지. */}
 
+{/* "RW Allow" 는 표를 짧게 쓰려는 약식 표기라 처음 보면 읽히지 않는다 — 세 셀이 같은 힌트를
+    쓰므로 엘리먼트를 한 번만 만들어 재사용한다(React 엘리먼트는 불변 서술자라 안전). */}
+export const RW = (
+  <Abbr
+    full="Read/Write Allow — 읽기·쓰기 허용"
+    note="읽기와 쓰기 액션(예: s3:GetObject·s3:PutObject)을 모두 Allow 하는 정책이 붙어 있다는 뜻입니다. 표를 짧게 쓰려는 약식 표기이지 AWS 용어는 아닙니다."
+  >
+    RW Allow
+  </Abbr>
+);
+
 <Table
   head={["시나리오 (시험 단골 4문형)", "IAM 정책", "버킷 정책", "결과"]}
   rows={[
-    ["케이스 1", "RW Allow", "없음", "✅ 접근 가능"],
-    ["케이스 2", "RW Allow", <b>명시적 Deny</b>, "❌ 접근 불가"],
-    ["케이스 3", "권한 없음", "RW Allow", "✅ 접근 가능 (동일 계정 — 합집합)"],
+    ["케이스 1", RW, "없음", "✅ 접근 가능"],
+    ["케이스 2", RW, <b>명시적 Deny</b>, "❌ 접근 불가"],
+    ["케이스 3", "권한 없음", RW, "✅ 접근 가능 (동일 계정 — 합집합)"],
     ["케이스 4", <b>명시적 Deny</b>, "Allow", "❌ 접근 불가"],
   ]}
 />
