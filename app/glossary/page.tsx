@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { glossary } from "@/lib/content";
 import { GlossaryView } from "./glossary-view";
@@ -26,10 +25,10 @@ export default function GlossaryPage() {
 
   return (
     <>
-      <nav style={{ marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-        <Link href="/">← 홈</Link>
-      </nav>
-
+      {/* 예전에 여기 있던 `← 홈`은 없앴다 (#247) — 전역 앱바의 홈과 같은 목적지이고,
+          왼쪽 화살표라 앱바의 뒤로와 뜻이 겹쳤다. 용어집에서 챕터로 갔다가 돌아오는 길은
+          앱바의 뒤로가 맡는다 (홈이 아니라 **용어집**으로 돌아와야 하므로 이 링크로는
+          애초에 안 되던 일이다). */}
       <header style={{ marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.5rem" }}>용어집</h1>
         <p style={{ color: "var(--muted)" }}>

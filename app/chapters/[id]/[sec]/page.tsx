@@ -99,8 +99,29 @@ export default async function SectionPage({
           marginBottom: "1rem",
         }}
       >
-        <Link href={`/chapters/${id}`}>
-          ← {meta.id} · {meta.title} 목차
+        {/* 화살표를 떼고 리스트 글리프로 낸다 (#247). 이 링크는 "뒤로"가 아니라 **계층 상위**
+            (도착 챕터의 목차)인데, 좌상단 + 왼쪽 화살표라는 옷이 모바일에서는 예외 없이 뒤로로
+            읽혀 왔다 — 앞 섹션으로 가려던 손가락이 목차로 떨어진다. 전역 앱바가 진짜 뒤로를
+            같은 줄 위에 들고 있으므로 두 뜻이 같은 기호를 쓰면 더 나빠진다.
+            규칙: 화살표 = 순차 이동(하단 페이저), 리스트 글리프 = 계층 이동(여기). */}
+        <Link
+          href={`/chapters/${id}`}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+        >
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            style={{ flexShrink: 0 }}
+          >
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+          </svg>
+          {meta.id} · {meta.title} 목차
         </Link>
         <span
           style={{

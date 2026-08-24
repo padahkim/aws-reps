@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AppBar } from "./app-bar";
 import { ServiceWorker } from "./service-worker";
 
 export const metadata: Metadata = {
@@ -29,6 +30,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        {/* 전역 앱바 (#247) — 설치형 PWA 에는 브라우저 뒤로 버튼이 없다. 여기가 이 앱의
+            유일한 되돌아오기 장치이므로 `<main>` 밖, 모든 화면 위에 온다. */}
+        <AppBar />
         <main>{children}</main>
         <ServiceWorker />
       </body>
