@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
+import { chapterPreview } from "../chapter-index";
 import { glossary } from "../glossary";
 import { C, MONO } from "./ui";
 
@@ -755,5 +757,186 @@ export function SelfQuiz({ items, chapterId }: { items: SelfQuizItem[]; chapterI
         </div>
       )}
     </SimFrame>
+  );
+}
+
+/** 상호 참조 트리거의 글자 모양 — 예전 ui.tsx ChLink 의 링크 스타일 그대로다(본문 표기 불변). */
+const CHLINK_TEXT: CSSProperties = {
+  color: "var(--accent)",
+  textDecoration: "underline",
+  textUnderlineOffset: 3,
+};
+
+/**
+ * 다른 챕터로의 인라인 상호 참조 (#248, 에픽 #246) — 탭하면 **이동 대신** 목적지를 화면 아래
+ * 시트로 미리 보여 준다. 실제 사용처 대부분이 "거기로 가고 싶은" 자리가 아니라 "저기서
+ * 다룬다"는 확인이기 때문이다(ch0-1 인트로의 IAM 안내, §02 의 역할·STS 참조 등). 진짜 갈
+ * 의도를 위해 시트 안에 이동 버튼을 남긴다 — href·URL 규칙은 예전 ChLink 그대로다.
+ * (규약이 금지하는 "자체 내비게이션"은 목차·페이저류 UI — 본문 속 개념 링크는 해당 없음.)
+ *
+ * `sec`를 주면 챕터 목차가 아니라 그 섹션 페이지를 가리킨다 (#230) — 링크 문구가 "ch0-1 §01"
+ * 처럼 섹션을 가리키는데 목차로 떨어지면 약속과 도착지가 어긋난다. 값은 섹션 페이지 URL
+ * 번호(1-based, 규약 v2)이지 섹션의 `num`이 아니다 — §00이 있는 챕터는 §01이 2번이다.
+ * id·sec 은 리터럴이어야 한다 (validate-content CHLINK_* 가 목적지를 정적 대조한다).
+ *
+ * ui.tsx 가 아니라 여기 있는 이유: 상태를 갖는 순간 "use client" 경계 안쪽 물건이 된다
+ * (interactive.tsx 머리말 규칙). 미리 보기 재료는 content/chapter-index.ts 의 얇은 색인이다.
+ *
+ * 왜 Term(#193) 같은 그 자리 팝오버가 아니라 화면 아래 고정 시트인가:
+ *   · 상호 참조는 표 셀 안에도 있다(ch0-1 §02 자격 증명 표). absolute 팝오버는 Table 의
+ *     overflow 에 잘린다 — Abbr(#259)이 fixed 로 빠져나간 것과 같은 제약이다.
+ *   · 뷰포트에 고정되면 열 때 위치를 재는 코드 자체가 없어 #250(모바일 화면 축소)을 원천적으로
+ *     피한다. 트리거를 기준으로 잡지 않으므로 Abbr 과 달리 스크롤·리사이즈에 닫을 이유도 없다.
+ * 닫기 규칙은 Term 과 같다: 바깥 pointerdown · Escape(초점을 트리거로 되돌림) · 초점 이탈.
+ */
+export function ChLink({ id, sec, children }: { id: string; sec?: number; children: ReactNode }) {
+  const chapter = chapterPreview(id);
+  const section = sec === undefined ? undefined : chapter?.sections[sec - 1];
+  const href = sec === undefined ? `/chapters/${id}` : `/chapters/${id}/${sec}`;
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const triggerRef = useRef<HTMLAnchorElement>(null);
+
+  // dismiss 규칙과 근거는 Term 주석 참조 — 다른 점은 리사이즈에 닫지 않는다는 것뿐이다
+  // (시트는 트리거가 아니라 뷰포트에 붙어 있어 낡을 배치 값이 없다).
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    // relatedTarget 이 null 인 focusout(시트 여백 클릭 등)은 닫지 않는다 — 바깥 클릭은
+    // pointerdown 이 맡고, 여기서 null 까지 닫으면 시트 본문을 만지는 순간 닫힌다 (Term 과 동일).
+    const onFocusOut = (e: FocusEvent) => {
+      const to = e.relatedTarget as Node | null;
+      if (to && !wrapRef.current?.contains(to)) setOpen(false);
+    };
+    const wrap = wrapRef.current;
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    wrap?.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+      wrap?.removeEventListener("focusout", onFocusOut);
+    };
+  }, [open]);
+
+  // 색인에 없는 목적지 — 검증기가 커밋 전에 잡지만, 런타임 방어로 예전 편도 링크로 떨어진다
+  if (!chapter || (sec !== undefined && section === undefined)) {
+    return (
+      <Link href={href} style={CHLINK_TEXT}>
+        {children}
+      </Link>
+    );
+  }
+
+  const heading = section ? `§${section.num} ${section.title}` : chapter.title;
+  const summary = section ? section.sub : chapter.summary;
+
+  return (
+    // 시트를 문단(p) 안에 두므로 내부는 전부 span 이다 — div/p 를 쓰면 HTML 중첩 위반으로
+    // hydration 이 흔들린다 (Term 과 같은 제약).
+    <span ref={wrapRef} style={{ display: "inline" }}>
+      <a
+        ref={triggerRef}
+        href={href}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        style={CHLINK_TEXT}
+        onClick={(e) => {
+          // 새 탭·새 창으로 여는 관례적 조작(⌘/Ctrl·Shift·가운데 버튼)은 그대로 통과시킨다 —
+          // 그 경우는 미리 보기가 아니라 "진짜 갈 의도"가 분명하다. href 를 남겨 둔 덕에
+          // 하이드레이션 전 탭도 그냥 이동으로 동작한다.
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          setOpen((v) => !v);
+        }}
+      >
+        {children}
+      </a>
+      {open && (
+        <span
+          role="dialog"
+          aria-label={`${heading} 미리 보기`}
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            // 앱바(40)·Abbr 카드(30) 위, 서비스 워커 갱신 알림(.sw-update, 50) 아래
+            zIndex: 45,
+            display: "block",
+            padding: "0 12px calc(12px + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <span
+            style={{
+              display: "block",
+              maxWidth: "32rem",
+              margin: "0 auto",
+              background: C.card,
+              color: C.ink,
+              border: `1px solid ${C.line}`,
+              borderRadius: 14,
+              boxShadow: "0 -6px 24px rgba(23, 30, 38, 0.22)",
+              padding: "14px 16px",
+              // 트리거가 굵은 글씨·표 셀 안에 있어도 시트는 본문 톤을 유지한다
+              fontSize: "0.85rem",
+              fontWeight: 400,
+              lineHeight: 1.65,
+              textAlign: "left",
+              whiteSpace: "normal",
+            }}
+          >
+            {/* 챕터 id 만 MONO — 한글 구절까지 고정폭으로 두면 자간이 벌어져 라벨이 헐거워진다 */}
+            <span style={{ display: "block", fontSize: "0.72rem", color: C.inkSoft }}>
+              <span style={{ fontFamily: MONO }}>{chapter.id}</span>
+              {` · ${section ? chapter.title : chapter.phase}`}
+            </span>
+            <span style={{ display: "block", fontWeight: 700, fontSize: "1rem", margin: "2px 0 4px" }}>
+              {heading}
+            </span>
+            <span style={{ display: "block", color: C.inkSoft }}>{summary}</span>
+            {!section && (
+              <span style={{ display: "block", marginTop: 4, fontSize: "0.78rem", color: C.inkSoft }}>
+                섹션 {chapter.sections.length}개
+              </span>
+            )}
+            <span style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <Link
+                href={href}
+                className="widget-btn"
+                style={{
+                  ...fillBtn(C.blue),
+                  display: "inline-block",
+                  padding: "9px 16px",
+                  textDecoration: "none",
+                }}
+                onClick={() => setOpen(false)}
+              >
+                {section ? "이 섹션으로 이동" : "이 챕터로 이동"} →
+              </Link>
+              <button
+                type="button"
+                className="widget-btn"
+                style={{ ...outlineBtn(C.inkSoft, C.line), padding: "9px 16px" }}
+                onClick={() => {
+                  setOpen(false);
+                  triggerRef.current?.focus();
+                }}
+              >
+                닫기
+              </button>
+            </span>
+          </span>
+        </span>
+      )}
+    </span>
   );
 }
