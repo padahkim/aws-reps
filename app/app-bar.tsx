@@ -131,7 +131,8 @@ function useInAppDepth(pathname: string) {
   }, []);
 
   // 건너뛸 해시 칸 수를 넘기고 비운다. 넘긴 직후 `history.go` 가 여러 칸을 한 번에 지나가므로
-  // 세던 값은 그 자리에서 무효다 (착지한 경로에서 아래 pathname 효과가 한 번 더 비운다).
+  // 세던 값은 그 자리에서 무효다 — 착지한 칸의 셈은 아래 pathname 효과가 그 칸의 표식에서
+  // 다시 잡는다.
   const takeHashSteps = useCallback(() => {
     const n = hashTrail.current.length;
     hashTrail.current = [];
@@ -183,9 +184,24 @@ function useInAppDepth(pathname: string) {
     }
     if (seen.current === pathname) return;
     seen.current = pathname;
-    // 화면이 바뀌었으면 앞 화면에 쌓였던 해시 칸은 더 셀 것이 없다 — 새 화면의 바닥을 다시 잡는다
-    hashTrail.current = [];
-    baseHash.current = window.location.hash;
+    // 되돌아온 칸이면 **그 칸에 적어 둔 셈을 되살린다** (#256). 앞 화면의 셈을 들고 오는 게
+    // 아니다 — 칸마다 제 셈을 `history.state` 에 들고 있고(`stampEntry`), 그 자리로 돌아왔을 때
+    // 다시 읽는 것뿐이다. 되살리지 않으면 용어집으로 되돌아왔을 때 쌓아 둔 해시 칸이 0 으로
+    // 보여, 뒤로가 같은 화면의 해시 없는 칸으로 한 칸만 물러난다 — 눌렀는데 아무 일도 안
+    // 일어나는 헛누름 한 번.
+    //
+    // **#254 에서 기각한 추측 복원과는 다르다**: "돌아온 자리에 해시가 있으면 아래 칸도 같은
+    // 경로겠지"로 지어내면, 용어 팝오버의 `/glossary#id`(전체 새로고침으로 들어와 아래 칸이
+    // **챕터**다)에서 한 칸을 더 건너뛰어 엉뚱한 화면으로 간다. 그 칸이 실제로 들고 있는 셈은
+    // `{ base: "#id", trail: [] }` 이므로 여기서는 0 이 나오고, 뒤로는 그대로 챕터로 간다.
+    //
+    // 새로 쌓은 칸에는 적어 둔 것이 없다 — 그때는 앞 화면의 셈을 버리고 지금 해시를 이 화면의
+    // 바닥으로 잡는다. 되돌아옴을 `wentBack`(popstate)으로 가르는 이유는 계층 상위 replace 다:
+    // 그건 칸을 갈아끼우는 것이라 이전 경로의 표식이 그 칸에 남아 있을 수 있는데, 거기 적힌
+    // 셈은 새 경로의 것이 아니다.
+    const saved = wentBack.current ? readEntryHash() : null;
+    baseHash.current = saved ? saved.base : window.location.hash;
+    hashTrail.current = saved ? saved.trail : [];
     if (climbed.current) {
       climbed.current = false;
       wentBack.current = false;
