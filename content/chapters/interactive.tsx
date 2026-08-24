@@ -787,7 +787,8 @@ const CHLINK_TEXT: CSSProperties = {
  *     overflow 에 잘린다 — Abbr(#259)이 fixed 로 빠져나간 것과 같은 제약이다.
  *   · 뷰포트에 고정되면 열 때 위치를 재는 코드 자체가 없어 #250(모바일 화면 축소)을 원천적으로
  *     피한다. 트리거를 기준으로 잡지 않으므로 Abbr 과 달리 스크롤·리사이즈에 닫을 이유도 없다.
- * 닫기 규칙은 Term 과 같다: 바깥 pointerdown · Escape(초점을 트리거로 되돌림) · 초점 이탈.
+ * 닫기 규칙은 Term 과 같다: 바깥 pointerdown · Escape · 초점 이탈. 초점은 Term 보다 한 발
+ * 더 간다 — 열면 시트로 들어가고 닫으면 트리거로 돌아온다 (시트가 트리거에서 멀기 때문).
  */
 export function ChLink({ id, sec, children }: { id: string; sec?: number; children: ReactNode }) {
   const chapter = chapterPreview(id);
@@ -796,25 +797,38 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
+  const cardRef = useRef<HTMLSpanElement>(null);
+
+  // 닫기는 한 곳으로 모은다: 초점이 **아직 시트 안에 있는 채로** 시트가 사라지면 초점이
+  // body 로 유실되므로 그때만 트리거로 되돌린다. 초점 이탈로 닫히는 경우는 이미 초점이 밖으로
+  // 옮겨간 뒤라(그 시점 activeElement 는 래퍼 밖이다) 남의 초점을 뺏지 않는다.
+  const close = () => {
+    if (wrapRef.current?.contains(document.activeElement)) triggerRef.current?.focus();
+    setOpen(false);
+  };
+
+  // 열리면 시트로 초점을 옮긴다 (PR #264 Codex P2). Term 은 카드가 트리거 바로 옆이라 초점을
+  // 그대로 둬도 되지만, 이 시트는 화면 아래 멀리 뜬다 — 초점이 트리거에 남으면 스크린리더가
+  // 새로 열린 맥락(제목·요약)을 읽지 않고, 다음 Tab 이 그 내용을 건너뛰어 버튼으로 직행한다.
+  useEffect(() => {
+    if (open) cardRef.current?.focus({ preventScroll: true });
+  }, [open]);
 
   // dismiss 규칙과 근거는 Term 주석 참조 — 다른 점은 리사이즈에 닫지 않는다는 것뿐이다
   // (시트는 트리거가 아니라 뷰포트에 붙어 있어 낡을 배치 값이 없다).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
+      if (e.key === "Escape") close();
     };
     // relatedTarget 이 null 인 focusout(시트 여백 클릭 등)은 닫지 않는다 — 바깥 클릭은
     // pointerdown 이 맡고, 여기서 null 까지 닫으면 시트 본문을 만지는 순간 닫힌다 (Term 과 동일).
     const onFocusOut = (e: FocusEvent) => {
       const to = e.relatedTarget as Node | null;
-      if (to && !wrapRef.current?.contains(to)) setOpen(false);
+      if (to && !wrapRef.current?.contains(to)) close();
     };
     const wrap = wrapRef.current;
     document.addEventListener("pointerdown", onDown);
@@ -825,6 +839,7 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
       document.removeEventListener("keydown", onKey);
       wrap?.removeEventListener("focusout", onFocusOut);
     };
+    // close 는 ref 와 setOpen 만 만지므로 open 마다 다시 걸면 충분하다
   }, [open]);
 
   // 색인에 없는 목적지 — 검증기가 커밋 전에 잡지만, 런타임 방어로 예전 편도 링크로 떨어진다
@@ -862,24 +877,36 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
       </a>
       {open && (
         <span
-          role="dialog"
-          aria-label={`${heading} 미리 보기`}
           style={{
             position: "fixed",
             left: 0,
             right: 0,
             bottom: 0,
-            // 앱바(40)·Abbr 카드(30) 위, 서비스 워커 갱신 알림(.sw-update, 50) 아래
-            zIndex: 45,
+            // 앱바(40)·Abbr 카드(30)만이 아니라 서비스 워커 갱신 알림(.sw-update, 50)보다도 위다
+            // (PR #264 Codex P2) — 둘 다 화면 아래 고정이라, 알림이 떠 있는 동안 시트를 열면
+            // 이동·닫기 버튼이 가려져 눌리지 않는다. 시트는 곧 닫히는 일시적 UI라 그동안 알림이
+            // 가려지는 편이 낫고, 알림을 탭하면 바깥 탭으로 시트가 닫혀 알림이 다시 드러난다.
+            zIndex: 60,
             display: "block",
             padding: "0 12px calc(12px + env(safe-area-inset-bottom, 0px))",
           }}
         >
           <span
+            ref={cardRef}
+            role="dialog"
+            aria-label={`${heading} 미리 보기`}
+            tabIndex={-1}
             style={{
               display: "block",
               maxWidth: "32rem",
               margin: "0 auto",
+              // 짧은 화면(가로 모드)·큰 글자에서 카드가 뷰포트보다 높아지면 위쪽 내용이 화면
+              // 밖으로 밀려 **읽을 방법이 없어진다** — 페이지 스크롤로는 fixed 를 따라갈 수 없다.
+              // 그래서 높이를 뷰포트에 묶고 넘치면 카드가 스스로 스크롤한다 (PR #264 Codex P2,
+              // Abbr 이 같은 이유로 room 상한을 둔 것과 같은 처방).
+              maxHeight: "min(70dvh, 26rem)",
+              overflowY: "auto",
+              overscrollBehavior: "contain",
               background: C.card,
               color: C.ink,
               border: `1px solid ${C.line}`,
@@ -926,10 +953,7 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
                 type="button"
                 className="widget-btn"
                 style={{ ...outlineBtn(C.inkSoft, C.line), padding: "9px 16px" }}
-                onClick={() => {
-                  setOpen(false);
-                  triggerRef.current?.focus();
-                }}
+                onClick={close}
               >
                 닫기
               </button>
