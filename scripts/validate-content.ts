@@ -836,7 +836,23 @@ export function validateChapterIndex(
   index: { id: string; title: string; sections: { num: string }[] }[]
 ): Problem[] {
   const problems: Problem[] = [];
-  const byId = new Map(index.map((c) => [c.id, c]));
+
+  // 같은 id 가 두 번 실린 색인은 **검증기와 런타임이 서로 다른 항목을 보게 만든다** (PR #264
+  // Codex P2): Map 은 뒤엣것으로 덮어써서 그걸 대조하는데, 시트가 쓰는 chapterPreview 는
+  // find 라 앞엣것을 읽는다. 낡은 앞 항목 + 맞는 뒤 항목이면 검증은 통과하고 화면만 낡는다.
+  // 그래서 (1) 중복 자체를 위반으로 세우고 (2) 대조 기준을 런타임과 같은 "앞엣것"으로 맞춘다.
+  const byId = new Map<string, (typeof index)[number]>();
+  for (const entry of index) {
+    if (byId.has(entry.id)) {
+      problems.push({
+        chapterId: entry.id,
+        code: "CHAPTER_INDEX_DUPLICATE",
+        message: `content/chapter-index.ts 에 ${entry.id} 가 두 번 있다 — 시트는 앞엣것을 읽으므로 뒤엣것은 조용히 죽는다`,
+      });
+      continue;
+    }
+    byId.set(entry.id, entry);
+  }
 
   for (const { chapterMeta, sections } of chapters) {
     const entry = byId.get(chapterMeta.id);

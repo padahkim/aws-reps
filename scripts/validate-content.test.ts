@@ -726,6 +726,13 @@ expectIndexCaught(
   [...indexOf(), { id: "ch9-9", title: "유령", sections: [] }],
   "CHAPTER_INDEX_ORPHAN"
 );
+// 앞엣것이 낡고 뒤엣것이 맞는 중복 — Map(뒤엣것 승) 대조는 통과시키지만 시트는 find(앞엣것)를
+// 읽어 낡은 미리 보기를 보여 준다. 검출되어야 하는 것은 바로 이 배치다 (PR #264 Codex P2).
+expectIndexCaught(
+  "같은 id 가 두 번 (앞엣것이 낡음)",
+  [{ ...indexOf()[0], title: "옛 제목" }, ...indexOf()],
+  "CHAPTER_INDEX_DUPLICATE"
+);
 
 console.log("\n── 챕터 미리 보기 색인: 통과해야 하는 케이스 ──");
 

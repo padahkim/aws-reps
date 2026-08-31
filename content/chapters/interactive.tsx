@@ -889,6 +889,11 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
             zIndex: 60,
             display: "block",
             padding: "0 12px calc(12px + env(safe-area-inset-bottom, 0px))",
+            // 이 래퍼는 화면 아래를 가로로 꽉 채우므로, 카드(32rem)보다 넓은 화면에서는 좌우에
+            // **투명한 띠**가 생긴다. 그 띠가 포인터를 받으면 두 가지가 동시에 망가진다 (PR
+            // #264 Codex P2): 바깥 탭이 "시트 안 클릭"으로 판정돼 닫히지 않고, 띠 뒤의 본문
+            // 컨트롤도 눌리지 않는다. 그래서 래퍼는 포인터를 통과시키고 카드만 되받는다.
+            pointerEvents: "none",
           }}
         >
           <span
@@ -907,6 +912,8 @@ export function ChLink({ id, sec, children }: { id: string; sec?: number; childr
               maxHeight: "min(70dvh, 26rem)",
               overflowY: "auto",
               overscrollBehavior: "contain",
+              // 래퍼가 포인터를 통과시키므로(위 주석) 카드가 다시 받는다 — 시트 안 조작은 그대로다
+              pointerEvents: "auto",
               background: C.card,
               color: C.ink,
               border: `1px solid ${C.line}`,
