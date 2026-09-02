@@ -31,6 +31,8 @@ export type FigZoomTokens = {
 };
 
 type Lightbox = { html: string; vbw: number; vbh: number };
+/** 오버레이가 덮을 실제 화면 영역 (#267) — layout viewport 가 아니라 visual viewport 기준 */
+type VisualRect = { top: number; left: number; width: number; height: number };
 
 export function FigZoom({
   tokens,
@@ -51,6 +53,15 @@ export function FigZoom({
   // 푸터(캡션+힌트) 실측 높이 — 긴 캡션이 여러 줄로 감기면 고정 예약(4.25rem)을 넘어
   // 도식 하단과 겹친다 (#229 R2). 열 때·리사이즈 때 재고 프레임 하단을 그만큼 비운다.
   const [footerH, setFooterH] = useState(0);
+  // 확대 중인가 — 푸터 힌트가 "지금 실제로 되는 조작"만 말하게 하는 유일한 리렌더 트리거
+  // (#268). 배율의 진실은 아래 view ref 이고 여기 있는 건 불리언 하나라, 맞춤↔확대 경계를
+  // 넘는 순간에만 리렌더가 난다.
+  const [zoomed, setZoomed] = useState(false);
+  // 오버레이가 덮을 영역 (#267) — iOS Safari 는 주소창이 펼쳐진 동안 layout viewport 가
+  // visual viewport 보다 크고 위로 올라가 있다. position:fixed + inset:0 은 그 큰 쪽에
+  // 붙으므로 오버레이 위아래가 브라우저 크롬 밑으로 들어가고, 닫기 버튼 상단이 주소창에
+  // 물렸다. visualViewport 를 따라가 보이는 영역에만 오버레이를 세운다.
+  const [vv, setVv] = useState<VisualRect | null>(null);
 
   // 제스처 상태는 리렌더 없이 ref + 직접 스타일로 다룬다 — pointermove 는 60~120Hz 로 온다
   const view = useRef({ s: 1, tx: 0, ty: 0 }); // stage transform: translate(tx,ty) scale(s), origin 0 0
@@ -58,12 +69,15 @@ export function FigZoom({
   const pinched = useRef(false); // 이번 제스처에 두 손가락이 개입했으면 탭으로 치지 않는다
   const downAt = useRef({ x: 0, y: 0, moved: false });
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
+  const fitAt = useRef(0); // 탭으로 맞춤 배율에 복귀한 시각 — 뒤이은 탭이 닫기로 번지지 않게 (#268)
 
   const apply = () => {
     const el = stageRef.current;
     if (!el) return;
     const { s, tx, ty } = view.current;
     el.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    // 같은 값이면 React 가 리렌더를 건너뛴다 — pointermove 마다 불러도 비용이 없다
+    setZoomed(s > 1.001);
   };
 
   const reset = () => {
@@ -122,6 +136,8 @@ export function FigZoom({
     view.current = { s: 1, tx: 0, ty: 0 };
     pointers.current.clear();
     pinched.current = false;
+    setZoomed(false); // apply() 는 stage 가 생기기 전이라 안 불린다 — 직전 세션의 값을 물려받지 않게
+    fitAt.current = 0;
     setLb({ html, vbw, vbh });
   };
 
@@ -151,7 +167,8 @@ export function FigZoom({
     return px < x0 - pad || px > x0 + w * v.s + pad || py < y0 - pad || py > y0 + h * v.s + pad;
   };
 
-  // 푸터 측정은 페인트 전에 — 측정 전 프레임(bottom 임시값)이 화면에 뜨지 않게 한다
+  // 푸터 측정은 페인트 전에 — 측정 전 프레임(bottom 임시값)이 화면에 뜨지 않게 한다.
+  // zoomed 도 의존성이다: 힌트 문구가 바뀌면 좁은 화면에서 줄 수가 달라진다 (#268)
   useLayoutEffect(() => {
     if (!lb) {
       setFooterH(0);
@@ -161,6 +178,33 @@ export function FigZoom({
     measure();
     window.addEventListener("resize", measure); // 회전 시 캡션 줄 수가 달라진다
     return () => window.removeEventListener("resize", measure);
+  }, [lb, zoomed]);
+
+  // 오버레이를 visual viewport 에 맞춘다 (#267). position:fixed 는 layout viewport 기준인데,
+  // iOS Safari 는 주소창이 펼쳐진 동안 그 둘이 어긋나 오버레이가 브라우저 크롬 밑으로 밀린다
+  // (제보: 닫기 버튼 위쪽 ~14px 이 주소창 뒤). 툴바 접힘·펼침과 키보드 개폐가 모두
+  // visualViewport 의 resize·scroll 로 오므로 그때마다 다시 맞춘다. 미지원 브라우저는
+  // vv 가 null 로 남아 예전 그대로(전체 화면) 동작한다 — 그쪽에는 어긋남 자체가 없다.
+  useLayoutEffect(() => {
+    const target = typeof window === "undefined" ? null : window.visualViewport;
+    if (!lb || !target) {
+      setVv(null);
+      return;
+    }
+    const track = () =>
+      setVv({
+        top: target.offsetTop,
+        left: target.offsetLeft,
+        width: target.width,
+        height: target.height,
+      });
+    track();
+    target.addEventListener("resize", track);
+    target.addEventListener("scroll", track);
+    return () => {
+      target.removeEventListener("resize", track);
+      target.removeEventListener("scroll", track);
+    };
   }, [lb]);
 
   // 열림 동안: 초점 이동·배경 스크롤 잠금·ESC·휠 줌·리사이즈(회전) 시 맞춤 복귀
@@ -281,15 +325,29 @@ export function FigZoom({
     if (!pointers.current.delete(e.pointerId)) return;
     if (e.type === "pointercancel") return;
     if (pinched.current || downAt.current.moved || pointers.current.size > 0) return;
-    // 여기 도달 = 이동 없는 싱글 탭. 더블탭이면 줌 토글, 아니면 "바깥 탭 닫기" 판정.
+    // 여기 도달 = 이동 없는 싱글 탭.
+    if (view.current.s > 1.001) {
+      // 확대 중 (#268): 도식 사각형이 배율만큼 같이 커져 프레임을 덮는 배율부터는 "도식 밖"이
+      // 남지 않는다 — 바깥 탭 닫기가 원리적으로 성립하지 않는 구간이다. 그래서 확대 중의 단일
+      // 탭은 1단계 이탈로 쓴다: 맞춤 배율로 돌아가고, 닫기는 그다음 탭 몫이다. 폰에는 ESC 가
+      // 없으니 이 경로가 없으면 남는 건 닫기 버튼 하나뿐이다.
+      reset();
+      // 이어지는 탭이 더블탭(=재확대)으로 읽히지 않게 탭 이력을 끊는다. 예전 "더블탭 = 맞춤
+      // 복귀"는 첫 탭이 이미 맞춤으로 돌리므로 결과가 같다.
+      lastTap.current = { t: 0, x: 0, y: 0 };
+      fitAt.current = e.timeStamp;
+      return;
+    }
     const lt = lastTap.current;
     if (e.timeStamp - lt.t < 350 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 28) {
       lastTap.current = { t: 0, x: 0, y: 0 };
-      if (view.current.s > 1.01) reset();
-      else zoomAt(e.clientX, e.clientY, 2.5);
+      zoomAt(e.clientX, e.clientY, 2.5); // 맞춤 상태의 더블탭 = 확대 (반대 방향은 위에서 처리)
       return;
     }
     lastTap.current = { t: e.timeStamp, x: e.clientX, y: e.clientY };
+    // 맞춤 복귀 직후의 연타(= 예전 더블탭 습관)는 닫기로 치지 않는다 — 확대를 풀려던 손이
+    // 오버레이째 닫아 버리는 사고를 막는다. 의도적인 두 번째 탭은 이 창을 넘겨서 온다.
+    if (e.timeStamp - fitAt.current < 350) return;
     if (isOutsideContent(e.clientX, e.clientY)) close();
   };
 
@@ -353,7 +411,11 @@ export function FigZoom({
             onPointerCancel={onPointerEnd}
             style={{
               position: "fixed",
-              inset: 0,
+              // vv 가 있으면 보이는 화면에만 세운다 (#267). 없으면(미지원) 예전대로 전체 화면.
+              top: vv ? vv.top : 0,
+              left: vv ? vv.left : 0,
+              width: vv ? vv.width : "100%",
+              height: vv ? vv.height : "100%",
               zIndex: 100, // Term 팝오버(10)·기존 z-index 위 — 전면 모달
               background: tokens.card, // 도식은 흰 카드 전제로 그려졌다 — 다크 테마에서도 흰 캔버스 고정
               touchAction: "none", // 네이티브 스크롤·더블탭 줌을 끊고 Pointer Events 로만 다룬다
@@ -369,9 +431,9 @@ export function FigZoom({
               ref={frameRef}
               style={{
                 position: "absolute",
-                top: "3.25rem",
-                left: "0.75rem",
-                right: "0.75rem",
+                top: "calc(3.25rem + env(safe-area-inset-top, 0px))",
+                left: "max(0.75rem, env(safe-area-inset-left, 0px))",
+                right: "max(0.75rem, env(safe-area-inset-right, 0px))",
                 bottom: footerH + 8,
               }}
             >
@@ -390,8 +452,10 @@ export function FigZoom({
               onClick={close}
               style={{
                 position: "absolute",
-                top: 10,
-                right: 10,
+                // env() 는 지금 전부 0 이다(viewport-fit=cover 미사용 — globals.css .app-bar
+                // 주석). 나중에 cover 로 바꿔도 버튼이 노치에 물리지 않게 미리 걸어 둔다.
+                top: "calc(10px + env(safe-area-inset-top, 0px))",
+                right: "calc(10px + env(safe-area-inset-right, 0px))",
                 width: 40,
                 height: 40,
                 borderRadius: 10,
@@ -425,7 +489,7 @@ export function FigZoom({
                 bottom: 0,
                 transform: "translateX(-50%)",
                 width: "min(44rem, 100%)",
-                padding: "0.5rem 1rem 0.9rem",
+                padding: "0.5rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px))",
                 textAlign: "center",
                 pointerEvents: "none", // 캡션 위에서도 제스처·바깥 탭이 오버레이로 통한다
                 color: tokens.inkSoft,
@@ -433,7 +497,11 @@ export function FigZoom({
             >
               {caption ? <div style={{ fontSize: "0.8rem" }}>{caption}</div> : null}
               <div style={{ fontFamily: tokens.mono, fontSize: "0.66rem", marginTop: 4, opacity: 0.75 }}>
-                핀치·휠·더블탭·+/− = 확대 · 화살표 = 이동 · 빈 곳 탭·ESC = 닫기
+                {/* 배율에 따라 문구를 바꾼다 (#268) — 확대 중에는 "빈 곳"이 남지 않는
+                    구간이 있어 바깥 탭 닫기가 성립하지 않는다. 안 되는 조작을 안내하지 않는다. */}
+                {zoomed
+                  ? "끌기·화살표 = 이동 · 탭·0 = 맞춤으로 · ✕·ESC = 닫기"
+                  : "핀치·휠·더블탭·+/− = 확대 · 빈 곳 탭·ESC = 닫기"}
               </div>
             </div>
           </div>,
