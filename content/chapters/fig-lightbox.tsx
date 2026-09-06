@@ -169,6 +169,9 @@ export function FigZoom({
 
   // 푸터 측정은 페인트 전에 — 측정 전 프레임(bottom 임시값)이 화면에 뜨지 않게 한다.
   // zoomed 도 의존성이다: 힌트 문구가 바뀌면 좁은 화면에서 줄 수가 달라진다 (#268)
+  // vv?.width 도 의존성이다: 오버레이 폭은 visual viewport 를 따라가므로(아래 #267 효과),
+  // 페이지가 이미 핀치 확대된 채 열리거나 window resize 없이 visual viewport 만 좁아지면
+  // 캡션이 새로 감긴다. 그때 다시 재지 않으면 footerH 가 작게 남아 도식이 캡션을 덮는다.
   useLayoutEffect(() => {
     if (!lb) {
       setFooterH(0);
@@ -178,7 +181,7 @@ export function FigZoom({
     measure();
     window.addEventListener("resize", measure); // 회전 시 캡션 줄 수가 달라진다
     return () => window.removeEventListener("resize", measure);
-  }, [lb, zoomed]);
+  }, [lb, zoomed, vv?.width]);
 
   // 오버레이를 visual viewport 에 맞춘다 (#267). position:fixed 는 layout viewport 기준인데,
   // iOS Safari 는 주소창이 펼쳐진 동안 그 둘이 어긋나 오버레이가 브라우저 크롬 밑으로 밀린다
@@ -338,6 +341,11 @@ export function FigZoom({
       fitAt.current = e.timeStamp;
       return;
     }
+    // 맞춤 복귀 직후의 연타(= 예전 더블탭 습관)는 **없던 탭**으로 친다 — 확대를 풀려던 손이
+    // 오버레이째 닫아 버리는 사고를 막는다. 의도적인 두 번째 탭은 이 창을 넘겨서 온다.
+    // 이력(lastTap)에도 남기지 않는 것이 핵심이다: 남기면 쿨다운이 풀린 뒤의 첫 탭이 이
+    // 무시된 탭과 짝지어 더블탭(= 재확대)으로 읽혀, 나가려던 탭이 도로 확대로 되돌아온다.
+    if (e.timeStamp - fitAt.current < 350) return;
     const lt = lastTap.current;
     if (e.timeStamp - lt.t < 350 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 28) {
       lastTap.current = { t: 0, x: 0, y: 0 };
@@ -345,9 +353,6 @@ export function FigZoom({
       return;
     }
     lastTap.current = { t: e.timeStamp, x: e.clientX, y: e.clientY };
-    // 맞춤 복귀 직후의 연타(= 예전 더블탭 습관)는 닫기로 치지 않는다 — 확대를 풀려던 손이
-    // 오버레이째 닫아 버리는 사고를 막는다. 의도적인 두 번째 탭은 이 창을 넘겨서 온다.
-    if (e.timeStamp - fitAt.current < 350) return;
     if (isOutsideContent(e.clientX, e.clientY)) close();
   };
 
