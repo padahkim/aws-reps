@@ -7,6 +7,7 @@
  */
 import {
   validateChLinkRefs,
+  validateChapterIndex,
   validateChapters,
   validateGlossary,
   validateTermRefs,
@@ -666,6 +667,12 @@ expectChLinkCaught(
   'import * as UI from "../../ui";\n<UI.ChLink id={bad} sec={9}>x</UI.ChLink>',
   "CHLINK_IMPORT_ALIASED"
 );
+// ChLink 의 집은 이제 interactive.tsx 다 (#248) — 그쪽 네임스페이스 import 도 같은 우회로다
+expectChLinkCaught(
+  "네임스페이스 import (interactive)",
+  'import * as I from "../../interactive";\n<I.ChLink id={bad} sec={9}>x</I.ChLink>',
+  "CHLINK_IMPORT_ALIASED"
+);
 // 범위 검사만으로는 못 잡는 사고 — 앞에 섹션이 끼어들어 sec 이 밀려도 1..count 안이다
 expectChLinkCaught("밀린 sec (문구와 불일치)", '<ChLink id="ch0-1" sec={2}>ch0-1 §01</ChLink>', "CHLINK_SEC_MISMATCH");
 expectChLinkCaught("문구에 §NN 없음", '<ChLink id="ch0-2" sec={3}>역할</ChLink>', "CHLINK_SEC_UNDECLARED");
@@ -680,6 +687,62 @@ expectChLinkClean("개념어 문구 + §NN 표기", '<ChLink id="ch0-2" sec={3}>
 expectChLinkClean("문구 안에 태그가 섞여도", '<ChLink id="ch0-2" sec={3}><b>역할</b>(ch0-2 §03)</ChLink>');
 expectChLinkClean("ChLink 미사용 파일", "일반 본문 문단.");
 expectChLinkClean("유사 컴포넌트명(ChLinkCard)은 무시", '<ChLinkCard id="ch9-9">x</ChLinkCard>');
+
+// ── 챕터 미리 보기 색인 (#248 — validateChapterIndex) ────────────────────────
+
+/** 레지스트리 쪽 픽스처 — 챕터 2개(ch0-1 섹션 2개, ch0-2 섹션 4개). */
+const INDEX_CHAPTERS = [
+  { chapterMeta: { id: "ch0-1", title: "AWS 기초" }, sections: sectionsUpTo(2) },
+  { chapterMeta: { id: "ch0-2", title: "IAM" }, sections: sectionsUpTo(4) },
+];
+
+/** 그 레지스트리와 맞는 색인 (over 로 한 항목만 어긋뜨려 쓴다). */
+function indexOf(over: Partial<{ id: string; title: string; sections: { num: string }[] }>[] = []) {
+  return INDEX_CHAPTERS.map(({ chapterMeta, sections }, i) => ({
+    id: chapterMeta.id,
+    title: chapterMeta.title,
+    sections: sections.map((s) => ({ num: s.num })),
+    ...(over[i] ?? {}),
+  }));
+}
+
+function expectIndexCaught(label: string, index: ReturnType<typeof indexOf>, code: string) {
+  const found = codes(validateChapterIndex(INDEX_CHAPTERS, index));
+  if (found.has(code)) {
+    console.log(`  ✓ ${label} → ${code}`);
+  } else {
+    failures++;
+    console.error(`  ✗ ${label}: ${code} 기대했으나 미검출 (검출: ${[...found].join(", ") || "없음"})`);
+  }
+}
+
+console.log("\n── 챕터 미리 보기 색인: 검출되어야 하는 위반 ──");
+
+expectIndexCaught("색인에 빠진 챕터", indexOf().slice(0, 1), "CHAPTER_INDEX_MISSING");
+expectIndexCaught("낡은 제목", indexOf([{ title: "옛 제목" }]), "CHAPTER_INDEX_STALE");
+expectIndexCaught("섹션이 밀린 색인", indexOf([{ sections: [{ num: "01" }] }]), "CHAPTER_INDEX_STALE");
+expectIndexCaught(
+  "레지스트리에 없는 챕터",
+  [...indexOf(), { id: "ch9-9", title: "유령", sections: [] }],
+  "CHAPTER_INDEX_ORPHAN"
+);
+// 앞엣것이 낡고 뒤엣것이 맞는 중복 — Map(뒤엣것 승) 대조는 통과시키지만 시트는 find(앞엣것)를
+// 읽어 낡은 미리 보기를 보여 준다. 검출되어야 하는 것은 바로 이 배치다 (PR #264 Codex P2).
+expectIndexCaught(
+  "같은 id 가 두 번 (앞엣것이 낡음)",
+  [{ ...indexOf()[0], title: "옛 제목" }, ...indexOf()],
+  "CHAPTER_INDEX_DUPLICATE"
+);
+
+console.log("\n── 챕터 미리 보기 색인: 통과해야 하는 케이스 ──");
+
+const indexClean = validateChapterIndex(INDEX_CHAPTERS, indexOf());
+if (indexClean.length === 0) {
+  console.log("  ✓ 레지스트리와 일치하는 색인 → 통과");
+} else {
+  failures++;
+  console.error(`  ✗ 일치하는 색인: 통과 기대했으나 위반 ${indexClean.length}건`);
+}
 
 console.log("");
 if (failures === 0) {

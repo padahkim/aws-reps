@@ -736,7 +736,9 @@ const CHLINK_SEC_LABEL = /§(\d{2,})/;
 const CHLINK_ALIAS_IMPORT = /import\s+(?:type\s+)?\{[^}]*\bChLink\s+as\b[^}]*\}/;
 // 네임스페이스 import 는 사용부가 <ChLink 이 아니게 되어(<UI.ChLink>) 위 스캔에 안 보인다 —
 // Term 이 같은 우회로를 막은 것과 같은 이유로 import 자체를 위반으로 잡는다 (PR #232 Codex 라운드 2).
-const CHLINK_NS_IMPORT = /import\s*\*\s*as\s+\w+\s+from\s+["'][^"']*\/ui["']/;
+// ui·interactive 를 둘 다 본다: ChLink 의 집은 interactive.tsx 이지만(#248 — 상태를 갖게 됐다),
+// 예전 자리를 그대로 네임스페이스로 끌어와도 스캔이 뚫리는 건 마찬가지다.
+const CHLINK_NS_IMPORT = /import\s*\*\s*as\s+\w+\s+from\s+["'][^"']*\/(?:ui|interactive)["']/;
 
 export function validateChLinkRefs(
   files: { path: string; source: string }[],
@@ -821,6 +823,79 @@ export function validateChLinkRefs(
   return problems;
 }
 
+/**
+ * 챕터 미리 보기 색인(content/chapter-index.ts) ↔ 레지스트리 대조 (#248).
+ *
+ * 색인은 <ChLink> 시트가 클라이언트에서 읽는 얇은 사본이다 — registry 를 그대로 끌어오면
+ * 퀴즈·세션·셀프 퀴즈까지 본문 번들에 실리기 때문에 따로 둔 것이고(그쪽 머리말 참조),
+ * 사본인 이상 어긋날 수 있다. 어긋나면 화면은 멀쩡한데 미리 보기만 조용히 빈 채로 남으므로
+ * 빌드에서 막는다. 대조 대상은 id·제목·섹션 num 열 — 시트가 실제로 읽는 것들이다.
+ */
+export function validateChapterIndex(
+  chapters: { chapterMeta: { id: string; title: string }; sections: SectionMeta[] }[],
+  index: { id: string; title: string; sections: { num: string }[] }[]
+): Problem[] {
+  const problems: Problem[] = [];
+
+  // 같은 id 가 두 번 실린 색인은 **검증기와 런타임이 서로 다른 항목을 보게 만든다** (PR #264
+  // Codex P2): Map 은 뒤엣것으로 덮어써서 그걸 대조하는데, 시트가 쓰는 chapterPreview 는
+  // find 라 앞엣것을 읽는다. 낡은 앞 항목 + 맞는 뒤 항목이면 검증은 통과하고 화면만 낡는다.
+  // 그래서 (1) 중복 자체를 위반으로 세우고 (2) 대조 기준을 런타임과 같은 "앞엣것"으로 맞춘다.
+  const byId = new Map<string, (typeof index)[number]>();
+  for (const entry of index) {
+    if (byId.has(entry.id)) {
+      problems.push({
+        chapterId: entry.id,
+        code: "CHAPTER_INDEX_DUPLICATE",
+        message: `content/chapter-index.ts 에 ${entry.id} 가 두 번 있다 — 시트는 앞엣것을 읽으므로 뒤엣것은 조용히 죽는다`,
+      });
+      continue;
+    }
+    byId.set(entry.id, entry);
+  }
+
+  for (const { chapterMeta, sections } of chapters) {
+    const entry = byId.get(chapterMeta.id);
+    if (entry === undefined) {
+      problems.push({
+        chapterId: chapterMeta.id,
+        code: "CHAPTER_INDEX_MISSING",
+        message: `content/chapter-index.ts 에 ${chapterMeta.id} 가 없다 — 그 챕터를 가리키는 <ChLink> 미리 보기가 빈다`,
+      });
+      continue;
+    }
+    if (entry.title !== chapterMeta.title) {
+      problems.push({
+        chapterId: chapterMeta.id,
+        code: "CHAPTER_INDEX_STALE",
+        message: `content/chapter-index.ts: ${chapterMeta.id} 제목이 "${entry.title}" 인데 메타는 "${chapterMeta.title}" 이다`,
+      });
+    }
+    const nums = sections.map((s) => s.num).join(",");
+    const indexNums = entry.sections.map((s) => s.num).join(",");
+    if (nums !== indexNums) {
+      problems.push({
+        chapterId: chapterMeta.id,
+        code: "CHAPTER_INDEX_STALE",
+        message: `content/chapter-index.ts: ${chapterMeta.id} 섹션 목록이 어긋난다 (색인 [${indexNums}] ≠ 메타 [${nums}])`,
+      });
+    }
+  }
+
+  const registered = new Set(chapters.map((c) => c.chapterMeta.id));
+  for (const entry of index) {
+    if (!registered.has(entry.id)) {
+      problems.push({
+        chapterId: entry.id,
+        code: "CHAPTER_INDEX_ORPHAN",
+        message: `content/chapter-index.ts 의 ${entry.id} 는 레지스트리에 없는 챕터다`,
+      });
+    }
+  }
+
+  return problems;
+}
+
 /** 이 파일이 직접 실행됐는지 (import 되었는지 아닌지) — ESM 판별. */
 function isMain(): boolean {
   return Boolean(process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href);
@@ -842,6 +917,7 @@ function collectChapterSources(): { path: string; source: string }[] {
 async function main(): Promise<void> {
   const { registry } = await import("../content/registry.ts");
   const { glossary } = await import("../content/glossary.ts");
+  const { chapterIndex } = await import("../content/chapter-index.ts");
   const chapters = registry.map((entry) => entry.data);
   const sources = collectChapterSources();
   const problems = [
@@ -849,6 +925,7 @@ async function main(): Promise<void> {
     ...validateGlossary(glossary, chapters),
     ...validateTermRefs(sources, new Set(glossary.map((t) => t.id))),
     ...validateChLinkRefs(sources, chapters),
+    ...validateChapterIndex(chapters, chapterIndex),
   ];
 
   if (problems.length === 0) {

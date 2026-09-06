@@ -32,6 +32,10 @@
  *   content/chapters/ui.tsx              — 전 챕터 공용 프리미티브·상수 (팔레트 C, MONO·SANS,
  *                                          Sec·Table·ExamPoint·CodeBlock·WarnBox·Fig 등)
  *   content/chapters/interactive.tsx     — 인터랙티브 공용 프레임·버튼 (SimFrame·SelfQuiz·chipBtn 등)
+ *                                          + 본문 트리거 3종 (Term·Abbr·ChLink — 상태를 가지므로
+ *                                          ui.tsx 가 아니라 "use client" 경계인 이쪽에 산다)
+ *   content/chapter-index.ts             — 챕터 미리 보기 색인 (#248) — <ChLink> 시트가 클라이언트에서
+ *                                          읽는 얇은 사본. registry 와의 일치는 검증기가 지킨다
  *   content/glossary.ts                  — 전역 용어집 (GlossaryTerm[]) — 챕터 소속이 아닌 전역
  *                                          자산. 본문 팝오버(#193)·/glossary 페이지(#192)가 소비 (#57 결정)
  *
