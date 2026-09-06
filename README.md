@@ -34,7 +34,7 @@ AWS Certified Developer – Associate(DVA-C02) 시험을 **한국어로, 읽기�
 | **인출 카드** | 섹션 본문 **뒤** | 방금 읽은 개념을 보지 않고 말로 꺼내 본다 |
 | **셀프 퀴즈** | 섹션 끝 | 미리 보는 질문의 답을 여기서 맞춰 본다 |
 | **챕터 퀴즈** | 챕터 끝 | 채점되는 확인 문항 |
-| **오답 노트** | 상시 | 틀린 문항을 **Leitner 3상자**로 굴려 기한이 된 것만 다시 낸다 |
+| **오답 노트** | 상시 | 틀린 문항을 **Leitner 3상자**로 굴린다. 복습 큐는 기한이 된 것만 내고, 별도의 **자유 연습 모드**로 졸업한 문항까지 범위를 골라 더 풀 수 있다 |
 
 콘텐츠 쪽에도 규칙을 하나 뒀다 — **학습자가 답할 수 없는 것은 묻지 않는다.** 이 사이트의 독자는 "개발자지만 AWS는 처음이고 AWS 시험도 처음"인 사람이라, "이게 시험에 어떤 함정으로 나오나?" 같은 물음은 인출이 아니라 이탈을 만든다. 시험 메타지식은 **묻지 않고 알려주는 쪽**(모범 답변·해설)에 얹는다.
 
@@ -54,7 +54,7 @@ AWS Certified Developer – Associate(DVA-C02) 시험을 **한국어로, 읽기�
 
 ### 콘텐츠의 사실 검증
 
-AWS 서비스 한도·동작은 틀리기 쉽고 틀리면 학습앱으로서 치명적이라, 수치성 주장은 **공식 문서 URL과 확인일을 남기는 캐시**([`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md))로 관리했다. 챕터별 교정 지시는 [`docs/reports/`](docs/reports)에 남아 있고, 각 챕터의 `meta.ts` 머리말이 자기가 반영한 리포트를 출처로 명시한다.
+AWS 서비스 한도·동작은 틀리기 쉽고 틀리면 학습앱으로서 치명적이라, 수치성 주장은 **공식 문서 URL과 확인일을 남기는 캐시**([`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md))로 관리했다. 챕터별 교정 지시는 리포트로 남아 있고 — 아직 적용 중인 것은 [`docs/reports/`](docs/reports)에, 소임이 끝난 것은 [`docs/_frozen/reports/`](docs/_frozen/reports)에 있다 — 각 챕터의 `meta.ts` 머리말이 자기가 반영한 리포트를 출처로 명시한다.
 
 ---
 
@@ -80,7 +80,7 @@ npm run dev     # http://localhost:3000
 npm run build   # prebuild가 validate + 라우트 생성을 선행
 ```
 
-Node 버전은 `.nvmrc`(**24**)가 정본이다 — 검증·빌드 스크립트를 Node가 TS 그대로 실행하기 때문에 그보다 낮으면 `dev`는 떠도 `validate`·`build`가 깨진다. 패키지 매니저는 **npm 고정**.
+Node 버전은 `.nvmrc`(**24**)가 정본이다 — 로컬과 CI가 이 파일을 함께 읽는다. 실질 하한은 **22.18+**로, 검증·빌드 스크립트를 Node가 TS 그대로 실행하기 때문에 네이티브 타입 스트리핑이 안정화된 버전이 필요하다. Node 20에서는 `dev`는 떠도 `validate`·`build`가 깨진다. 패키지 매니저는 **npm 고정**.
 
 **구조를 자세히 보려면 → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** (디렉터리 지도·콘텐츠 파이프라인·빌드 게이트·다이어그램). 문서 전체 지도는 [`docs/README.md`](docs/README.md), 프로젝트 규칙은 [`CLAUDE.md`](CLAUDE.md).
 
