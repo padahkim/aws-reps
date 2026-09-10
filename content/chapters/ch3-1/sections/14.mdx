@@ -1,0 +1,31 @@
+import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
+import { CombinedArchSvg } from "../figs";
+
+챕터를 한 장으로 접습니다. 두 풀의 차이를 항목별로 세우면 이렇게 갈립니다.
+
+<Table
+  head={["구분", "User Pool (CUP)", "Identity Pool (CIP)"]}
+  rows={[
+    ["역할", <>인증 — 신원 확인</>, <>인가 — AWS 접근 권한</>],
+    ["산출물", <><b>JWT 토큰</b></>, <><b>임시 AWS 자격 증명</b> (STS)</>],
+    ["사용자 DB", <>서버리스 사용자 DB를 자체 보유</>, <>없다 — 외부 토큰을 교환만 한다</>],
+    ["연합 로그인", <>Google·Facebook·SAML·OIDC로 로그인시킨다</>, <>User Pool·소셜·SAML·OIDC·커스텀을 <b>소스로 수용</b>한다</>],
+    ["게스트", <>불가 — 로그인이 목적이다</>, <><b>가능</b> — 미인증 역할을 준다</>],
+    ["권한 제어", <>—</>, <>IAM 역할 + 정책 변수로 세분화</>],
+    ["주 통합처", <>API Gateway · ALB</>, <>S3 · DynamoDB 등 AWS 서비스 직접</>],
+  ]}
+/>
+
+둘은 경쟁 관계가 아니라 <b>이어 쓰는 관계</b>입니다. 가장 완전한 형태는 User Pool로 로그인시키고, 그 토큰을 Identity Pool에 넘겨 AWS 자격 증명으로 바꾸는 조합입니다.
+
+<Fig caption="CUP + CIP 조합 — 로그인(①)과 AWS 접근 권한(②)을 각각 다른 풀이 맡는다">
+  <CombinedArchSvg />
+</Fig>
+
+<Note>모든 앱이 둘 다 필요한 건 아닙니다. 백엔드 API만 지키면 되면 <b>User Pool 하나로 끝</b>이고(§07의 API Gateway 조합), 사용자가 S3에 파일을 직접 올려야 할 때 비로소 Identity Pool이 필요해집니다. “둘 다 써야 한다”가 항상 정답은 아닙니다.</Note>
+
+<ExamPoint>
+  <ExamLi>한 줄 암기 — <b>CUP는 “너 누구야?”, CIP는 “뭘 할 수 있어?”</b>.</ExamLi>
+  <ExamLi>산출물로 가른다 — <b>JWT면 CUP, 임시 AWS 자격 증명이면 CIP</b>.</ExamLi>
+  <ExamLi>게스트 지원, 정책 변수 격리는 <b>CIP 쪽에만</b> 있는 항목이다.</ExamLi>
+</ExamPoint>

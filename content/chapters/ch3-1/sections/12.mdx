@@ -1,0 +1,20 @@
+import { Code, CodeBlock, ExamLi, ExamPoint, Note } from "../../ui";
+import { ChLink, Term } from "../../interactive";
+
+임시 자격 증명을 줬다고 끝이 아닙니다. 사용자 백만 명이 <b>같은 버킷·같은 테이블</b>을 쓰는데 서로의 데이터가 보이면 안 됩니다. 사용자마다 버킷을 만들 수는 없으니, 해법은 <b>정책 하나로 각자의 몫만 열어 주는 것</b>입니다.
+
+<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>에서 본 <b>정책 변수</b>가 여기서 쓰입니다. Cognito가 발급한 자격 증명에는 그 사용자의 고유 ID(§06에서 본 <Code>sub</Code>)가 실려 있고, 정책 안에서 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code>로 그 값을 참조할 수 있습니다.
+
+<CodeBlock title="S3 — 자기 프리픽스만 접근">{`"Condition": {\n  "StringLike": {\n    "s3:prefix": ["\${cognito-identity.amazonaws.com:sub}/*"]\n  }\n}`}</CodeBlock>
+
+<CodeBlock title="DynamoDB — 자기 행(row)만 접근">{`"Condition": {\n  "ForAllValues:StringEquals": {\n    "dynamodb:LeadingKeys": ["\${cognito-identity.amazonaws.com:sub}"]\n  }\n}`}</CodeBlock>
+
+<Term id="dynamodb">DynamoDB</Term> 쪽의 <Code>dynamodb:LeadingKeys</Code>는 <b>파티션 키</b>를 가리킵니다. 파티션 키를 사용자 ID로 설계해 두면, 이 조건 한 줄이 “자기 파티션 키를 가진 항목만 읽고 쓴다”가 됩니다.
+
+<Note>같은 정책 문서가 사용자마다 <b>다르게 해석</b>된다는 것이 요점입니다 — 정책은 하나인데, 실행 시점에 그 사용자의 ID로 치환되어 각자에게 다른 범위가 적용됩니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“한 테이블·한 버킷을 수백만 사용자가 공유하되 자기 데이터만” → <b>정책 변수(Policy Variable)</b>다.</ExamLi>
+  <ExamLi>S3는 <Code>s3:prefix</Code>, DynamoDB는 <Code>dynamodb:LeadingKeys</Code>(= 파티션 키). 이 두 키 이름이 그대로 선택지로 나온다.</ExamLi>
+  <ExamLi>변수는 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code> 형태다 — <Code>sub</Code>가 사용자 고유 ID라는 §06의 사실과 이어진다.</ExamLi>
+</ExamPoint>

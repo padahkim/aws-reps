@@ -1,0 +1,30 @@
+import { Code, ExamLi, ExamPoint, Note, Table, WarnBox } from "../../ui";
+import { Term } from "../../interactive";
+import { AlbAuthFlow } from "../figs";
+
+토큰을 쓰는 두 번째 자리가 <Term id="alb">ALB</Term>입니다. API Gateway가 토큰을 <b>검증</b>했다면, ALB는 한 걸음 더 나아가 <b>로그인 자체를 대신 수행</b>합니다 — 애플리케이션에서 인증 코드를 통째로 걷어낼 수 있어 <b>인증 오프로드</b>라고 부릅니다.
+
+<AlbAuthFlow />
+
+<WarnBox>인증 규칙은 <b>HTTPS 리스너에서만</b> 설정할 수 있습니다. HTTP 리스너에는 <Code>authenticate-cognito</Code>·<Code>authenticate-oidc</Code> 액션을 걸 수 없습니다 — 자격 증명이 평문으로 오갈 수 없기 때문입니다.</WarnBox>
+
+붙이는 방식은 둘입니다. <b>authenticate-cognito</b>는 User Pool을 앞세우는 방식으로, User Pool·앱 클라이언트·User Pool 도메인이 필요하고 IdP 쪽에 <b>콜백 URL로 ALB 주소</b>를 허용해 둬야 합니다. <b>authenticate-oidc</b>는 OIDC 호환 IdP에 직접 연결하는 방식이라, Authorization·Token·User Info 엔드포인트와 Client ID·Secret을 손으로 넣습니다.
+
+미인증 요청을 어떻게 다룰지는 <Code>OnUnauthenticatedRequest</Code>가 정합니다.
+
+<Table
+  head={["값", "동작"]}
+  rows={[
+    [<><Code>authenticate</Code> <b>(기본값)</b></>, <>IdP 로그인 페이지로 리다이렉트한다</>],
+    [<><Code>deny</Code></>, <>요청을 거부한다 — <b>HTTP 401</b>을 반환</>],
+    [<><Code>allow</Code></>, <>인증 없이 그대로 통과시킨다</>],
+  ]}
+/>
+
+<Note><Code>allow</Code>가 있는 이유는 <b>일부 경로만 공개</b>하고 싶을 때가 있기 때문입니다 — 리스너 규칙은 경로별로 걸 수 있으므로, 첫 화면은 <Code>allow</Code>, 내 정보 페이지는 <Code>authenticate</Code>로 가를 수 있습니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“<b>애플리케이션 코드 수정 없이</b> 사용자 인증을 추가” → <b>ALB + authenticate-cognito/oidc</b>.</ExamLi>
+  <ExamLi>전제 조건은 <b>HTTPS 리스너</b> — “인증 규칙이 안 걸린다”는 지문의 원인으로 나온다.</ExamLi>
+  <ExamLi>세 옵션 중 <b>기본값은 authenticate</b>, <b>deny는 401</b>이다. 이 두 값이 정답 지점이다.</ExamLi>
+</ExamPoint>
