@@ -176,7 +176,7 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-adaptive-risk-levels",
     section: "10",
-    q: "위험 점수 낮음·중간·높음에 대한 대응은 각각 무엇인가?",
+    q: "위험 점수가 낮음·중간·높음일 때의 대응은 각각 무엇인가?",
     a: "낮음은 그대로 통과, 중간·높음은 MFA를 추가로 요구하거나 차단한다 — 점수가 곧 요구 수준이다.",
   },
   {
@@ -207,7 +207,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     a: "cognito-identity.amazonaws.com이다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 실제 발급은 STS가 한다.",
   },
 
-  // ── 12 Policy Variable ───────────────────────────────────────────────
+  // ── 12 정책 변수 ─────────────────────────────────────────────────────
   {
     slug: "sq-policyvar-condition-keys",
     section: "12",
@@ -238,7 +238,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-alb-offload-purpose",
     section: "13",
     q: "“애플리케이션 코드를 고치지 않고 사용자 인증을 추가하라”의 답은?",
-    a: "ALB의 authenticate-cognito 또는 authenticate-oidc 액션이다 — ALB가 인증을 대신 수행해 백엔드는 인증 코드를 갖지 않는다.",
+    a: "ALB의 authenticate-cognito 또는 authenticate-oidc 액션이다 — ALB가 인증을 대신 수행해 백엔드에는 인증 코드가 없다.",
   },
 
   // ── 14 조합과 총정리 ─────────────────────────────────────────────────

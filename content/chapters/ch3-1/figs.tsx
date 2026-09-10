@@ -318,7 +318,7 @@ function cipFlowSvg(step: number) {
 
       <rect x="376" y="252" width="296" height="62" rx="10" style={box(s(3), C.blueSoft, C.blue)} />
       <text x="524" y="278" textAnchor="middle" style={label(s(3), C.blue)}>S3 · DynamoDB 직접 접근</text>
-      <text x="524" y="298" textAnchor="middle" style={label(s(3), C.ink, 11)}>IAM 정책 + Policy Variable 로 범위 제한</text>
+      <text x="524" y="298" textAnchor="middle" style={label(s(3), C.ink, 11)}>IAM 정책 + 정책 변수로 범위 제한</text>
 
       <rect x="52" y="252" width="248" height="62" rx="10" style={box(s(4), C.redSoft, C.red)} />
       <text x="176" y="278" textAnchor="middle" style={label(s(4), C.red)}>게스트(미인증)도 가능</text>
@@ -396,7 +396,7 @@ export function AlbAuthFlow() {
         "사용자가 ALB의 HTTPS 리스너로 요청을 보낸다. (HTTP 리스너에는 인증 규칙을 걸 수 없다)",
         "리스너 규칙의 authenticate-cognito 액션이 이 요청이 인증된 것인지 확인한다.",
         "미인증이면 Cognito Hosted UI로 리다이렉트해 로그인시키고, 세션 쿠키를 발급한다.",
-        "인증이 끝난 요청만 타깃 그룹(백엔드)으로 전달된다 — 백엔드는 인증 코드를 갖지 않는다.",
+        "인증이 끝난 요청만 타깃 그룹(백엔드)으로 전달된다 — 백엔드에는 인증 코드가 없다.",
       ]}
       render={albFlowSvg}
     />

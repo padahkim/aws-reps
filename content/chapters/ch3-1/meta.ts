@@ -36,7 +36,7 @@ export const chapterMeta: ChapterMeta = {
     "User Pool(인증)과 Identity Pool(인가)을 갈라, 시나리오가 어느 쪽을 묻는지 고른다",
     "ID·Access·Refresh 세 토큰의 용도와 수명을 각각 구분해 설명한다",
     "로그인으로 받은 토큰이 API Gateway·ALB·STS 중 어디로 흘러가는지 경로를 그린다",
-    "Policy Variable로 버킷 하나·테이블 하나를 사용자별로 격리하는 정책을 읽는다",
+    "정책 변수로 버킷 하나·테이블 하나를 사용자별로 격리하는 정책을 읽는다",
     "us-east-1 인증서·HTTPS 리스너·401 같은 조건을 시험장에서 바로 떠올린다",
   ],
   parts: [
@@ -81,7 +81,7 @@ export const sections: SectionMeta[] = [
   { num: "09", title: "Lambda 트리거", sub: "인증 라이프사이클 8개 시점의 후크", freq: "mid", freqLabel: "빈출 ★★☆ · 시점↔트리거 매칭" },
   { num: "10", title: "적응형 인증", sub: "위험도에 따라 MFA를 더 요구한다", freq: "lo", freqLabel: "보통 ★☆☆ · 지엽 포인트" },
   { num: "11", title: "Identity Pool = 인가", sub: "토큰을 STS 임시 자격 증명으로 바꾼다", freq: "hi", freqLabel: "최빈출 ★★★ · CIP의 정의" },
-  { num: "12", title: "Policy Variable로 사용자별 격리", sub: "s3:prefix · dynamodb:LeadingKeys", freq: "hi", freqLabel: "최빈출 ★★★ · 정책 지문 그대로 출제" },
+  { num: "12", title: "정책 변수로 사용자별 격리", sub: "s3:prefix · dynamodb:LeadingKeys", freq: "hi", freqLabel: "최빈출 ★★★ · 정책 지문 그대로 출제" },
   { num: "13", title: "ALB 인증 오프로드", sub: "HTTPS 리스너에서 인증을 끝낸다", freq: "mid", freqLabel: "빈출 ★★☆ · 코드 수정 없는 인증" },
   { num: "14", title: "CUP + CIP 조합과 총정리", sub: "인증은 CUP, 인가는 CIP", freq: "hi", freqLabel: "최빈출 ★★★ · 비교표 통째로 출제" },
 ];
