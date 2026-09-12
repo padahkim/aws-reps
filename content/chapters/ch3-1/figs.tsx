@@ -407,18 +407,18 @@ export function AlbAuthFlow() {
 
 export function CombinedArchSvg() {
   return (
-    <SvgFrame vb="0 0 700 230" aria="CUP으로 로그인해 JWT를 받고, CIP가 그것을 임시 AWS 자격 증명으로 바꿔 AWS 리소스에 접근한다">
+    <SvgFrame vb="0 0 700 230" aria="CUP으로 로그인해 ID 토큰을 받고, CIP가 그것을 임시 AWS 자격 증명으로 바꿔 AWS 리소스에 접근한다">
       <circle cx="52" cy="112" r="24" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
       <text x="52" y="118" textAnchor="middle" fontSize="16">👤</text>
 
       <rect x="134" y="72" width="166" height="82" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
       <text x="217" y="100" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.amberText}>① CUP 로그인</text>
-      <text x="217" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>인증 → JWT 발급</text>
+      <text x="217" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>인증 → ID 토큰</text>
       <text x="217" y="138" textAnchor="middle" fontSize="10.5" fill={C.ink}>(소셜·SAML 연합 포함)</text>
 
       <rect x="356" y="72" width="166" height="82" rx="10" fill={C.tealSoft} stroke={C.teal} strokeWidth="2" />
       <text x="439" y="100" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.teal}>② CIP 교환</text>
-      <text x="439" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>JWT → 임시 AWS</text>
+      <text x="439" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>ID 토큰 → 임시 AWS</text>
       <text x="439" y="138" textAnchor="middle" fontSize="10.5" fill={C.ink}>자격 증명 (STS)</text>
 
       <rect x="578" y="72" width="100" height="82" rx="10" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />

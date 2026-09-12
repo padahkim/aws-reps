@@ -1,4 +1,4 @@
-import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
+import { Code, ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
 import { CombinedArchSvg } from "../figs";
 
 챕터를 한 장으로 접습니다. 두 풀의 차이를 항목별로 세우면 이렇게 갈립니다.
@@ -16,9 +16,9 @@ import { CombinedArchSvg } from "../figs";
   ]}
 />
 
-둘은 경쟁 관계가 아니라 <b>이어 쓰는 관계</b>입니다. 가장 완전한 형태는 User Pool로 로그인시키고, 그 토큰을 Identity Pool에 넘겨 AWS 자격 증명으로 바꾸는 조합입니다.
+둘은 경쟁 관계가 아니라 <b>이어 쓰는 관계</b>입니다. 가장 완전한 형태는 User Pool로 로그인시키고, 받은 토큰 중 <b>ID 토큰</b>을 Identity Pool의 <Code>Logins</Code> 맵에 넣어 AWS 자격 증명으로 바꾸는 조합입니다. Access·Refresh 토큰은 이 자리에 대신 넣지 않습니다.
 
-<Fig caption="CUP + CIP 조합 — 로그인(①)과 AWS 접근 권한(②)을 각각 다른 풀이 맡는다">
+<Fig caption="CUP + CIP 조합 — CUP의 ID 토큰을 CIP가 임시 AWS 자격 증명으로 바꾼다">
   <CombinedArchSvg />
 </Fig>
 

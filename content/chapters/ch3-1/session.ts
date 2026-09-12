@@ -85,7 +85,7 @@ export const session: SessionData = {
       a: "Header(서명 알고리즘·키 ID) · Payload(사용자 정보 = 클레임) · Signature(위·변조 검증용 서명)를 점으로 이어 붙인 한 줄 문자열이다.\nPayload는 암호화가 아니라 서명이라 base64 디코딩만 하면 그대로 보인다 — 그래서 비밀을 담지 않는다. 서명이 막는 것은 내용이 새는 것이 아니라 내용이 바뀌는 것이다.",
       why: {
         q: "이메일이나 사용자 이름 대신 sub를 데이터의 키로 삼는 이유는 무엇일까요?",
-        a: "sub는 그 사용자의 불변 고유 UUID이기 때문이다. 이메일·사용자 이름은 사용자가 바꿀 수 있어서 그것을 키로 저장해 두면 변경 순간 과거 데이터와의 연결이 끊긴다. 이 성질이 §12의 정책 변수로 이어진다 — 정책이 참조하는 값도 결국 이 sub다.",
+        a: "sub는 그 사용자의 불변 고유 UUID이기 때문이다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있어서 그것을 키로 저장해 두면 변경 순간 과거 데이터와의 연결이 끊긴다. 실제 username도 계정 생성 뒤 바꿀 수 없지만, 사용자 식별의 정본은 sub다. 이 성질이 §12의 정책 변수로 이어진다 — 정책이 참조하는 값도 결국 이 sub다.",
       },
     },
 
@@ -94,7 +94,7 @@ export const session: SessionData = {
       id: "c8",
       section: "07",
       q: "앱이 토큰을 API Gateway에 어떤 형태로 보내는지, 그 이름과 위치를 말해 보세요.",
-      a: "Authorization 헤더에 베어러 토큰(bearer token)으로 싣는다 — “Authorization: Bearer <토큰>” 형태다. 쿼리 문자열이나 바디가 아니다. 베어러는 “이 토큰을 가진 자에게 권한을 준다”는 뜻이라, 토큰 자체가 곧 열쇠다.",
+      a: "Authorization 헤더에 싣는다. REST API의 Cognito 사용자 풀 권한 부여자는 “Authorization: <JWT 원문>”으로 받고, HTTP API의 JWT 권한 부여자는 JWT 원문 또는 “Authorization: Bearer <JWT>”를 받는다. 쿼리 문자열이나 바디가 아니다. 토큰은 가진 사람에게 권한을 주므로 그 자체가 곧 열쇠다.",
     },
     {
       id: "c9",
@@ -118,8 +118,8 @@ export const session: SessionData = {
       q: "Lambda 트리거가 걸리는 네 시점을 순서대로 들고, 이름만으로 실행 시점을 읽는 법을 말해 보세요.",
       a: "가입(Sign-up) → 확인(Confirm) → 로그인(Auth) → 토큰 발급(Token) 순이고, 각 시점의 앞뒤로 트리거가 붙는다. 이름의 Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — Pre Sign-up은 가입을 받아들이기 전, Post Confirmation은 가입 확인이 끝난 뒤다.\n시점에 매이지 않는 것도 있다 — User Migration(기존 DB 이관), Custom Message(메시지 문구), Custom Auth Flow(커스텀 챌린지).",
       why: {
-        q: "User Migration 트리거는 비밀번호를 모르는 채로 어떻게 사용자를 옮길 수 있을까요?",
-        a: "한꺼번에 옮기지 않고 그 사용자가 처음 로그인하는 순간에 옮기기 때문이다. 그 순간에는 사용자가 방금 입력한 비밀번호가 손에 있으므로, 트리거가 옛 DB에 그것으로 인증을 시도해 성공하면 User Pool에 사용자를 만든다 — 저장된 해시를 옮길 필요가 없다.",
+        q: "User Migration 트리거는 기존 비밀번호 해시를 옮기지 않고 어떻게 사용자를 이전할까요?",
+        a: "한꺼번에 옮기지 않고 그 사용자가 처음 로그인하는 순간에 옮기기 때문이다. 앱 클라이언트에서 USER_PASSWORD_AUTH 또는 ADMIN_USER_PASSWORD_AUTH를 활성화하고 그 흐름으로 로그인하면 Cognito가 방금 입력한 비밀번호를 마이그레이션 Lambda에 전달한다. Lambda가 옛 DB에 인증해 성공하면 User Pool에 사용자를 만든다 — 저장된 해시를 옮길 필요가 없다. SRP는 비밀번호 원문을 보내지 않으므로 이 단계에 쓸 수 없다.",
       },
     },
 
@@ -136,7 +136,7 @@ export const session: SessionData = {
       id: "c13",
       section: "11",
       q: "Identity Pool이 토큰을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
-      a: "① 사용자가 IdP(User Pool·Google·SAML 등)에 로그인해 토큰을 받는다. ② 그 토큰을 Identity Pool에 넘기고, Identity Pool이 토큰이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
+      a: "① 사용자가 IdP(User Pool·Google·SAML 등)에 로그인해 공급자 토큰을 받는다. User Pool을 공급자로 쓸 때는 ID 토큰이다. ② 그 토큰을 Identity Pool에 넘기고, Identity Pool이 토큰이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
     },
     {
       id: "c14",
@@ -190,7 +190,7 @@ export const session: SessionData = {
       id: "c19",
       section: "14",
       q: "두 풀을 이어 쓰는 가장 완전한 형태를 그리고, 그것이 항상 필요한 것은 아닌 이유도 말해 보세요.",
-      a: "① User Pool로 로그인시켜 JWT를 받고 ② 그 토큰을 Identity Pool에 넘겨 STS 임시 AWS 자격 증명으로 바꾼 뒤 ③ S3·DynamoDB에 직접 접근한다 — “인증은 CUP, 인가는 CIP”다.\n다만 백엔드 API만 보호하면 되는 앱은 User Pool 하나로 끝난다(API Gateway 조합). 사용자가 AWS 리소스를 직접 만져야 할 때 비로소 Identity Pool이 붙으므로, “둘 다 써야 한다”가 항상 정답인 것은 아니다.",
+      a: "① User Pool로 로그인시켜 ID 토큰을 받고 ② 그 ID 토큰을 Identity Pool의 Logins 맵에 넣어 STS 임시 AWS 자격 증명으로 바꾼 뒤 ③ S3·DynamoDB에 직접 접근한다 — “인증은 CUP, 인가는 CIP”다. Access·Refresh 토큰은 이 교환에 대신 쓰지 않는다.\n다만 백엔드 API만 보호하면 되는 앱은 User Pool 하나로 끝난다(API Gateway 조합). 사용자가 AWS 리소스를 직접 만져야 할 때 비로소 Identity Pool이 붙으므로, “둘 다 써야 한다”가 항상 정답인 것은 아니다.",
     },
   ],
 
@@ -242,7 +242,7 @@ export const session: SessionData = {
       id: "m4",
       scenario: "서버리스 API를 사용자별로 보호해야 한다. 프런트엔드는 이미 로그인 토큰을 갖고 있다.",
       service: "API Gateway + Cognito 사용자 풀 권한 부여자",
-      why: "토큰을 Authorization 헤더의 베어러 토큰으로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다.",
+      why: "토큰을 Authorization 헤더로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다. REST API Cognito 권한 부여자에는 JWT 원문을 보낸다.",
       contrast: "ALB 인증은 로그인 자체를 대신 수행하는 쪽이다 — 이미 토큰이 있고 검증만 필요하면 API Gateway 권한 부여자가 맞다.",
     },
     {

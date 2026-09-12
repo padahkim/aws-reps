@@ -1,4 +1,4 @@
-import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
+import { Code, ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
 import { Term } from "../../interactive";
 import { TriggerTimelineSvg } from "../figs";
 
@@ -22,10 +22,11 @@ import { TriggerTimelineSvg } from "../figs";
   ]}
 />
 
-<Note><b>User Migration</b>은 쓰임이 특이해서 따로 기억해 둘 만합니다 — 기존 서비스의 사용자를 한꺼번에 옮기지 않고, 그 사용자가 <b>처음 로그인할 때 옛 DB에서 끌어와</b> User Pool에 만드는 방식입니다. 비밀번호를 모른 채로도 이관이 되는 이유입니다.</Note>
+<Note><b>User Migration</b>은 쓰임이 특이해서 따로 기억해 둘 만합니다 — 기존 서비스의 사용자를 한꺼번에 옮기지 않고, 그 사용자가 <b>처음 로그인할 때 옛 DB에서 끌어와</b> User Pool에 만드는 방식입니다. 이때 앱 클라이언트에서 <Code>USER_PASSWORD_AUTH</Code> 또는 서버용 <Code>ADMIN_USER_PASSWORD_AUTH</Code>를 활성화하고 그 흐름으로 로그인해야 합니다. SRP는 비밀번호 원문을 Cognito에 보내지 않아 마이그레이션 Lambda가 옛 DB의 비밀번호를 검증할 수 없습니다.</Note>
 
 <ExamPoint>
   <ExamLi>이름이 곧 시점이다 — <b>Pre는 그 일이 일어나기 전, Post는 끝난 뒤</b>. 시점↔트리거 매칭형으로 출제된다.</ExamLi>
   <ExamLi>“토큰에 커스텀 클레임을 넣고 싶다” → <b>Pre Token Generation</b>.</ExamLi>
   <ExamLi>“기존 사용자 DB를 Cognito로 이전” → <b>User Migration</b> 트리거.</ExamLi>
+  <ExamLi>User Migration 로그인은 비밀번호를 Lambda에 전달하는 <Code>USER_PASSWORD_AUTH</Code> 계열을 쓴다 — <b>SRP가 아니다.</b></ExamLi>
 </ExamPoint>

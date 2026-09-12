@@ -115,7 +115,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-jwt-sub-claim",
     section: "06",
     q: "Payload의 sub는 무엇이고, 왜 이메일 대신 이 값을 키로 쓰나?",
-    a: "그 사용자의 불변 고유 UUID다. 이메일·사용자 이름은 바뀔 수 있지만 sub는 바뀌지 않아서 “이 데이터는 누구 것인가”의 키로 쓴다.",
+    a: "그 사용자의 불변 고유 UUID다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있지만 sub는 바뀌지 않아서 “이 데이터는 누구 것인가”의 키로 쓴다. 실제 username도 계정 생성 뒤 바꿀 수 없지만, 사용자 식별의 정본은 sub다.",
   },
 
   // ── 07 API Gateway 통합 ──────────────────────────────────────────────
@@ -123,7 +123,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-apigw-bearer-header",
     section: "07",
     q: "앱은 토큰을 요청의 어디에 실어 보내나?",
-    a: "Authorization 헤더에 베어러 토큰으로 싣는다 — 쿼리 문자열이나 바디가 아니다.",
+    a: "Authorization 헤더에 싣는다 — REST API의 Cognito 사용자 풀 권한 부여자는 JWT 원문을 받고, HTTP API의 JWT 권한 부여자는 원문 또는 Bearer 접두사 형식을 받는다. 쿼리 문자열이나 바디가 아니다.",
   },
   {
     slug: "sq-apigw-scope-needs-access-token",

@@ -12,7 +12,7 @@ import { JwtPartsSvg } from "../figs";
 
 <CodeBlock title="Payload를 디코딩한 모습 (ID 토큰)">{`{\n  "sub": "9f31c2a8-4d17-4a3e-b6f0-1c8e2d5a7b93",   // 사용자 고유 UUID\n  "email": "learner@example.com",\n  "cognito:username": "learner",\n  "token_use": "id",\n  "exp": 1789459200                                 // 만료 시각\n}`}</CodeBlock>
 
-여기서 <Code>sub</Code>가 그 사용자의 <b>불변 고유 ID</b>입니다. 이메일이나 사용자 이름은 바뀔 수 있지만 <Code>sub</Code>는 바뀌지 않아서, 백엔드가 “이 데이터는 누구 것인가”를 기록할 때 쓰는 키가 됩니다. §12에서 이 <Code>sub</Code>가 정책 안으로 그대로 들어가는 것을 보게 됩니다.
+여기서 <Code>sub</Code>가 그 사용자의 <b>불변 고유 ID</b>입니다. 이메일·전화번호·<Code>preferred_username</Code> 같은 속성은 바뀔 수 있지만 <Code>sub</Code>는 바뀌지 않아서, 백엔드가 “이 데이터는 누구 것인가”를 기록할 때 쓰는 키가 됩니다. 반면 위 Payload의 <Code>cognito:username</Code>은 계정 생성 뒤 바꿀 수 없는 사용자 이름이지만, 사용자 식별의 정본은 여전히 <Code>sub</Code>입니다. §12에서 이 <Code>sub</Code>가 정책 안으로 그대로 들어가는 것을 보게 됩니다.
 
 <Note>디코딩이 되니 <b>Payload에 비밀을 담으면 안 됩니다</b>. 서명(Signature)이 지키는 것은 “내용이 새는 것”이 아니라 “내용이 바뀌는 것”입니다 — 한 글자만 고쳐도 서명 검증이 깨지므로 위조된 토큰은 거부됩니다.</Note>
 

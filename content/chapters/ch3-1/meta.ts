@@ -10,7 +10,8 @@ import type { ChapterMeta, Question, SectionMeta } from "../../schema";
  * 사실 수정·보충: docs/_frozen/reports/axis2/aws-cognito-guide.md 지시 전부 반영.
  *   ① 토큰 3종의 개별 용도·수명을 §05 로 신설 (원본은 "JWT(ID·Access·Refresh)"로만 뭉뚱그렸다.
  *      Access·ID 기본 60분(5분~1일) · Refresh 기본 30일(60분~10년, refresh 가 상한))
- *   ② 베어러 토큰 — Authorization 헤더에 실리는 형태를 §07 에 명시 (원본은 "JWT 검증"까지만).
+ *   ② Authorization 헤더 토큰 — REST API는 JWT 원문, HTTP API는 원문 또는 Bearer 형식임을
+ *      §07 에 명시 (원본은 "JWT 검증"까지만).
  *      REST API 의 Cognito 권한 부여자가 ID·Access 두 토큰을 다 받는다는 사실은 리포트에
  *      없어 공식 문서로 확인해 넣었다 (Access 토큰은 스코프 검사, ID 토큰은 백엔드로 전달).
  *   ③ Identity Pool → STS 임시 자격 증명 교환 흐름을 §11 에서 ch0-2 §07 STS 와 이어지게 서술.
@@ -76,7 +77,7 @@ export const sections: SectionMeta[] = [
   { num: "04", title: "CUP 로그인 흐름", sub: "ID/PW 검증부터 JWT 발급까지 5단계", freq: "hi", freqLabel: "최빈출 ★★★ · 흐름 그대로 출제" },
   { num: "05", title: "토큰 3종 — ID · Access · Refresh", sub: "용도가 다르고 수명이 다르다", freq: "hi", freqLabel: "최빈출 ★★★ · 구분이 정답 키" },
   { num: "06", title: "JWT 구조", sub: "Header · Payload(sub) · Signature", freq: "mid", freqLabel: "빈출 ★★☆ · 디코딩 문제 대비" },
-  { num: "07", title: "API Gateway 통합 — Cognito 권한 부여자", sub: "베어러 토큰으로 API를 지킨다", freq: "hi", freqLabel: "최빈출 ★★★ · 서버리스 단골 조합" },
+  { num: "07", title: "API Gateway 통합 — Cognito 권한 부여자", sub: "Authorization 헤더의 JWT로 API를 지킨다", freq: "hi", freqLabel: "최빈출 ★★★ · 서버리스 단골 조합" },
   { num: "08", title: "Hosted UI와 커스텀 도메인", sub: "로그인 화면을 Cognito가 대신 호스팅한다", freq: "mid", freqLabel: "빈출 ★★☆ · 인증서 위치가 함정" },
   { num: "09", title: "Lambda 트리거", sub: "인증 라이프사이클 8개 시점의 후크", freq: "mid", freqLabel: "빈출 ★★☆ · 시점↔트리거 매칭" },
   { num: "10", title: "적응형 인증", sub: "위험도에 따라 MFA를 더 요구한다", freq: "lo", freqLabel: "보통 ★☆☆ · 지엽 포인트" },
