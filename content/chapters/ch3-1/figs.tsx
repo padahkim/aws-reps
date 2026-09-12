@@ -170,7 +170,7 @@ export function TwoPoolsSvg() {
       <path d="M102,168 C158,192 190,208 226,212" style={line(true, C.teal)} />
       <text x="118" y="212" style={lineText(true, C.teal)}>자격 증명 요청</text>
       <path d="M434,100 L504,100" style={line(true, C.amber)} />
-      <text x="440" y="90" style={lineText(true, C.amber)}>토큰 제시</text>
+      <text x="440" y="90" style={lineText(true, C.amber)}>인증 연동</text>
       <path d="M434,214 L504,214" style={line(true, C.teal)} />
       <text x="440" y="204" style={lineText(true, C.teal)}>임시 키로 호출</text>
     </SvgFrame>
@@ -200,7 +200,7 @@ function cupFlowSvg(step: number) {
       <rect x="498" y="76" width="172" height="84" rx="10" style={box(s(2), C.tealSoft, C.teal)} />
       <text x="584" y="104" textAnchor="middle" style={label(s(2), C.teal, 13)}>사용자 토큰 발급</text>
       <text x="584" y="124" textAnchor="middle" style={label(s(2), C.ink)}>scope · grant에 따라 구성</text>
-      <text x="584" y="144" textAnchor="middle" style={label(s(3), C.ink)}>→ API Gateway · ALB 에 제시</text>
+      <text x="584" y="144" textAnchor="middle" style={label(s(3), C.ink)}>→ API Gateway 에 제시</text>
 
       <path d="M100,112 L245,104" style={line(s(0), C.amber)} />
       <text x="126" y="92" style={lineText(s(0), C.amber)}>① 로그인 (ID·비밀번호)</text>
@@ -220,7 +220,7 @@ export function CupLoginFlow() {
         "사용자가 앱에서 ID·비밀번호로 User Pool에 로그인을 요청한다.",
         "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA, 이메일·전화 확인이 여기서 붙는다.",
         "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다.",
-        "앱은 이 토큰을 API Gateway나 ALB에 제시해 백엔드에 접근한다.",
+        "앱은 이 토큰을 Authorization 헤더에 실어 API Gateway에 제시해 백엔드에 접근한다. ALB는 토큰을 받는 게 아니라 로그인 자체를 대신한다 — §13.",
         "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하는 쪽은 똑같이 User Pool이다.",
       ]}
       render={cupFlowSvg}
