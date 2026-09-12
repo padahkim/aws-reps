@@ -256,14 +256,21 @@ export function JwtPartsSvg() {
 /* ── §09 Lambda 트리거 시점 ───────────────────────────────────────────── */
 
 export function TriggerTimelineSvg() {
-  const stages = ["가입 (Sign-up)", "확인 (Confirm)", "로그인 (Auth)", "토큰 발급 (Token)"];
+  // 시점마다 실제로 존재하는 트리거만 적는다 — Post Sign-up·Pre Confirmation·Post Token Generation 은 없다.
+  // 앞뒤가 둘 다 있는 시점은 로그인(Pre/Post Authentication)뿐이다.
+  const stages: [string, string][] = [
+    ["가입 (Sign-up)", "⚡ Pre Sign-up"],
+    ["확인 (Confirm)", "⚡ Post Confirmation"],
+    ["로그인 (Auth)", "⚡ Pre / Post Authentication"],
+    ["토큰 발급 (Token)", "⚡ Pre Token Generation"],
+  ];
   return (
-    <SvgFrame vb="0 0 700 140" aria="가입, 확인, 로그인, 토큰 발급 각 시점 앞뒤로 Lambda 트리거가 붙는다">
-      {stages.map((t, i) => (
+    <SvgFrame vb="0 0 700 140" aria="가입에는 Pre Sign-up, 확인에는 Post Confirmation, 로그인에는 Pre와 Post Authentication, 토큰 발급에는 Pre Token Generation 트리거가 붙는다">
+      {stages.map(([t, trig], i) => (
         <g key={t}>
           <rect x={22 + i * 172} y={34} width={140} height={46} rx={8} fill={C.amberSoft} stroke={C.amber} strokeWidth="1.5" />
           <text x={92 + i * 172} y={62} textAnchor="middle" fontSize="11.5" fontWeight="700" fill={C.amberText}>{t}</text>
-          <text x={92 + i * 172} y={106} textAnchor="middle" fontSize="10.5" fontWeight="700" fill={C.blue}>⚡ Pre / Post 트리거</text>
+          <text x={92 + i * 172} y={106} textAnchor="middle" fontSize="10.5" fontWeight="700" fill={C.blue}>{trig}</text>
           {i < 3 && <path d={`M${164 + i * 172},57 L${192 + i * 172},57`} style={line(true, C.amber)} />}
         </g>
       ))}

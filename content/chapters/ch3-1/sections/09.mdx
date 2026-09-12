@@ -4,7 +4,7 @@ import { TriggerTimelineSvg } from "../figs";
 
 인증 과정 중간에 내 코드를 끼워 넣고 싶을 때가 있습니다 — 특정 도메인 이메일만 가입시킨다든가, 가입 직후 환영 메일과 초기 데이터를 만든다든가. User Pool은 인증 라이프사이클의 각 시점에 <b><Term id="lambda">Lambda</Term> 함수를 동기 호출</b>하도록 연결할 수 있습니다.
 
-<Fig caption="가입 → 확인 → 로그인 → 토큰 발급. 각 시점의 앞(Pre)과 뒤(Post)에 트리거가 걸린다">
+<Fig caption="가입 → 확인 → 로그인 → 토큰 발급. 시점마다 걸리는 트리거가 다르다 — 앞(Pre)과 뒤(Post)가 둘 다 있는 시점은 로그인뿐이다">
   <TriggerTimelineSvg />
 </Fig>
 

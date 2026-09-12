@@ -116,7 +116,7 @@ export const session: SessionData = {
       id: "c11",
       section: "09",
       q: "Lambda 트리거가 걸리는 네 시점을 순서대로 들고, 이름만으로 실행 시점을 읽는 법을 말해 보세요.",
-      a: "가입(Sign-up) → 확인(Confirm) → 로그인(Auth) → 토큰 발급(Token) 순이고, 각 시점의 앞뒤로 트리거가 붙는다. 이름의 Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — Pre Sign-up은 가입을 받아들이기 전, Post Confirmation은 가입 확인이 끝난 뒤다.\n시점에 매이지 않는 User Migration과 Custom Message도 있다. Custom Auth Flow는 단일 트리거 이름이 아니라 Define Auth Challenge(다음 단계 결정) → Create Auth Challenge(질문 생성) → Verify Auth Challenge Response(답 검증)의 세 트리거를 묶은 흐름이다.",
+      a: "가입(Sign-up) → 확인(Confirm) → 로그인(Auth) → 토큰 발급(Token) 순이고, 시점마다 걸리는 트리거가 다르다 — 앞뒤가 둘 다 있는 시점은 로그인(Pre·Post Authentication)뿐이다. 이름의 Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — Pre Sign-up은 가입을 받아들이기 전, Post Confirmation은 가입 확인이 끝난 뒤다.\n시점에 매이지 않는 User Migration과 Custom Message도 있다. Custom Auth Flow는 단일 트리거 이름이 아니라 Define Auth Challenge(다음 단계 결정) → Create Auth Challenge(질문 생성) → Verify Auth Challenge Response(답 검증)의 세 트리거를 묶은 흐름이다.",
       why: {
         q: "User Migration 트리거는 기존 비밀번호 해시를 옮기지 않고 어떻게 사용자를 이전할까요?",
         a: "한꺼번에 옮기지 않고 그 사용자가 처음 로그인하는 순간에 옮기기 때문이다. 앱 클라이언트에서 USER_PASSWORD_AUTH 또는 ADMIN_USER_PASSWORD_AUTH를 활성화하고 그 흐름으로 로그인하면 Cognito가 방금 입력한 비밀번호를 마이그레이션 Lambda에 전달한다. Lambda가 옛 DB에 인증해 성공하면 User Pool에 사용자를 만든다 — 저장된 해시를 옮길 필요가 없다. SRP는 비밀번호 원문을 보내지 않으므로 이 단계에 쓸 수 없다.",
