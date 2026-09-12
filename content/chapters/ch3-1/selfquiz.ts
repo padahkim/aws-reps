@@ -182,8 +182,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-adaptive-risk-levels",
     section: "10",
-    q: "위험 점수가 낮음·중간·높음일 때의 대응은 각각 무엇인가?",
-    a: "낮음은 그대로 통과, 중간·높음은 MFA를 추가로 요구하거나 차단한다 — 점수가 곧 요구 수준이다.",
+    q: "위험 수준별로 관리자가 고를 수 있는 대응 네 가지는 무엇이고, 감사 전용 모드는 무엇을 하나?",
+    a: "허용 · 선택적 MFA · 필수 MFA · 차단이다. 감사 전용(audit-only)은 점수만 기록하고 아무것도 막지 않는다. 낮음은 허용, 중간은 MFA, 높음은 차단처럼 값이 높을수록 세게 잡는 게 흔한 설정이다.",
   },
   {
     slug: "sq-adaptive-signals",

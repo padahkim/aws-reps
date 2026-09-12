@@ -287,7 +287,7 @@ export function RiskScoreSvg() {
     ["높음 (High)", "MFA 요구 또는 차단", C.redSoft, C.red],
   ];
   return (
-    <SvgFrame vb="0 0 700 120" aria="위험 점수 낮음 중간 높음에 따라 통과, MFA 요구, 차단으로 갈린다">
+    <SvgFrame vb="0 0 700 120" aria="위험 수준 낮음, 중간, 높음에 통과, MFA 요구, 차단을 배정한 설정 예">
       {rows.map(([t, d, bg, col], i) => (
         <g key={t}>
           <rect x={22 + i * 224} y={24} width={204} height={68} rx={10} fill={bg} stroke={col} strokeWidth="2" />
