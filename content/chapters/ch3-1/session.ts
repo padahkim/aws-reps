@@ -142,7 +142,7 @@ export const session: SessionData = {
       id: "c14",
       section: "11",
       q: "AWS 계정 밖의 사람이 어떻게 IAM 역할을 맡을 수 있는지, 신뢰 정책으로 설명해 보세요.",
-      a: "IAM 역할의 신뢰 정책 Principal에 cognito-identity.amazonaws.com을 적어 두면 “Cognito Identity가 검증해 데려온 사용자라면 이 역할을 맡아도 좋다”가 된다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로다. 실제 임시 자격 증명 발급은 ch0-2 §07의 STS가 한다. 역할은 인증된 사용자용과 게스트용을 각각 지정하고, 규칙(Rules)으로 속성에 따라 더 세분할 수 있다.",
+      a: "IAM 역할의 신뢰 정책 Principal에 cognito-identity.amazonaws.com을 적어 두면 “Cognito Identity가 검증해 데려온 사용자라면 이 역할을 맡아도 좋다”가 된다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로다. 단 Principal만으로는 저장이 안 되고, Condition에 어느 Identity Pool인지(aud)를 반드시 함께 적는다. 실제 임시 자격 증명 발급은 ch0-2 §07의 STS가 한다. 역할은 인증된 사용자용과 게스트용을 각각 지정하고, 규칙(Rules)으로 속성에 따라 더 세분할 수 있다.",
       why: {
         q: "Identity Pool이 직접 자격 증명을 만들지 않고 STS를 거치는 구조가 왜 자연스러운가요?",
         a: "임시 자격 증명 발급은 이미 STS의 일이기 때문이다. IAM 사용자가 역할을 맡을 때도, 회사 IdP로 페더레이션할 때도 발급자는 STS 하나다 — Cognito는 “이 외부 사용자가 진짜인가”만 판정하고 발급은 기존 통로에 맡긴다. 그래서 감사·만료 같은 성질이 다른 경로와 똑같이 적용된다.",
