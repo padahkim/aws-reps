@@ -3,7 +3,7 @@ import { ChLink, Term } from "../../interactive";
 
 임시 자격 증명을 줬다고 끝이 아닙니다. 사용자 백만 명이 <b>같은 버킷·같은 테이블</b>을 쓰는데 서로의 데이터가 보이면 안 됩니다. 사용자마다 버킷을 만들 수는 없으니, 해법은 <b>정책 하나로 각자의 몫만 열어 주는 것</b>입니다.
 
-<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>에서 본 <b>정책 변수</b>가 여기서 쓰입니다. Cognito가 발급한 자격 증명에는 그 사용자의 고유 ID(§06에서 본 <Code>sub</Code>)가 실려 있고, 정책 안에서 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code>로 그 값을 참조할 수 있습니다.
+<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>에서 본 <b>정책 변수</b>가 여기서 쓰입니다. Identity Pool은 자격 증명을 내줄 때 그 사용자에게 <b>identity ID</b>라는 고유 ID를 붙이고, 정책 안에서 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code>로 그 값을 참조할 수 있습니다. 이름은 같은 <Code>sub</Code>지만 §06의 User Pool 토큰 <Code>sub</Code>와는 <b>다른 값</b>입니다 — 이 변수는 Identity Pool이 발급한 ID로 치환됩니다.
 
 <CodeBlock title="S3 — 자기 프리픽스만 접근">{`"Condition": {\n  "StringLike": {\n    "s3:prefix": ["\${cognito-identity.amazonaws.com:sub}/*"]\n  }\n}`}</CodeBlock>
 
@@ -16,5 +16,5 @@ import { ChLink, Term } from "../../interactive";
 <ExamPoint>
   <ExamLi>“한 테이블·한 버킷을 수백만 사용자가 공유하되 자기 데이터만” → <b>정책 변수(Policy Variable)</b>다.</ExamLi>
   <ExamLi>S3는 <Code>s3:prefix</Code>, DynamoDB는 <Code>dynamodb:LeadingKeys</Code>(= 파티션 키). 이 두 키 이름이 그대로 선택지로 나온다.</ExamLi>
-  <ExamLi>변수는 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code> 형태다 — <Code>sub</Code>가 사용자 고유 ID라는 §06의 사실과 이어진다.</ExamLi>
+  <ExamLi>변수는 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code> 형태다 — 여기의 <Code>sub</Code>는 Identity Pool의 identity ID이고, §06의 User Pool <Code>sub</Code>와는 다른 값이다.</ExamLi>
 </ExamPoint>
