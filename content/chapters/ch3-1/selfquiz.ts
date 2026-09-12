@@ -162,14 +162,20 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-trigger-user-migration",
     section: "09",
-    q: "기존 서비스의 사용자 DB를 Cognito로 옮기되, 비밀번호를 모르는 상태에서 이관하려면?",
-    a: "User Migration 트리거다 — 그 사용자가 처음 로그인할 때 옛 DB에서 끌어와 User Pool에 만든다.",
+    q: "기존 서비스의 비밀번호 해시를 옮기지 않고 사용자를 Cognito로 점진 이관하려면?",
+    a: "User Migration 트리거다 — USER_PASSWORD_AUTH 계열로 그 사용자가 처음 로그인할 때 입력한 비밀번호를 옛 DB에서 검증하고 User Pool에 만든다.",
   },
   {
     slug: "sq-trigger-pre-post-naming",
     section: "09",
     q: "트리거 이름의 Pre와 Post는 각각 무엇을 뜻하나?",
     a: "Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — 이름이 곧 실행 시점이라 시점↔트리거 매칭이 그대로 성립한다.",
+  },
+  {
+    slug: "sq-trigger-custom-auth-three",
+    section: "09",
+    q: "CAPTCHA 같은 Custom Auth Flow를 구성하는 실제 Lambda 트리거 세 개는?",
+    a: "Define Auth Challenge(다음 단계 결정) → Create Auth Challenge(질문 생성) → Verify Auth Challenge Response(답 검증)다. Custom Auth Flow 자체는 선택 가능한 단일 트리거 이름이 아니다.",
   },
 
   // ── 10 적응형 인증 ───────────────────────────────────────────────────
@@ -239,6 +245,12 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "13",
     q: "“애플리케이션 코드를 고치지 않고 사용자 인증을 추가하라”의 답은?",
     a: "ALB의 authenticate-cognito 또는 authenticate-oidc 액션이다 — ALB가 인증을 대신 수행해 백엔드에는 인증 코드가 없다.",
+  },
+  {
+    slug: "sq-alb-private-egress",
+    section: "13",
+    q: "내부 ALB에 인증 설정을 모두 넣었는데 로그인 코드 교환이 실패한다 — 네트워크에서 확인할 것은?",
+    a: "ALB가 IdP의 Token·User Info 엔드포인트로 IPv4 아웃바운드 통신할 수 있는지 확인한다. 보안 그룹·NACL이 허용해야 하고, 퍼블릭 IPv4 출구가 없으면 NAT Gateway 경로가 필요하다.",
   },
 
   // ── 14 조합과 총정리 ─────────────────────────────────────────────────

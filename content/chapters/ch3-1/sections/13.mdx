@@ -12,6 +12,8 @@ import { AlbAuthFlow } from "../figs";
 
 Cognito 앱 클라이언트의 콜백 URL에는 <Code>https://&lt;ALB-domain&gt;/oauth2/idpresponse</Code>를 <b>정확히, 모두 소문자로</b> 등록합니다. 외부 연합 IdP가 있다면 그 IdP의 콜백은 ALB가 아니라 <b>Cognito User Pool 도메인</b>을 가리킵니다. <b>authenticate-oidc</b>는 OIDC 호환 IdP에 직접 연결하는 방식이라, Authorization·Token·User Info 엔드포인트와 Client ID·Secret을 손으로 넣습니다.
 
+<WarnBox>ALB는 인증 코드 교환을 위해 IdP의 <b>Token·User Info 엔드포인트에 IPv4로 나갈 수 있어야 합니다.</b> 보안 그룹 아웃바운드와 네트워크 ACL이 이를 허용해야 하며, <b>내부 ALB</b>나 <Code>dualstack-without-public-ipv4</Code>처럼 퍼블릭 IPv4 출구가 없는 구성은 보통 <b>NAT Gateway</b>를 통해 이 경로를 만듭니다.</WarnBox>
+
 미인증 요청을 어떻게 다룰지는 <Code>OnUnauthenticatedRequest</Code>가 정합니다.
 
 <Table
@@ -29,5 +31,6 @@ Cognito 앱 클라이언트의 콜백 URL에는 <Code>https://&lt;ALB-domain&gt;
   <ExamLi>“<b>애플리케이션 코드 수정 없이</b> 사용자 인증을 추가” → <b>ALB + authenticate-cognito/oidc</b>.</ExamLi>
   <ExamLi>전제 조건은 <b>HTTPS 리스너</b> — “인증 규칙이 안 걸린다”는 지문의 원인으로 나온다.</ExamLi>
   <ExamLi><Code>authenticate-cognito</Code>는 <b>같은 리전의 User Pool</b>과 <b>client secret + Code Grant</b>가 설정된 앱 클라이언트를 쓴다.</ExamLi>
+  <ExamLi>내부 ALB도 IdP 엔드포인트로 <b>IPv4 아웃바운드 통신</b>이 필요하다 — 퍼블릭 IPv4가 없으면 NAT 경로를 둔다.</ExamLi>
   <ExamLi>세 옵션 중 <b>기본값은 authenticate</b>, <b>deny는 401</b>이다. 이 두 값이 정답 지점이다.</ExamLi>
 </ExamPoint>

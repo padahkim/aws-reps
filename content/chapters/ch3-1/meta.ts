@@ -79,7 +79,7 @@ export const sections: SectionMeta[] = [
   { num: "06", title: "JWT 구조", sub: "Header · Payload(sub) · Signature", freq: "mid", freqLabel: "빈출 ★★☆ · 디코딩 문제 대비" },
   { num: "07", title: "API Gateway 통합 — Cognito 권한 부여자", sub: "Authorization 헤더의 JWT로 API를 지킨다", freq: "hi", freqLabel: "최빈출 ★★★ · 서버리스 단골 조합" },
   { num: "08", title: "Hosted UI와 커스텀 도메인", sub: "로그인 화면을 Cognito가 대신 호스팅한다", freq: "mid", freqLabel: "빈출 ★★☆ · 인증서 위치가 함정" },
-  { num: "09", title: "Lambda 트리거", sub: "인증 라이프사이클 8개 시점의 후크", freq: "mid", freqLabel: "빈출 ★★☆ · 시점↔트리거 매칭" },
+  { num: "09", title: "Lambda 트리거", sub: "대표 트리거 10개와 커스텀 인증 3단계", freq: "mid", freqLabel: "빈출 ★★☆ · 시점↔트리거 매칭" },
   { num: "10", title: "적응형 인증", sub: "위험도에 따라 MFA를 더 요구한다", freq: "lo", freqLabel: "보통 ★☆☆ · 지엽 포인트" },
   { num: "11", title: "Identity Pool = 인가", sub: "토큰을 STS 임시 자격 증명으로 바꾼다", freq: "hi", freqLabel: "최빈출 ★★★ · CIP의 정의" },
   { num: "12", title: "정책 변수로 사용자별 격리", sub: "s3:prefix · dynamodb:LeadingKeys", freq: "hi", freqLabel: "최빈출 ★★★ · 정책 지문 그대로 출제" },

@@ -116,7 +116,7 @@ export const session: SessionData = {
       id: "c11",
       section: "09",
       q: "Lambda 트리거가 걸리는 네 시점을 순서대로 들고, 이름만으로 실행 시점을 읽는 법을 말해 보세요.",
-      a: "가입(Sign-up) → 확인(Confirm) → 로그인(Auth) → 토큰 발급(Token) 순이고, 각 시점의 앞뒤로 트리거가 붙는다. 이름의 Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — Pre Sign-up은 가입을 받아들이기 전, Post Confirmation은 가입 확인이 끝난 뒤다.\n시점에 매이지 않는 것도 있다 — User Migration(기존 DB 이관), Custom Message(메시지 문구), Custom Auth Flow(커스텀 챌린지).",
+      a: "가입(Sign-up) → 확인(Confirm) → 로그인(Auth) → 토큰 발급(Token) 순이고, 각 시점의 앞뒤로 트리거가 붙는다. 이름의 Pre는 그 일이 일어나기 전, Post는 끝난 뒤다 — Pre Sign-up은 가입을 받아들이기 전, Post Confirmation은 가입 확인이 끝난 뒤다.\n시점에 매이지 않는 User Migration과 Custom Message도 있다. Custom Auth Flow는 단일 트리거 이름이 아니라 Define Auth Challenge(다음 단계 결정) → Create Auth Challenge(질문 생성) → Verify Auth Challenge Response(답 검증)의 세 트리거를 묶은 흐름이다.",
       why: {
         q: "User Migration 트리거는 기존 비밀번호 해시를 옮기지 않고 어떻게 사용자를 이전할까요?",
         a: "한꺼번에 옮기지 않고 그 사용자가 처음 로그인하는 순간에 옮기기 때문이다. 앱 클라이언트에서 USER_PASSWORD_AUTH 또는 ADMIN_USER_PASSWORD_AUTH를 활성화하고 그 흐름으로 로그인하면 Cognito가 방금 입력한 비밀번호를 마이그레이션 Lambda에 전달한다. Lambda가 옛 DB에 인증해 성공하면 User Pool에 사용자를 만든다 — 저장된 해시를 옮길 필요가 없다. SRP는 비밀번호 원문을 보내지 않으므로 이 단계에 쓸 수 없다.",
@@ -172,7 +172,7 @@ export const session: SessionData = {
       id: "c17",
       section: "13",
       q: "API Gateway가 토큰에 하는 일과 ALB가 하는 일의 차이를 말해 보세요.",
-      a: "API Gateway는 앱이 이미 받아 온 토큰을 검증한다. ALB는 한 걸음 더 나아가 로그인 자체를 대신 수행한다 — 미인증 요청을 Cognito Hosted UI로 리다이렉트해 로그인시키고 세션 쿠키를 발급한 뒤, 인증된 요청만 타깃 그룹으로 넘긴다. 그래서 백엔드에서 인증 코드를 통째로 걷어낼 수 있고, 이것을 인증 오프로드라고 부른다.\n전제 조건은 HTTPS 리스너다 — HTTP 리스너에는 인증 액션을 걸 수 없다.",
+      a: "API Gateway는 앱이 이미 받아 온 토큰을 검증한다. ALB는 한 걸음 더 나아가 로그인 자체를 대신 수행한다 — 미인증 요청을 Cognito Hosted UI로 리다이렉트해 로그인시키고 세션 쿠키를 발급한 뒤, 인증된 요청만 타깃 그룹으로 넘긴다. 그래서 백엔드에서 인증 코드를 통째로 걷어낼 수 있고, 이것을 인증 오프로드라고 부른다.\n전제 조건은 HTTPS 리스너다 — HTTP 리스너에는 인증 액션을 걸 수 없다. 또 ALB가 Token·User Info 엔드포인트에 IPv4로 나갈 수 있어야 하므로, 내부 ALB나 퍼블릭 IPv4 출구가 없는 구성에는 보안 그룹·NACL의 아웃바운드 허용과 NAT 경로가 필요하다.",
       why: {
         q: "인증 규칙이 HTTPS 리스너에서만 허용되는 이유는 무엇일까요?",
         a: "인증 과정에서 자격 증명과 세션 쿠키가 오가기 때문이다. HTTP는 평문이라 그 값이 그대로 노출되고, 쿠키를 가로채면 로그인 자체를 훔칠 수 있다 — 그래서 암호화된 리스너에서만 허용한다.",
