@@ -58,7 +58,7 @@ fi
 1. 사용자가 이 세션에서 **명시적으로 즉시 머지를 지시**했다 ("바로 머지해", "PR 없이 착지해").
 2. 오탈자·한두 줄 수준의 단일 커밋 (CLAUDE.md 예외 — 이 경우 브랜치 없이 develop 직접 커밋도 허용).
 
-gh를 쓸 수 없는 머신(git_guard가 차단 — 회사 머신 등)에서 PR 착지 조건에 걸리면: `git push -u origin "$BR"`만 하고 compare 링크(`https://github.com/padahkim/aws-reps/compare/develop...<BR>`)와 "머지 대기 + 이유"를 보고하며 종료한다.
+gh를 쓸 수 없는 머신(git_guard가 차단 — 회사 머신 등)에서 PR 착지 조건에 걸리면: `git push -u origin "$BR"`만 하고, **제목·본문을 미리 채운 PR 생성 링크**와 "머지 대기 + 이유"를 보고하며 종료한다. 링크는 `https://github.com/padahkim/aws-reps/compare/develop...<BR>?quick_pull=1&title=<제목>&body=<본문>` 형식 — 제목·본문(아래 "PR 본문 표준"을 따른 것)을 URL 인코딩해 채우면 사용자는 열어서 "Create pull request" 버튼만 누르면 된다 (인코딩: `python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read()))'`).
 
 ## 0. 사전 체크 — 하나라도 걸리면 멈추고 사용자에게 보고
 
