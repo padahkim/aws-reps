@@ -1,0 +1,22 @@
+import { Code, CodeBlock, ExamLi, ExamPoint, Note } from "../../ui";
+import { ChLink, Term } from "../../interactive";
+
+임시 자격 증명을 줬다고 끝이 아닙니다. 사용자 백만 명이 <b>같은 버킷·같은 테이블</b>을 쓰는데 서로의 데이터가 보이면 안 됩니다. 사용자마다 버킷을 만들 수는 없으니, 해법은 <b>정책 하나로 각자의 몫만 열어 주는 것</b>입니다.
+
+<ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>에서 본 <b>정책 변수</b>가 여기서 쓰입니다. Identity Pool은 자격 증명을 내줄 때 그 사용자에게 <b>identity ID</b>라는 고유 ID를 붙이고, 정책 안에서 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code>로 그 값을 참조할 수 있습니다. 이름은 같은 <Code>sub</Code>지만 §06의 User Pool 토큰 <Code>sub</Code>와는 <b>다른 값</b>입니다 — 이 변수는 Identity Pool이 발급한 ID로 치환됩니다.
+
+<CodeBlock title="S3 — 자기 프리픽스만 접근 (문장 두 개가 한 세트)">{`{\n  "Action": "s3:ListBucket",\n  "Resource": "arn:aws:s3:::my-bucket",\n  "Condition": {\n    "StringLike": { "s3:prefix": ["\${cognito-identity.amazonaws.com:sub}/*"] }\n  }\n},\n{\n  "Action": ["s3:GetObject", "s3:PutObject"],\n  "Resource": "arn:aws:s3:::my-bucket/\${cognito-identity.amazonaws.com:sub}/*"\n}`}</CodeBlock>
+
+<Code>s3:prefix</Code> 조건은 <b>목록 조회(ListBucket)에만</b> 걸립니다. 객체를 읽고 쓰는 <Code>GetObject</Code>·<Code>PutObject</Code> 요청에는 <Code>s3:prefix</Code> 키 자체가 없어서 이 조건으로는 걸러지지 않습니다 — 그래서 두 번째 문장처럼 <b>Resource ARN 안에 변수를 넣어</b> 자기 프리픽스로 좁힙니다. 둘 중 하나만 쓰면 격리가 뚫립니다.
+
+<CodeBlock title="DynamoDB — 자기 행(row)만 접근">{`"Condition": {\n  "ForAllValues:StringEquals": {\n    "dynamodb:LeadingKeys": ["\${cognito-identity.amazonaws.com:sub}"]\n  }\n}`}</CodeBlock>
+
+<Term id="dynamodb">DynamoDB</Term> 쪽의 <Code>dynamodb:LeadingKeys</Code>는 <b>파티션 키</b>를 가리킵니다. 파티션 키를 사용자 ID로 설계해 두면, 이 조건 한 줄이 “자기 파티션 키를 가진 항목만 읽고 쓴다”가 됩니다.
+
+<Note>같은 정책 문서가 사용자마다 <b>다르게 해석</b>된다는 것이 요점입니다 — 정책은 하나인데, 실행 시점에 그 사용자의 ID로 치환되어 각자에게 다른 범위가 적용됩니다.</Note>
+
+<ExamPoint>
+  <ExamLi>“한 테이블·한 버킷을 수백만 사용자가 공유하되 자기 데이터만” → <b>정책 변수(Policy Variable)</b>다.</ExamLi>
+  <ExamLi>S3는 <Code>s3:prefix</Code>(목록) + Resource ARN의 변수(객체), DynamoDB는 <Code>dynamodb:LeadingKeys</Code>(= 파티션 키). 두 조건 키 이름이 그대로 선택지로 나온다.</ExamLi>
+  <ExamLi>변수는 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code> 형태다 — 여기의 <Code>sub</Code>는 Identity Pool의 identity ID이고, §06의 User Pool <Code>sub</Code>와는 다른 값이다.</ExamLi>
+</ExamPoint>

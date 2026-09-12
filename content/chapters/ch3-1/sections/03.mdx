@@ -1,0 +1,20 @@
+import { ExamLi, ExamPoint, Note } from "../../ui";
+import { Term } from "../../interactive";
+
+<b>User Pool</b>은 한마디로 <b>서버리스 사용자 데이터베이스 + 로그인 기능</b>입니다. 사용자 테이블을 직접 만들고 비밀번호를 해시해 저장하고 재설정 메일을 보내는 코드를 전부 대신합니다.
+
+- <b>간편 로그인</b> — 사용자 이름 또는 이메일 + 비밀번호. 비밀번호 재설정 흐름이 딸려 온다
+- <b>이메일·전화번호 확인(verification)</b> — 가입 시 확인 코드 발송이 내장돼 있다
+- <b><Term id="mfa">MFA</Term></b> — 다요소 인증 지원
+- <b>연합 로그인(Federation)</b> — Google·Facebook·<Term id="saml">SAML</Term>·<Term id="oidc">OIDC</Term> 계정으로도 로그인시킬 수 있다
+- <b>유출된 자격 증명 차단</b> — 그 비밀번호가 외부 유출 목록에 있으면 로그인을 막는다
+- 로그인에 성공하면 <b><Term id="jwt">JWT</Term> 토큰</b>을 돌려준다
+
+<Note>다섯 번째 항목이 §01에서 예고한 혼동 지점입니다. <b>연합 로그인은 User Pool 자체 기능</b>입니다 — Identity Pool이 있어야 소셜 로그인이 되는 게 아닙니다. 구글 계정으로 로그인시키고 끝이면 User Pool 하나로 충분하고, 그 사용자에게 S3를 직접 만지게 해야 할 때 비로소 Identity Pool이 필요합니다.</Note>
+
+User Pool이 붙는 자리는 크게 둘입니다 — <b>API Gateway</b>(권한 부여자가 토큰을 검증, §07)와 <b><Term id="alb">ALB</Term></b>(리스너가 인증을 대신 수행, §13)입니다.
+
+<ExamPoint>
+  <ExamLi>“사용자 DB를 직접 운영하지 않고 회원가입·로그인·MFA를 구현” → <b>User Pool</b>.</ExamLi>
+  <ExamLi>“로그인 후 받은 토큰”이라는 표현이 나오면 <b>JWT</b>를 떠올린다 — 앱이 들고 다니는 ID·Access 토큰이 JWT다.</ExamLi>
+</ExamPoint>
