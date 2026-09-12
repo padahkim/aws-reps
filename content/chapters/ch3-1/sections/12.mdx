@@ -5,7 +5,9 @@ import { ChLink, Term } from "../../interactive";
 
 <ChLink id="ch0-2" sec={4}>ch0-2 §04</ChLink>에서 본 <b>정책 변수</b>가 여기서 쓰입니다. Identity Pool은 자격 증명을 내줄 때 그 사용자에게 <b>identity ID</b>라는 고유 ID를 붙이고, 정책 안에서 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code>로 그 값을 참조할 수 있습니다. 이름은 같은 <Code>sub</Code>지만 §06의 User Pool 토큰 <Code>sub</Code>와는 <b>다른 값</b>입니다 — 이 변수는 Identity Pool이 발급한 ID로 치환됩니다.
 
-<CodeBlock title="S3 — 자기 프리픽스만 접근">{`"Condition": {\n  "StringLike": {\n    "s3:prefix": ["\${cognito-identity.amazonaws.com:sub}/*"]\n  }\n}`}</CodeBlock>
+<CodeBlock title="S3 — 자기 프리픽스만 접근 (문장 두 개가 한 세트)">{`{\n  "Action": "s3:ListBucket",\n  "Resource": "arn:aws:s3:::my-bucket",\n  "Condition": {\n    "StringLike": { "s3:prefix": ["\${cognito-identity.amazonaws.com:sub}/*"] }\n  }\n},\n{\n  "Action": ["s3:GetObject", "s3:PutObject"],\n  "Resource": "arn:aws:s3:::my-bucket/\${cognito-identity.amazonaws.com:sub}/*"\n}`}</CodeBlock>
+
+<Code>s3:prefix</Code> 조건은 <b>목록 조회(ListBucket)에만</b> 걸립니다. 객체를 읽고 쓰는 <Code>GetObject</Code>·<Code>PutObject</Code> 요청에는 <Code>s3:prefix</Code> 키 자체가 없어서 이 조건으로는 걸러지지 않습니다 — 그래서 두 번째 문장처럼 <b>Resource ARN 안에 변수를 넣어</b> 자기 프리픽스로 좁힙니다. 둘 중 하나만 쓰면 격리가 뚫립니다.
 
 <CodeBlock title="DynamoDB — 자기 행(row)만 접근">{`"Condition": {\n  "ForAllValues:StringEquals": {\n    "dynamodb:LeadingKeys": ["\${cognito-identity.amazonaws.com:sub}"]\n  }\n}`}</CodeBlock>
 
@@ -15,6 +17,6 @@ import { ChLink, Term } from "../../interactive";
 
 <ExamPoint>
   <ExamLi>“한 테이블·한 버킷을 수백만 사용자가 공유하되 자기 데이터만” → <b>정책 변수(Policy Variable)</b>다.</ExamLi>
-  <ExamLi>S3는 <Code>s3:prefix</Code>, DynamoDB는 <Code>dynamodb:LeadingKeys</Code>(= 파티션 키). 이 두 키 이름이 그대로 선택지로 나온다.</ExamLi>
+  <ExamLi>S3는 <Code>s3:prefix</Code>(목록) + Resource ARN의 변수(객체), DynamoDB는 <Code>dynamodb:LeadingKeys</Code>(= 파티션 키). 두 조건 키 이름이 그대로 선택지로 나온다.</ExamLi>
   <ExamLi>변수는 <Code>{"${cognito-identity.amazonaws.com:sub}"}</Code> 형태다 — 여기의 <Code>sub</Code>는 Identity Pool의 identity ID이고, §06의 User Pool <Code>sub</Code>와는 다른 값이다.</ExamLi>
 </ExamPoint>

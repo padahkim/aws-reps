@@ -164,7 +164,7 @@ export const session: SessionData = {
       id: "c16",
       section: "12",
       q: "S3와 DynamoDB에서 사용자별 격리에 쓰는 조건 키를 각각 들고, DynamoDB 쪽이 무엇을 가리키는지 말해 보세요.",
-      a: "S3는 s3:prefix — 자기 프리픽스 아래만 접근하게 한다. DynamoDB는 dynamodb:LeadingKeys이고, 이것은 파티션 키를 가리킨다. 파티션 키를 사용자 ID로 설계해 두면 “자기 파티션 키를 가진 항목만 읽고 쓴다”가 조건 한 줄로 성립한다.",
+      a: "S3는 s3:prefix — 목록 조회(ListBucket)를 자기 프리픽스로 좁힌다. 객체 읽기·쓰기는 Resource ARN에 같은 변수를 넣어 좁힌다. DynamoDB는 dynamodb:LeadingKeys이고, 이것은 파티션 키를 가리킨다. 파티션 키를 사용자 ID로 설계해 두면 “자기 파티션 키를 가진 항목만 읽고 쓴다”가 조건 한 줄로 성립한다.",
     },
 
     // ── 13 ALB 인증 오프로드 ────────────────────────────────────────────
@@ -228,7 +228,7 @@ export const session: SessionData = {
       id: "m2",
       scenario: "모바일 앱 사용자가 자기 사진을 S3 버킷에 직접 업로드해야 한다. 사진은 사용자별로 격리돼야 한다.",
       service: "Identity Pool + 정책 변수",
-      why: "“직접 접근”이 임시 AWS 자격 증명을 가리키고, 격리는 s3:prefix에 ${cognito-identity.amazonaws.com:sub}를 건 정책 변수로 푼다.",
+      why: "“직접 접근”이 임시 AWS 자격 증명을 가리키고, 격리는 정책 변수 ${cognito-identity.amazonaws.com:sub}로 푼다 — 목록에는 s3:prefix 조건, 객체에는 Resource ARN.",
       contrast: "User Pool만으로는 AWS 리소스를 직접 만질 수 없다 — User Pool이 주는 것은 JWT일 뿐 AWS 자격 증명이 아니다.",
     },
     {
