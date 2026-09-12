@@ -199,7 +199,7 @@ function cupFlowSvg(step: number) {
 
       <rect x="498" y="76" width="172" height="84" rx="10" style={box(s(2), C.tealSoft, C.teal)} />
       <text x="584" y="104" textAnchor="middle" style={label(s(2), C.teal, 13)}>사용자 토큰 발급</text>
-      <text x="584" y="124" textAnchor="middle" style={label(s(2), C.ink)}>ID · Access (·Refresh)</text>
+      <text x="584" y="124" textAnchor="middle" style={label(s(2), C.ink)}>scope · grant에 따라 구성</text>
       <text x="584" y="144" textAnchor="middle" style={label(s(3), C.ink)}>→ API Gateway · ALB 에 제시</text>
 
       <path d="M100,112 L245,104" style={line(s(0), C.amber)} />
@@ -219,7 +219,7 @@ export function CupLoginFlow() {
       steps={[
         "사용자가 앱에서 ID·비밀번호로 User Pool에 로그인을 요청한다.",
         "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA, 이메일·전화 확인이 여기서 붙는다.",
-        "인증 성공 → ID·Access 토큰과, 흐름에 따라 Refresh 토큰을 발급한다. Implicit Grant에는 Refresh 토큰이 없다.",
+        "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다.",
         "앱은 이 토큰을 API Gateway나 ALB에 제시해 백엔드에 접근한다.",
         "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하는 쪽은 똑같이 User Pool이다.",
       ]}

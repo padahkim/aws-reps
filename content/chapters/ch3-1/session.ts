@@ -64,7 +64,7 @@ export const session: SessionData = {
       id: "c5",
       section: "05",
       q: "사용자 로그인에서 다루는 토큰 세 종류의 용도를 각각 구분하고, Implicit Grant의 예외를 설명해 보세요.",
-      a: "• ID 토큰 — 사용자가 누구인지를 담는다(이름·이메일·sub 같은 신원 클레임). 백엔드에 “이 사람이다”를 알린다.\n• Access 토큰 — 사용자가 무엇을 해도 되는지를 담는다(OAuth 2.0 스코프). API 호출을 인가하는 데 쓴다.\n• Refresh 토큰 — 앞의 두 토큰을 다시 발급받는 데만 쓴다. 사용자를 재로그인시키지 않기 위한 것이다.\nAuthorization Code Grant의 코드 교환은 세 토큰을 모두 주지만, Implicit Grant는 ID·Access 토큰만 직접 반환하고 Refresh 토큰은 주지 않는다.",
+      a: "• ID 토큰 — 사용자가 누구인지를 담는다(이름·이메일·sub 같은 신원 클레임). 백엔드에 “이 사람이다”를 알린다.\n• Access 토큰 — 사용자가 무엇을 해도 되는지를 담는다(OAuth 2.0 스코프). API 호출을 인가하는 데 쓴다.\n• Refresh 토큰 — 앞의 두 토큰을 다시 발급받는 데만 쓴다. 사용자를 재로그인시키지 않기 위한 것이다.\nAuthorization Code Grant에서 openid 스코프를 요청하면 세 토큰을 모두 받지만, openid가 없으면 ID 토큰은 나오지 않는다. Implicit Grant는 openid 요청 시 ID·Access 토큰을 직접 반환하고 Refresh 토큰은 주지 않는다.",
     },
     {
       id: "c6",
