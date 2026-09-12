@@ -191,7 +191,7 @@ function cupFlowSvg(step: number) {
       <text x="345" y="94" textAnchor="middle" style={label(s(0), C.amberText, 13)}>Cognito User Pool</text>
       <text x="345" y="114" textAnchor="middle" style={label(s(0), C.ink)}>서버리스 사용자 DB</text>
       <text x="345" y="134" textAnchor="middle" style={label(s(1), C.ink)}>ID·비밀번호 검증 · MFA</text>
-      <text x="345" y="154" textAnchor="middle" style={label(s(1), C.ink)}>이메일·전화 확인</text>
+      <text x="345" y="154" textAnchor="middle" style={label(s(1), C.ink)}>(이메일·전화 확인은 가입 단계)</text>
 
       <rect x="250" y="206" width="190" height="60" rx="10" style={box(s(4), C.blueSoft, C.blue)} />
       <text x="345" y="230" textAnchor="middle" style={label(s(4), C.blue)}>연합 로그인 (Federation)</text>
@@ -218,7 +218,7 @@ export function CupLoginFlow() {
       label="CUP 로그인 흐름"
       steps={[
         "사용자가 앱에서 ID·비밀번호로 User Pool에 로그인을 요청한다.",
-        "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA, 이메일·전화 확인이 여기서 붙는다.",
+        "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA가 여기서 붙는다. 이메일·전화 확인은 로그인이 아니라 가입 직후에 끝내는 절차라, 확인이 안 된 사용자는 여기서 거부된다.",
         "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다. ID·Access는 JWT이고, Refresh는 앱이 열어 볼 수 없는 불투명 문자열이다.",
         "앱은 이 토큰을 Authorization 헤더에 실어 API Gateway에 제시해 백엔드에 접근한다. ALB는 토큰을 받는 게 아니라 로그인 자체를 대신한다 — §13.",
         "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하는 쪽은 똑같이 User Pool이다.",
