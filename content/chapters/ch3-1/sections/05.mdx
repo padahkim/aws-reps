@@ -1,7 +1,7 @@
 import { Code, ExamLi, ExamPoint, Note, Table, WarnBox } from "../../ui";
 import { Term } from "../../interactive";
 
-로그인 한 번에 토큰이 <b>세 개</b> 나옵니다. 셋을 “JWT 토큰”으로 뭉뚱그려 외우면 시험에서 갈리는 지점을 놓칩니다 — 용도가 다르고, 수명도 다릅니다.
+Authorization Code Grant나 User Pool API의 일반적인 사용자 로그인에서는 토큰이 <b>세 개</b> 나옵니다. 셋을 “JWT 토큰”으로 뭉뚱그려 외우면 시험에서 갈리는 지점을 놓칩니다 — 용도가 다르고, 수명도 다릅니다.
 
 <Table
   head={["토큰", "용도", "기본 수명", "설정 가능 범위"]}
@@ -32,6 +32,8 @@ import { Term } from "../../interactive";
 <WarnBox>ID·Access 토큰의 유효기간은 <b>Refresh 토큰의 유효기간을 넘길 수 없습니다</b>. Refresh를 60분으로 줄여 놓고 Access를 1일로 두는 설정은 성립하지 않습니다 — 재발급 수단이 먼저 죽는 조합이기 때문입니다.</WarnBox>
 
 <Note>실제 화면에서는 이렇게 나타납니다 — 앱을 한 달 만에 열었는데 로그인 화면이 뜨지 않으면 Refresh 토큰이 살아 있어 조용히 재발급된 것이고, 로그인 화면이 뜨면 Refresh 토큰까지 만료된 것입니다.</Note>
+
+<Note><b>Implicit Grant는 예외</b>입니다. 브라우저 콜백에 ID·Access 토큰만 직접 돌려주고 <b>Refresh 토큰은 발급하지 않습니다.</b> 반면 Authorization Code Grant에서 코드를 교환하면 세 토큰을 모두 받습니다.</Note>
 
 <ExamPoint>
   <ExamLi>셋을 한 줄로 — <b>ID는 신원, Access는 권한, Refresh는 재발급</b>.</ExamLi>
