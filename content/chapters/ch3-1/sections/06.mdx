@@ -2,7 +2,7 @@ import { Code, CodeBlock, ExamLi, ExamPoint, Fig, Note } from "../../ui";
 import { Term } from "../../interactive";
 import { JwtPartsSvg } from "../figs";
 
-<Term id="jwt">JWT</Term>는 형식 이름입니다 — 앞 절의 세 토큰이 전부 이 형식으로 나옵니다. 겉으로는 점 두 개로 끊긴 긴 문자열 하나이고, 그 세 조각은 각각 다음을 담습니다.
+<Term id="jwt">JWT</Term>는 형식 이름입니다 — 앞 절의 <b>ID·Access 두 토큰</b>이 이 형식으로 나옵니다. Refresh 토큰은 이 형식이 아닙니다 — 암호화된 불투명 문자열이라 앱이 열어 볼 수 없고, User Pool만 읽습니다. 겉으로는 점 두 개로 끊긴 긴 문자열 하나이고, 그 세 조각은 각각 다음을 담습니다.
 
 <Fig caption="JWT의 세 조각 — 점(.)으로 이어 붙인 한 줄 문자열이고, 가운데 Payload가 사용자 정보를 담는다">
   <JwtPartsSvg />

@@ -219,7 +219,7 @@ export function CupLoginFlow() {
       steps={[
         "사용자가 앱에서 ID·비밀번호로 User Pool에 로그인을 요청한다.",
         "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA, 이메일·전화 확인이 여기서 붙는다.",
-        "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다.",
+        "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다. ID·Access는 JWT이고, Refresh는 앱이 열어 볼 수 없는 불투명 문자열이다.",
         "앱은 이 토큰을 Authorization 헤더에 실어 API Gateway에 제시해 백엔드에 접근한다. ALB는 토큰을 받는 게 아니라 로그인 자체를 대신한다 — §13.",
         "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하는 쪽은 똑같이 User Pool이다.",
       ]}
