@@ -23,13 +23,14 @@ import { AiDivisionSvg, BlindSpotSvg } from "../figs";
   ]}
 />
 
-오른쪽 열은 전부 <b>선택</b>의 문제입니다. 검증할 능력이 없으면 <b>잘못된 인프라를 자신 있게 배포</b>하게 됩니다.
+오른쪽 열은 AI 결과를 <b>검증</b>하고 시스템을 <b>판단</b>하는 일입니다. 그 능력이 없으면 <b>잘못된 인프라를 자신 있게 배포</b>하게 됩니다.
 
 <SubTitle>문제는 배포한 뒤에 터진다</SubTitle>
 
 <Term id="s3">S3</Term>는 파일(객체)을 저장하는 서비스이고, 파일을 담는 최상위 통을 <Term id="bucket">버킷</Term>이라고 부릅니다. <Term id="cloudfront">CloudFront</Term>는 이 파일을 전 세계에 배포하는 CDN 서비스로, 원본 버킷을 비공개로 둔 채 파일을 전달할 수 있습니다. <Term id="lambda">Lambda</Term>는 서버를 직접 관리하지 않고 코드를 실행하는 서비스입니다.
 
 <Table
+  rowHeaders
   head={["사고", "겉으로 보이는 증상 — 함께 확인할 시스템 맥락"]}
   rows={[
     [
@@ -77,6 +78,7 @@ import { AiDivisionSvg, BlindSpotSvg } from "../figs";
 진짜 핵심은 이겁니다. AI가 인프라 코드를 다 짜주는 시대에 가치 있는 건 코드를 칠 줄 아느냐가 아니라 <b>그 시스템을 이해하느냐</b>입니다.
 
 <Table
+  rowHeaders
   head={["비교 축", "시스템을 이해하는 개발자", "“SRE가 알아서 해주겠지”"]}
   rows={[
     ["소통", "SRE와 같은 언어로 말한다", "티켓을 넘기고 기다린다"],
@@ -102,14 +104,15 @@ import { AiDivisionSvg, BlindSpotSvg } from "../figs";
 <Term id="saa">SAA</Term>는 AWS Certified Solutions Architect - Associate의 약자로, 네트워킹·인프라 설계를 중심으로 다루는 자격시험입니다.
 
 <Table
+  rowHeaders
   head={["비교 축", "SAA", "DVA ← 여기서 시작"]}
   rows={[
     ["시험 중심", "네트워킹 · 인프라 설계", "Lambda · API · 배포"],
-    ["개발자 체감", "안 만져 본 영역", "이미 만지는 영역"],
-    ["선수 지식", "인프라 경험 전제", "개발 경험이 발판"],
+    ["개발자 연결점", "네트워킹·설계 비중이 큼", "코드·API·배포와 연결하기 쉬움"],
+    ["학습 곡선", "인프라 개념이 낯설면 더 가파름", "개발 경험을 발판으로 삼기 쉬움"],
   ]}
 />
 
-두 시험은 IAM·S3·서버리스가 겹쳐 <b>범위가 절반, 많게는 60%까지 겹친다</b>는 말이 나옵니다. 여기서 익히는 개념은 GCP·Azure에도 <b>이름만 바뀐 채</b> 그대로 있습니다.
+두 시험은 IAM·S3·서버리스 등 여러 핵심 서비스를 함께 다룹니다. 여기서 익히는 개념은 GCP·Azure에도 <b>이름만 바뀐 채</b> 그대로 있습니다.
 
 <Note>경로 요약: DVA로 개발자 친화적인 실무 개념부터 쌓는다 → 그 위에서 SAA는 훨씬 수월하게 딴다 → 전체 아키텍처를 설계하고 그 결과를 검증·책임질 수 있는 개발자가 된다.</Note>

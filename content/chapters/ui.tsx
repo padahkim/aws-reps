@@ -252,8 +252,16 @@ export function FigSwitch({ wide, narrow }: { wide: ReactNode; narrow: ReactNode
   );
 }
 
-/** 개념 표 — 첫 열은 행 헤더(볼드·줄바꿈 없음). 셀에 ReactNode 허용. */
-export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
+/** 개념 표 — 첫 열은 볼드·줄바꿈 없음. 행 레이블인 경우만 rowHeaders를 켠다. */
+export function Table({
+  head,
+  rows,
+  rowHeaders = false,
+}: {
+  head: string[];
+  rows: ReactNode[][];
+  rowHeaders?: boolean;
+}) {
   const cell: CSSProperties = {
     padding: "10px 14px",
     borderTop: `1px solid ${C.line}`,
@@ -298,7 +306,7 @@ export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
           {rows.map((row, i) => (
             <tr key={i}>
               {row.map((c, j) =>
-                j === 0 ? (
+                j === 0 && rowHeaders ? (
                   <th
                     key={j}
                     scope="row"
@@ -307,7 +315,10 @@ export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
                     {c}
                   </th>
                 ) : (
-                  <td key={j} style={cell}>
+                  <td
+                    key={j}
+                    style={j === 0 ? { ...cell, fontWeight: 700, whiteSpace: "nowrap" } : cell}
+                  >
                     {c}
                   </td>
                 ),
