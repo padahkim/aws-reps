@@ -594,10 +594,10 @@ export function BlindSpotSvg() {
         </g>
       ))}
       <text x={68} y={140} fontSize={11.5} fill={C.inkSoft}>
-        이 범위 안에서는 정확하다 — 문법도, 에러 해석도 틀리지 않는다.
+        이 범위 안에서 문법 작성과 에러 해석을 빠르게 돕는다.
       </text>
       <text x={68} y={158} fontSize={11.5} fill={C.inkSoft}>
-        하지만 “이게 문제인가?”는 이 안에 답이 없다.
+        하지만 “이게 문제인가?”를 판단하려면 더 넓은 맥락이 필요하다.
       </text>
 
       {/* 바깥의 세 축 = 세 사고 */}
