@@ -135,8 +135,8 @@ export const session: SessionData = {
     {
       id: "c13",
       section: "11",
-      q: "Identity Pool이 토큰을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
-      a: "① 사용자가 IdP(User Pool·Google·SAML 등)에 로그인해 공급자 토큰을 받는다. User Pool을 공급자로 쓸 때는 ID 토큰이다. ② 그 토큰을 Identity Pool에 넘기고, Identity Pool이 토큰이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
+      q: "Identity Pool이 공급자 증명을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
+      a: "① 사용자가 IdP(User Pool·Google·SAML 등)에 로그인해 공급자 증명을 받는다 — User Pool·OIDC는 ID 토큰, SAML은 assertion, 소셜 공급자는 access 토큰이다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
     },
     {
       id: "c14",
