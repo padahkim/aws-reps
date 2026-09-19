@@ -8,7 +8,7 @@ import { JwtPartsSvg } from "../figs";
   <JwtPartsSvg />
 </Fig>
 
-가운데 <b>Payload</b>가 실질입니다. base64로 <b>디코딩만 하면</b> 내용이 그대로 보입니다 — 암호화가 아니라 서명이기 때문입니다.
+가운데 <b>Payload</b>가 실질입니다. Base64URL(패딩 없는 URL 세이프 Base64)로 <b>디코딩만 하면</b> 내용이 그대로 보입니다 — 암호화가 아니라 서명이기 때문입니다.
 
 <CodeBlock title="Payload를 디코딩한 모습 (ID 토큰)">{`{\n  "sub": "9f31c2a8-4d17-4a3e-b6f0-1c8e2d5a7b93",   // 사용자 고유 UUID\n  "email": "learner@example.com",\n  "cognito:username": "learner",\n  "token_use": "id",\n  "exp": 1789459200                                 // 만료 시각\n}`}</CodeBlock>
 
@@ -17,6 +17,6 @@ import { JwtPartsSvg } from "../figs";
 <Note>디코딩이 되니 <b>Payload에 비밀을 담으면 안 됩니다</b>. 서명(Signature)이 지키는 것은 “내용이 새는 것”이 아니라 “내용이 바뀌는 것”입니다 — 한 글자만 고쳐도 서명 검증이 깨지므로 위조된 토큰은 거부됩니다.</Note>
 
 <ExamPoint>
-  <ExamLi>Header = 서명 알고리즘, <b>Payload = 클레임(사용자 정보)</b>, Signature = 위·변조 검증. 디코딩 문제는 Payload를 묻는다.</ExamLi>
+  <ExamLi>Header = 서명 알고리즘, <b>Payload = 클레임(사용자 정보)</b>, Signature = 위·변조 검증. 디코딩(Base64URL) 문제는 Payload를 묻는다.</ExamLi>
   <ExamLi><Code>sub</Code>는 사용자 고유 UUID다 — 이 값으로 User Pool에서 사용자 상세를 조회한다.</ExamLi>
 </ExamPoint>

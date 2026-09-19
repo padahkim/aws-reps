@@ -304,7 +304,7 @@ export function RiskScoreSvg() {
 function cipFlowSvg(step: number) {
   const s = (n: number) => step >= n;
   return (
-    <SvgFrame vb="0 0 700 330" aria="Identity Pool이 IdP 토큰을 검증해 STS 임시 자격 증명으로 교환하는 흐름">
+    <SvgFrame vb="0 0 700 330" aria="Identity Pool이 IdP 공급자 증명을 검증해 STS 임시 자격 증명으로 교환하는 흐름">
       <circle cx="62" cy="150" r="26" style={box(true, C.blueSoft, C.blue)} />
       <text x="62" y="156" textAnchor="middle" fontSize="18">👤</text>
       <text x="62" y="196" textAnchor="middle" style={label(true, C.ink)}>사용자</text>
@@ -315,7 +315,7 @@ function cipFlowSvg(step: number) {
 
       <rect x="248" y="128" width="196" height="84" rx="10" style={box(s(1), C.tealSoft, C.teal)} />
       <text x="346" y="156" textAnchor="middle" style={label(s(1), C.teal, 13)}>Identity Pool</text>
-      <text x="346" y="176" textAnchor="middle" style={label(s(1), C.ink)}>토큰 유효성 검증</text>
+      <text x="346" y="176" textAnchor="middle" style={label(s(1), C.ink)}>증명 유효성 검증</text>
       <text x="346" y="196" textAnchor="middle" style={label(s(2), C.ink)}>→ STS 로 교환 요청</text>
 
       <rect x="500" y="128" width="172" height="84" rx="10" style={box(s(2), C.amberSoft, C.amber)} />
@@ -334,7 +334,7 @@ function cipFlowSvg(step: number) {
       <path d="M84,130 L146,80" style={line(s(0), C.blue)} />
       <text x="56" y="102" style={lineText(s(0), C.blue)}>① 로그인</text>
       <path d="M272,98 L322,124" style={line(s(1), C.teal)} />
-      <text x="286" y="116" style={lineText(s(1), C.teal)}>② 토큰 전달</text>
+      <text x="286" y="116" style={lineText(s(1), C.teal)}>② 증명 전달</text>
       <path d="M448,168 L495,168" style={line(s(2), C.amber)} />
       <text x="446" y="156" style={lineText(s(2), C.amber)}>③ 교환</text>
       <path d="M562,216 L536,248" style={line(s(3), C.blue)} />
@@ -348,8 +348,8 @@ export function CipCredentialFlow() {
     <StepFlow
       label="CIP 자격 증명 발급 흐름"
       steps={[
-        "사용자가 IdP(User Pool, Google, SAML 등)에 로그인해 토큰을 받는다.",
-        "그 토큰을 Identity Pool에 넘긴다 — Identity Pool은 토큰이 진짜인지부터 검증한다.",
+        "사용자가 IdP(User Pool, Google, SAML 등)에 로그인해 공급자 증명(ID 토큰·assertion 등)을 받는다.",
+        "그 증명을 Identity Pool에 넘긴다 — Identity Pool은 증명이 진짜인지부터 검증한다.",
         "검증이 끝나면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다.",
         "사용자는 그 임시 자격 증명으로 S3·DynamoDB 같은 AWS 리소스를 직접 호출한다.",
         "로그인하지 않은 게스트에게도 별도 역할을 지정해 제한된 접근을 열어 줄 수 있다.",

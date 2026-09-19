@@ -36,8 +36,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-cognito-keyword-signals",
     section: "02",
-    q: "지문에 “mobile”, “hundreds of users”, “authenticate with SAML”이 보인다 — 어느 서비스를 가리키는 신호인가?",
-    a: "Cognito다. 반대로 “내부 직원”·“개발자에게 권한 부여”는 IAM 쪽 신호이고, 둘은 같은 문제의 정답·오답으로 짝지어 나온다.",
+    q: "지문에 “mobile”, “hundreds of users”, “앱 로그인”이 보인다 — 어느 서비스를 가리키는 신호인가?",
+    a: "Cognito다. 반대로 “AWS 콘솔/CLI 접근”·“개발자에게 AWS 리소스 권한 부여”는 IAM(또는 IAM Identity Center) 쪽 신호이고, 둘은 같은 문제의 정답·오답으로 짝지어 나온다 (사내 직원이어도 앱 로그인이 목적이면 앱 인증 도구의 몫이다).",
   },
 
   // ── 03 User Pool = 인증 ──────────────────────────────────────────────
@@ -65,8 +65,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-cup-flow-mfa-timing",
     section: "04",
-    q: "MFA와 이메일 확인은 토큰이 발급된 뒤에 일어나나?",
-    a: "아니다 — 자격 증명 검증 단계(②) 안에서 일어나고, 그것이 끝나야 토큰이 나온다.",
+    q: "MFA는 토큰이 발급된 뒤에 일어나나?",
+    a: "아니다 — 자격 증명 검증 단계(②)의 챌린지로 일어나고 완료되어야 토큰이 나온다 (이메일·전화 확인은 로그인 검증이 아니라 가입 직후 절차다).",
     yn: "아니오",
   },
 
@@ -197,7 +197,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-cip-no-user-database",
     section: "11",
     q: "Identity Pool도 사용자를 저장하나?",
-    a: "저장하지 않는다 — 외부 IdP가 발급한 토큰을 받아 임시 AWS 자격 증명으로 교환할 뿐이다. 사용자 DB를 갖는 쪽은 User Pool이다.",
+    a: "저장하지 않는다 — 외부 IdP의 공급자 증명(토큰·assertion)을 받아 임시 AWS 자격 증명으로 교환할 뿐이다. 사용자 DB를 갖는 쪽은 User Pool이다.",
     yn: "아니오",
   },
   {
