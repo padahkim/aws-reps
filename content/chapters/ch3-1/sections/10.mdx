@@ -1,0 +1,20 @@
+import { ExamLi, ExamPoint, Fig, Note } from "../../ui";
+import { Term } from "../../interactive";
+import { RiskScoreSvg } from "../figs";
+
+<b>적응형 인증(Adaptive Authentication)</b>은 User Pool이 직접 처리하는 로그인 시도마다 <b>위험도(Risk Score)</b>를 매기고, 그 값에 따라 요구 수준을 바꿉니다. 늘 MFA를 요구하면 사용자가 피곤하고, 아예 안 하면 위험하니 — 수상할 때만 더 묻는 절충입니다. 위험 점수 산정과 적응형 인증은 User Pool의 기본(Lite·Essentials) 플랜이 아닌 <b>Plus 플랜</b>(위협 방지)에서 제공됩니다. Google·SAML·OIDC 같은 <b>연합 로그인에는 적용되지 않습니다</b> — 인증 자체를 외부 IdP가 하기 때문입니다.
+
+<Fig caption="위험 수준별 대응의 대표적인 설정 예 — 값이 높을수록 요구를 세게 잡는 게 보통이다">
+  <RiskScoreSvg />
+</Fig>
+
+수준별로 무엇을 할지는 <b>관리자가 설정</b>합니다 — 각 수준마다 <b>허용 · 선택적 MFA · 필수 MFA · 차단</b> 중 하나를 고르고, <b>감사 전용(audit-only)</b> 모드로 두면 점수만 기록하고 아무것도 막지 않습니다. 위 도식은 그중 흔한 조합입니다.
+
+위험을 판단하는 근거는 <b>새 디바이스, 평소와 다른 위치(IP), 비정상적인 로그인 패턴</b> 같은 신호입니다. 여기에 <b>유출된 자격 증명(compromised credentials)</b> 차단과 계정 탈취 방지가 함께 묶입니다.
+
+<Note>적응형 인증은 <b>Plus 플랜</b> 전제입니다. 로그인 시도와 그때 매겨진 위험 점수는 <Term id="cloudwatch">CloudWatch</Term> Logs로 내보낼 수 있습니다 — “누가 언제 어디서 로그인을 시도했고 위험도가 얼마였나”를 사후에 조사할 수 있는 통로입니다.</Note>
+
+<ExamPoint>
+  <ExamLi>낮음 → 통과, 중간·높음 → <b>MFA 요구 또는 차단</b>이 대표적인 설정이다 — 대응은 수준별로 관리자가 고른다(허용·선택적 MFA·필수 MFA·차단).</ExamLi>
+  <ExamLi>“의심스러운 로그인일 때만 MFA를 추가로 요구” → <b>적응형 인증</b> (위협 방지 / Plus 플랜 전제).</ExamLi>
+</ExamPoint>

@@ -1,0 +1,22 @@
+import { Code, CodeBlock, ExamLi, ExamPoint, Fig, Note } from "../../ui";
+import { Term } from "../../interactive";
+import { JwtPartsSvg } from "../figs";
+
+<Term id="jwt">JWT</Term>는 형식 이름입니다 — 앞 절의 <b>ID·Access 두 토큰</b>이 이 형식으로 나옵니다. Refresh 토큰은 이 형식이 아닙니다 — 암호화된 불투명 문자열이라 앱이 열어 볼 수 없고, User Pool만 읽습니다. 겉으로는 점 두 개로 끊긴 긴 문자열 하나이고, 그 세 조각은 각각 다음을 담습니다.
+
+<Fig caption="JWT의 세 조각 — 점(.)으로 이어 붙인 한 줄 문자열이고, 가운데 Payload가 사용자 정보를 담는다">
+  <JwtPartsSvg />
+</Fig>
+
+가운데 <b>Payload</b>가 실질입니다. Base64URL(패딩 없는 URL 세이프 Base64)로 <b>디코딩만 하면</b> 내용이 그대로 보입니다 — 암호화가 아니라 서명이기 때문입니다.
+
+<CodeBlock title="Payload를 디코딩한 모습 (ID 토큰)">{`{\n  "sub": "9f31c2a8-4d17-4a3e-b6f0-1c8e2d5a7b93",   // 사용자 고유 UUID\n  "email": "learner@example.com",\n  "cognito:username": "learner",\n  "token_use": "id",\n  "exp": 1789459200                                 // 만료 시각\n}`}</CodeBlock>
+
+여기서 <Code>sub</Code>가 그 사용자의 <b>불변 고유 ID</b>입니다. 이메일·전화번호·<Code>preferred_username</Code> 같은 속성은 바뀔 수 있지만 <Code>sub</Code>는 바뀌지 않아서, 백엔드가 “이 데이터는 누구 것인가”를 기록할 때 쓰는 키가 됩니다. 반면 위 Payload의 <Code>cognito:username</Code>은 계정 생성 뒤 바꿀 수 없는 사용자 이름이지만, 사용자 식별의 정본은 여전히 <Code>sub</Code>입니다. §12에서 이 <Code>sub</Code>가 정책 안으로 그대로 들어가는 것을 보게 됩니다.
+
+<Note>디코딩이 되니 <b>Payload에 비밀을 담으면 안 됩니다</b>. 서명(Signature)이 지키는 것은 “내용이 새는 것”이 아니라 “내용이 바뀌는 것”입니다 — 한 글자만 고쳐도 서명 검증이 깨지므로 위조된 토큰은 거부됩니다.</Note>
+
+<ExamPoint>
+  <ExamLi>Header = 서명 알고리즘, <b>Payload = 클레임(사용자 정보)</b>, Signature = 위·변조 검증. 디코딩(Base64URL) 문제는 Payload를 묻는다.</ExamLi>
+  <ExamLi><Code>sub</Code>는 사용자 고유 UUID다 — 이 값으로 User Pool에서 사용자 상세를 조회한다.</ExamLi>
+</ExamPoint>

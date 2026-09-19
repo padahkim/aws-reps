@@ -232,7 +232,7 @@ flowchart LR
 이 절의 두 블록은 **스냅샷이 아니라 생성물**이다 — `scripts/gen-arch-facts.ts`가 `registry.ts`·`schema.ts`·`CURRICULUM.md`·`content/` 파일 목록에서 뽑아 쓴다(§7). 손으로 고치지 말고 `npm run docs:facts`로 다시 만든다.
 
 <!-- BEGIN GENERATED: migration-status -->
-`content/chapters/`에 **4개** 구조화 완료 — `ch0-1`·`ch0-2`·`ch1-1`·`ch1-2`, 전부 `registry.ts`에 등록됨. `docs/CURRICULUM.md`가 계획한 총 **24개**(0단계 2 + 1단계 4 + 2단계 5 + 3단계 3 + 4단계 6 + 5단계 4) 대비 **4/24**다. 레거시 원본 **28개**(`content/*.jsx` 27 + `.html` 1)는 별개 계층이라 이 분모에 섞지 않는다.
+`content/chapters/`에 **5개** 구조화 완료 — `ch0-1`·`ch0-2`·`ch1-1`·`ch1-2`·`ch3-1`, 전부 `registry.ts`에 등록됨. `docs/CURRICULUM.md`가 계획한 총 **24개**(0단계 2 + 1단계 4 + 2단계 5 + 3단계 3 + 4단계 6 + 5단계 4) 대비 **5/24**다. 레거시 원본 **28개**(`content/*.jsx` 27 + `.html` 1)는 별개 계층이라 이 분모에 섞지 않는다.
 <!-- END GENERATED -->
 
 선택 슬롯 보유가 챕터마다 다른 건 드리프트가 아니라 설계다(§5-1). 아래 표의 열은 `schema.ts`의 `ChapterData` optional 필드에서 나오므로, 선택 슬롯이 늘면 열도 따라 는다.
@@ -244,6 +244,7 @@ flowchart LR
 | `ch0-2` | 10 | ✓ | ✓ |
 | `ch1-1` | 18 | ✓ | ✓ |
 | `ch1-2` | 20 | ✓ | ✓ |
+| `ch3-1` | 14 | ✓ | ✓ |
 <!-- END GENERATED -->
 
 **MDX 규정**: **remark/rehype 플러그인 금지**(Next 16+Turbopack 불안정, #15). 본문 `.mdx`에서 코드 펜스(` ``` `) 대신 컴포넌트를 쓰고, 마크다운 기본 요소는 루트 `mdx-components.tsx`가 팔레트로 매핑한다.
