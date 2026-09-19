@@ -327,7 +327,18 @@ export function AzFailureSimulator() {
                   lineHeight: 1.5,
                 }}
               >
-                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다. 이미 다운된 볼륨에서는 새 스냅샷을 뜰 수 없으므로, <b>평소 미리 생성해 둔 스냅샷에서 AZ-b에 새 볼륨을 생성해 마운트</b>해야 합니다 (시험 단골 함정).
+                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다.{" "}
+                {azADown ? (
+                  <>
+                    이미 다운된 볼륨에서는 새 스냅샷을 뜰 수 없으므로,{" "}
+                    <b>평소 미리 생성해 둔 스냅샷에서 AZ-b에 새 볼륨을 생성해 마운트</b>해야 합니다 (시험 단골 함정).
+                  </>
+                ) : (
+                  <>
+                    AZ-b 인스턴스에서 쓰려면{" "}
+                    <b>미리 스냅샷을 생성해 두고, 그 스냅샷으로 AZ-b에 새 볼륨을 복원해 마운트</b>해야 합니다 (시험 단골 함정).
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -893,14 +904,20 @@ export function AiBlindSpotLab() {
             }}
           >
             {`{
-  "Effect": "Allow",
-  "Principal": "*",           // ⚠️ 전 세계 인터넷 누구나
-  "Action": "s3:GetObject",   // ⚠️ 파일 다운로드 허용
-  "Resource": "arn:aws:s3:::my-bucket/*"
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket/*"
+    }
+  ]
 }`}
           </pre>
           <div style={{ color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
-            🚨 참사: 403 에러는 사라졌지만, 회사 파일 저장소가 전 세계에 무방비로 유출됨!
+            🚨 참사: "Principal": "*"로 인해 전 세계 누구나 파일을 다운로드할 수 있게 열려 회사 데이터 유출 사고 발생!
           </div>
         </>
       ),
@@ -1038,6 +1055,7 @@ export function AiBlindSpotLab() {
               key={key}
               type="button"
               className="widget-btn"
+              aria-pressed={active}
               onClick={() => setActiveTab(key)}
               style={{
                 ...chipBtn(active, item.color, item.colorSoft),
