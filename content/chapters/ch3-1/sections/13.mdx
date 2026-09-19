@@ -2,7 +2,7 @@ import { Code, ExamLi, ExamPoint, Note, Table, WarnBox } from "../../ui";
 import { Term } from "../../interactive";
 import { AlbAuthFlow } from "../figs";
 
-토큰을 쓰는 두 번째 자리가 <Term id="alb">ALB</Term>입니다. API Gateway가 토큰을 <b>검증</b>했다면, ALB는 한 걸음 더 나아가 <b>로그인 자체를 대신 수행</b>합니다 — 애플리케이션에서 인증 코드를 통째로 걷어낼 수 있어 <b>인증 오프로드</b>라고 부릅니다.
+토큰을 쓰는 두 번째 자리가 <Term id="alb">ALB</Term>입니다. API Gateway가 토큰을 <b>검증</b>했다면, ALB는 한 걸음 더 나아가 <b>로그인 자체를 대신 수행</b>합니다 — 애플리케이션에서 인증 코드를 통째로 걷어낼 수 있어 <b>인증 오프로드</b>라고 부릅니다. 단, 타깃이 ALB를 거치지 않고도 닿으면 이 인증은 통째로 우회됩니다. 타깃 보안 그룹은 <b>ALB 보안 그룹에서 오는 트래픽만</b> 받게 좁히고, 백엔드는 ALB가 넘겨 준 사용자 클레임만 신뢰합니다.
 
 <AlbAuthFlow />
 
