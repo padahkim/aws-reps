@@ -17,7 +17,7 @@ import { TriggerTimelineSvg } from "../figs";
     ["Post Authentication", <>로그인이 끝난 <b>뒤</b> — 이벤트 로깅·분석</>],
     ["Pre Token Generation", <>토큰을 발급하기 <b>직전</b> — 클레임 추가·수정</>],
     ["User Migration", <>기존 사용자 DB에서 User Pool로 <b>옮길 때</b></>],
-    ["Custom Message", <>확인·인증 <b>메시지 문구</b>를 바꿀 때</>],
+    ["Custom Message", <>확인·인증 <b>메시지 문구</b>를 바꿀 때 — SMS는 바로 되지만, <b>이메일 본문·제목은 SES를 발신자로 설정한 풀</b>(<Code>EmailSendingAccount=DEVELOPER</Code>)에서만 받아들여진다</>],
     ["Define Auth Challenge", <>다음 챌린지를 낼지, 토큰을 발급할지, 인증을 실패시킬지 <b>결정</b></>],
     ["Create Auth Challenge", <>CAPTCHA·보안 질문 같은 <b>챌린지를 생성</b></>],
     ["Verify Auth Challenge Response", <>사용자가 보낸 답이 기대한 값과 맞는지 <b>검증</b></>],
