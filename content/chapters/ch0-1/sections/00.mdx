@@ -31,29 +31,48 @@ import { AiDivisionSvg, BlindSpotSvg } from "../figs";
 
 <Table
   rowHeaders
-  head={["사고", "겉으로 보이는 증상 — 함께 확인할 시스템 맥락"]}
+  head={["사고", "겉으로 보이는 증상과 시스템 맥락"]}
   rows={[
     [
       "권한",
       <>
-        프로덕션에서만 <code>AccessDenied</code>. AI는 애플리케이션 코드를 고치려 듭니다 — 정작 그 코드는
-        멀쩡합니다. 로컬 내 자격 증명엔 있던 권한이 Lambda 실행 역할엔
-        없다는 것 → <b>실행 주체가 환경마다 다르다</b>
+        <div>
+          <b>프로덕션에서만 <code>AccessDenied</code> 발생</b>
+        </div>
+        <div style={{ marginTop: 6, fontSize: "0.85rem", color: "var(--muted)" }}>
+          ㄴ <b>AI의 오판:</b> 코드는 멀쩡한데, 클라우드 설정을 모르는 AI는 정작 아무 죄 없는 애플리케이션 코드만 계속 뜯어고치려 듭니다.
+        </div>
+        <div style={{ marginTop: 4, fontSize: "0.85rem" }}>
+          ㄴ <b>진짜 원인:</b> 로컬 내 컴퓨터엔 있던 권한이, 클라우드 서버(Lambda)의 실행 역할엔 없었던 것 → <b>코드가 아니라 '실행 주체'의 권한 차이</b>
+        </div>
       </>,
     ],
     [
       "요금",
       <>
-        청구서가 예상의 5배. AI는 “이 코드 조각엔 문법 문제없음”이라 답합니다 — 실제로 없으니까요. S3 저장
-        위치가 자길 트리거한 그 버킷이면 → 업로드가 다음 실행을 부르는 <b>무한 루프</b>
+        <div>
+          <b>청구서에 찍힌 예상의 5배 요금 폭탄</b>
+        </div>
+        <div style={{ marginTop: 6, fontSize: "0.85rem", color: "var(--muted)" }}>
+          ㄴ <b>AI의 오판:</b> 코드 문법엔 <code>while</code>문 같은 루프가 없으니 “코드에는 아무 문제가 없다”고 안심시킵니다.
+        </div>
+        <div style={{ marginTop: 4, fontSize: "0.85rem" }}>
+          ㄴ <b>진짜 원인:</b> S3 파일 저장이 Lambda를 깨우고, 그 Lambda가 같은 버킷에 다시 저장해 끝없이 재실행되는 구조 → <b>코드 내부가 아닌 '이벤트 연결 흐름'의 문제</b>
+        </div>
       </>,
     ],
     [
       "보안",
       <>
-        이미지가 403. AI는 버킷 정책을 여는 diff를 냅니다 —{" "}
-        CloudFront 뒤에 숨겼어야 할 오리진이라고{" "}
-        <b>말해준 적이 없으니까요</b>
+        <div>
+          <b>웹사이트에서 이미지가 <code>403</code>(권한 없음)으로 안 뜸</b>
+        </div>
+        <div style={{ marginTop: 6, fontSize: "0.85rem", color: "var(--muted)" }}>
+          ㄴ <b>AI의 오판:</b> 단순히 에러를 없애겠다고, 파일 저장소(S3 버킷)의 보안 빗장을 풀어 인터넷 전체에 누구나 볼 수 있게 활짝 열어버리는(퍼블릭 공개) 설정을 제시합니다.
+        </div>
+        <div style={{ marginTop: 4, fontSize: "0.85rem" }}>
+          ㄴ <b>진짜 원인:</b> 403 에러는 사라져도 회사 데이터가 전 세계에 유출됩니다. 원래는 캐시 서버(CloudFront)만 안전하게 통과하도록 연결했어야 함 → <b>'무엇이 인터넷에 열리면 안 되는지' 아는 시스템 감각의 문제</b>
+        </div>
       </>,
     ],
   ]}
