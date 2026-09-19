@@ -165,6 +165,7 @@
 | ALB 인증 | IdP 엔드포인트 아웃바운드 연결 | ALB는 Token·User Info 엔드포인트에 IPv4로 통신해야 함. 보안 그룹·NACL이 허용해야 하며 내부 ALB 또는 `dualstack-without-public-ipv4`에는 NAT Gateway로 경로를 제공할 수 있음 | https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html | 2026-09-12 |
 | Cognito | JWT 세그먼트 인코딩 규격 | JWT의 Header와 Payload는 패딩 없는 Base64URL(RFC 7519)로 인코딩되므로 URL-safe 문자(-, _)를 포함할 수 있어 일반 Base64 디코더와 구분 | https://datatracker.ietf.org/doc/html/rfc7519#section-3 | 2026-09-19 |
 | Cognito | 적응형 인증과 위협 방지 기능 플랜 | 위험 점수 기반 적응형 인증과 손상된 자격 증명 차단(Threat Protection)은 User Pool의 Plus 플랜 필수 (기본 Lite·Essentials 플랜에서는 비활성화) | https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pool-settings-threat-protection.html | 2026-09-19 |
+| Cognito Identity Pool | 역할 신뢰 정책의 `amr` 조건 | `aud`는 같은 풀의 게스트·인증 사용자를 구분하지 못함. 인증 역할은 `ForAnyValue:StringLike amr=authenticated`, 게스트 역할은 `unauthenticated` 조건으로 가른다 (공식 예제 정책 전부 포함) | https://docs.aws.amazon.com/cognito/latest/developerguide/role-trust-and-permissions.html | 2026-09-19 |
 | SQS | 메시지 보존 기간 | 기본 4일, 설정 범위 1분(60초)~14일(1,209,600초) | https://aws.amazon.com/sqs/faqs/ | 2026-07-13 |
 | SQS | 메시지 최대 크기 | 262,144바이트(256KB), 초과 시 SQS Extended Client Library(Java)로 S3 오프로딩 | https://docs.aws.amazon.com/help-panel/AWSSimpleQueueService/latest/console/hp-createq-config-max-size.html | 2026-07-13 |
 | SQS | 가시성 타임아웃 범위 | 기본 30초, 최소 0초, 최대 12시간 | https://docs.aws.amazon.com/powershell/v5/reference/items/Edit-SQSMessageVisibility.html | 2026-07-13 |

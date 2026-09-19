@@ -210,7 +210,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-cip-trust-policy-principal",
     section: "11",
     q: "Cognito가 데려온 사용자가 IAM 역할을 맡을 수 있게 하려면, 역할의 신뢰 정책 Principal에 무엇을 적나?",
-    a: "cognito-identity.amazonaws.com이다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 실제 발급은 STS가 한다. 단 Condition에 어느 Identity Pool인지(aud)를 함께 적지 않으면 저장되지 않는다.",
+    a: "cognito-identity.amazonaws.com이다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 실제 발급은 STS가 한다. 단 Condition에 어느 Identity Pool인지(aud)를 함께 적지 않으면 저장되지 않고, 인증 사용자용 역할과 게스트용 역할은 amr 조건(authenticated/unauthenticated)으로 가른다.",
   },
 
   // ── 12 정책 변수 ─────────────────────────────────────────────────────
