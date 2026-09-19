@@ -858,3 +858,262 @@ export function BlindSpotSvg() {
     </svg>
   );
 }
+
+/** §00 — AI 사고 심층 랩: 코드 바깥의 시스템 맹점 파헤치기 */
+export function AiBlindSpotLab() {
+  const [activeTab, setActiveTab] = useState<"security" | "cost" | "auth">("security");
+
+  const data = {
+    security: {
+      badge: "🚨 보안 구멍",
+      label: "보안: S3 퍼블릭 유출",
+      color: C.red,
+      colorSoft: C.redSoft,
+      title: "웹사이트 이미지 403 Forbidden 에러",
+      userPrompt: "“웹사이트에서 S3 이미지가 403 에러로 안 떠요. 고쳐줘!”",
+      aiMistake: (
+        <>
+          <div><b>AI의 위험한 처방:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “403 에러는 권한이 없어서 발생합니다. S3 버킷의 퍼블릭 차단을 해제하고 아래 정책을 추가하세요:”
+          </div>
+          <pre
+            style={{
+              margin: "8px 0 6px",
+              padding: "8px 10px",
+              borderRadius: 8,
+              background: "#1E293B",
+              color: "#F87171",
+              fontFamily: MONO,
+              fontSize: "0.78rem",
+              lineHeight: 1.5,
+              overflowX: "auto",
+            }}
+          >
+            {`{
+  "Effect": "Allow",
+  "Principal": "*",           // ⚠️ 전 세계 인터넷 누구나
+  "Action": "s3:GetObject",   // ⚠️ 파일 다운로드 허용
+  "Resource": "arn:aws:s3:::my-bucket/*"
+}`}
+          </pre>
+          <div style={{ color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: 403 에러는 사라졌지만, 회사 파일 저장소가 전 세계에 무방비로 유출됨!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "AI가 진짜로 이런 위험하고 멍청한 설정을 주나요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>네, 지금도 ChatGPT나 Claude에 “S3 이미지 403 해결해줘”라고만 치면 가장 흔히 나오는 답변입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>AI의 목적은 당장의 에러 해결:</b> AI의 최적화 목표는 '당신 회사의 보안 지키기'가 아니라 '당장 사용자가 호소한 403 에러를 없애는 것'입니다.
+            </li>
+            <li>
+              <b>인터넷의 오래된 데이터 학습:</b> 지난 15년간 스택오버플로우나 블로그에 수없이 올라온 옛날식 해결법(퍼블릭 개방)을 학습했기 때문에, 인프라 설정 파일(YAML)을 다 줘도 태연하게 버킷을 열어버리는 diff를 제시합니다.
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“S3 버킷은 퍼블릭 차단(비공개)을 유지하고, CloudFront OAC로만 안전하게 서빙되도록 정책 짜줘”",
+      solutionResult: (
+        <>
+          버킷을 전 세계에 여는 대신, 오직 캐시 서버(CloudFront)만 열 수 있는 전용 열쇠(OAC)를 쥐어주는 <b>안전한 최신 보안 아키텍처</b>가 완성됩니다.
+        </>
+      ),
+    },
+    cost: {
+      badge: "💸 요금 폭탄",
+      label: "요금: 이벤트 무한 루프",
+      color: C.amber,
+      colorSoft: C.amberSoft,
+      title: "청구서에 찍힌 예상의 5배 요금 폭탄",
+      userPrompt: "“Lambda로 파일 처리하는데 요금이 너무 많이 나왔어요. 코드에 while 무한 루프가 있나 봐줘”",
+      aiMistake: (
+        <>
+          <div><b>AI의 오판:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “코드 전체를 검토했으나 <code>while</code>문이나 재귀 호출이 전혀 없습니다. 코드 문법에는 아무 이상이 없으니 안심하셔도 됩니다.”
+          </div>
+          <div style={{ marginTop: 8, color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: 코드는 멀쩡하지만, 몇 시간 만에 함수가 수백만 번 실행되어 월말 요금 폭탄!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "인프라 YAML 설정 파일에 S3 트리거를 다 적어줬는데도 AI가 못 잡나요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>못 잡습니다. 설정 파일과 코드 문법 둘 다 각각은 100% 정상 문법이기 때문입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>분리된 컨텍스트:</b> 실무에선 인프라 템플릿(YAML)과 비즈니스 코드(JS/Python)가 분리되어 있어, AI에게 코드와 에러 로그만 보여주는 경우가 대부분입니다.
+            </li>
+            <li>
+              <b>런타임 이벤트의 맹점:</b> 설령 YAML을 통째로 줘도, <code>S3 업로드 → Lambda 실행</code> 설정 자체는 표준 문법입니다. 문제는 람다 함수가 결과를 '자기를 깨운 바로 그 버킷'에 다시 저장하며 생기는 <b>런타임 이벤트 무한 핑퐁</b>입니다.
+            </li>
+            <li>
+              (이 사고가 얼마나 정적으로 잡기 어려웠으면 AWS 본사조차 2023년 말에야 클라우드 자체에서 재귀 루프를 강제 차단하는 감지 기능을 추가했을 정도입니다).
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“S3 업로드 이벤트는 uploads/ 접두사(prefix)로만 제한하고, 결과는 별도 버킷에 저장하도록 이벤트 흐름을 분리해줘”",
+      solutionResult: (
+        <>
+          코드 내부를 고치는 게 아니라, <b>서비스 간 이벤트 연결 경로를 분리</b>하여 무한 루프 가능성을 원천 차단합니다.
+        </>
+      ),
+    },
+    auth: {
+      badge: "🔑 권한 사고",
+      label: "권한: AccessDenied 삽질",
+      color: C.blue,
+      colorSoft: C.blueSoft,
+      title: "프로덕션에서만 AccessDenied 발생",
+      userPrompt: "“로컬 내 컴퓨터에선 DB랑 S3가 잘 읽히는데, 배포하니까 AccessDenied 에러가 나요. 에러 로그 보고 고쳐줘”",
+      aiMistake: (
+        <>
+          <div><b>AI의 헛발질:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “데이터베이스 조회 함수의 쿼리 매개변수나 예외 처리 로직에 오류가 있는 것 같습니다. 아래와 같이 애플리케이션 코드를 수정해 보세요...”
+          </div>
+          <div style={{ marginTop: 8, color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: 코드는 100% 무죄인데, AI 말만 믿고 멀쩡한 비즈니스 로직만 몇 시간째 뜯어고치는 삽질 반복!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "초심자는 '에러 났으니 코드를 고치는 게 당연하지 않나?'라고 생각하기 쉬운데 왜 문제인가요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>코드가 틀린 게 아니라, 코드를 실행하는 '주체(자격 증명)'가 환경마다 다르기 때문입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>로컬 개발 환경:</b> 내 PC에 등록된 내 관리자 AWS 계정 키로 실행되므로 모든 리소스에 접근 가능했습니다.
+            </li>
+            <li>
+              <b>클라우드 프로덕션:</b> 내 PC 키가 아니라, 서버(Lambda)에 부여된 <b>실행 역할(IAM Role)</b>로 실행됩니다. 여기에 권한이 빠져 있어서 거부당한 것입니다.
+            </li>
+            <li>
+              AI는 눈앞의 코드 문법만 볼 뿐 서버의 클라우드 IAM 역할을 알지 못하므로, 죄 없는 코드만 계속 만지작거립니다.
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“코드엔 문제없어. 이 Lambda가 S3 객체를 읽을 수 있도록 IAM 실행 역할에 최소 권한 정책을 추가해줘”",
+      solutionResult: (
+        <>
+          멀쩡한 코드는 한 줄도 건드리지 않고, <b>클라우드 실행 주체에게 올바른 IAM 권한을 부여</b>하여 1분 만에 깔끔하게 해결합니다.
+        </>
+      ),
+    },
+  };
+
+  const current = data[activeTab];
+
+  return (
+    <SimFrame title="AI 사고 심층 랩: 코드 바깥의 시스템 맹점 파헤치기" icon="🎛">
+      <div style={{ fontSize: "0.86rem", color: C.inkSoft, marginBottom: 14 }}>
+        탭을 눌러 각 사고에서 AI가 왜 어처구니없는 오판을 하는지, 그리고 독자들이 가장 많이 품는 현실적인 의문의 진실을 확인해 보세요.
+      </div>
+
+      {/* 탭 버튼 */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {(["security", "cost", "auth"] as const).map((key) => {
+          const item = data[key];
+          const active = activeTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              className="widget-btn"
+              onClick={() => setActiveTab(key)}
+              style={{
+                ...chipBtn(active, item.color, item.colorSoft),
+                padding: "6px 13px",
+                fontSize: "0.82rem",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 상세 내용 카드 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* 1. 초심자의 질문 & AI의 오판 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.line}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: "#FFFFFF",
+          }}
+        >
+          <div style={{ fontSize: "0.82rem", fontWeight: 700, color: C.inkSoft, marginBottom: 4 }}>
+            💬 초심자의 질문
+          </div>
+          <div style={{ fontSize: "0.92rem", fontWeight: 700, color: C.ink, marginBottom: 12 }}>
+            {current.userPrompt}
+          </div>
+
+          <div
+            style={{
+              borderTop: `1px dashed ${C.line}`,
+              paddingTop: 10,
+              fontSize: "0.86rem",
+            }}
+          >
+            {current.aiMistake}
+          </div>
+        </div>
+
+        {/* 2. 현실적인 독자의 의문 & 시스템 진실 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.amber}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: C.amberSoft,
+          }}
+        >
+          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: C.amberText, marginBottom: 6 }}>
+            🤔 잠깐! {current.skepticismQuestion}
+          </div>
+          <div style={{ fontSize: "0.85rem", color: C.ink, lineHeight: 1.6 }}>
+            {current.skepticismAnswer}
+          </div>
+        </div>
+
+        {/* 3. 시스템을 아는 개발자의 질문 & 정석 설계 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.teal}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: C.tealSoft,
+          }}
+        >
+          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: C.teal, marginBottom: 4 }}>
+            ✨ 시스템을 이해한 개발자의 질문
+          </div>
+          <div style={{ fontSize: "0.9rem", fontWeight: 700, color: C.ink, marginBottom: 6 }}>
+            {current.solutionPrompt}
+          </div>
+          <div style={{ fontSize: "0.84rem", color: C.inkSoft, lineHeight: 1.5 }}>
+            👉 <b>결과:</b> {current.solutionResult}
+          </div>
+        </div>
+      </div>
+    </SimFrame>
+  );
+}
