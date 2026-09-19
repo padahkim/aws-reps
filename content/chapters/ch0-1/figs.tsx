@@ -142,6 +142,7 @@ export function AzFailureSimulator() {
         <button
           type="button"
           className="widget-btn"
+          aria-pressed={!multiAz}
           onClick={() => setMultiAz(false)}
           style={{
             ...chipBtn(!multiAz, C.blue, C.blueSoft),
@@ -156,6 +157,7 @@ export function AzFailureSimulator() {
         <button
           type="button"
           className="widget-btn"
+          aria-pressed={multiAz}
           onClick={() => setMultiAz(true)}
           style={{
             ...chipBtn(multiAz, C.teal, C.tealSoft),
@@ -279,7 +281,7 @@ export function AzFailureSimulator() {
                 <div style={{ fontSize: "0.78rem" }}>
                   <b>EC2 인스턴스 B</b>
                   <span style={{ color: C.teal, marginLeft: 6, fontWeight: 700 }}>
-                    {azADown ? "(트래픽 단독 수용 중 ✔)" : "(트래픽 분산 처리 중)"}
+                    {azADown ? "(ALB가 트래픽 단독 전달 중 ✔)" : "(ALB가 트래픽 분산 전달 중)"}
                   </span>
                 </div>
               </div>
@@ -325,7 +327,7 @@ export function AzFailureSimulator() {
                   lineHeight: 1.5,
                 }}
               >
-                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다. AZ-b 인스턴스에서 쓰려면 <b>스냅샷을 생성해 AZ-b에 새 볼륨으로 복원</b>해야 합니다 (시험 단골 함정).
+                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다. 이미 다운된 볼륨에서는 새 스냅샷을 뜰 수 없으므로, <b>평소 미리 생성해 둔 스냅샷에서 AZ-b에 새 볼륨을 생성해 마운트</b>해야 합니다 (시험 단골 함정).
               </div>
             )}
           </div>
@@ -355,8 +357,8 @@ export function AzFailureSimulator() {
               ? "✔ Multi-AZ 정상 운용 중 (장애 대비 완료)"
               : "ℹ 단일 AZ 가동 중 (단, AZ-a 장애 시 전체 중단 위험)"
             : multiAz
-              ? "✔ 서비스 정상 유지 (고가용성 달성!)"
-              : "✖ 서비스 전체 중단! (502 Bad Gateway)"}
+              ? "✔ 서비스 정상 유지 (ALB가 AZ-b로 트래픽 자동 우회)"
+              : "✖ 서비스 전체 중단 (단일 장애점 SPoF — 서버 무응답)"}
         </div>
         <div style={{ fontSize: "0.78rem", color: C.ink, marginTop: 4, lineHeight: 1.5 }}>
           {!azADown
@@ -364,8 +366,8 @@ export function AzFailureSimulator() {
               ? "서버 2대가 서로 다른 가용영역에 분산되어 있어, 한 건물에 불이 나도 서비스가 멈추지 않습니다."
               : "지금은 잘 동작하지만, AWS도 결국 데이터센터 건물입니다. AZ-a에 전력 문제나 화재가 나면 즉시 중단됩니다."
             : multiAz
-              ? "AZ-a가 완전히 정전되었지만, 전력·네트워크가 완전히 독립된 AZ-b의 인스턴스가 살아 있어 서비스가 중단 없이 이어집니다. 이것이 AWS가 정의하는 고가용성(HA)입니다."
-              : "서버가 1대뿐인 AZ-a가 죽으면서 요청을 받아줄 서버가 0대가 되었습니다. 이것이 단일 장애점(SPoF)입니다."}
+              ? "AZ-a가 완전히 정전되었지만, 앞단 로드 밸런서(ALB)가 헬스체크로 장애를 감지하고 트래픽을 정상인 AZ-b의 인스턴스로 자동 우회하여 서비스가 끊김 없이 이어집니다. 이것이 AWS가 정의하는 고가용성(HA)입니다."
+              : "서버가 1대뿐인 AZ-a가 죽으면서 요청을 받아줄 서버가 0대가 되었습니다. 라우팅할 대상이 없으므로 서비스가 완전히 멈춥니다(단일 장애점 SPoF)."}
         </div>
       </div>
     </SimFrame>
