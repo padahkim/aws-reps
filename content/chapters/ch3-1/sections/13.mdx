@@ -10,7 +10,7 @@ import { AlbAuthFlow } from "../figs";
 
 붙이는 방식은 둘입니다. <b>authenticate-cognito</b>는 User Pool을 앞세우는 방식으로, <b>ALB와 같은 리전</b>의 User Pool·앱 클라이언트·User Pool 도메인이 필요합니다. 여기서 앱 클라이언트는 <b>client secret을 생성한 confidential client</b>여야 하고, <b>Authorization Code Grant</b>와 ALB가 요청할 OAuth 스코프를 활성화해야 합니다. §08의 브라우저·모바일용 public/PKCE 클라이언트를 그대로 재사용하지 말고 ALB용 앱 클라이언트를 따로 둡니다.
 
-Cognito 앱 클라이언트의 콜백 URL에는 <Code>https://&lt;ALB-domain&gt;/oauth2/idpresponse</Code>를 <b>정확히, 모두 소문자로</b> 등록합니다. 외부 연합 IdP가 있다면 그 IdP의 콜백은 ALB가 아니라 <b>Cognito User Pool 도메인</b>을 가리킵니다. <b>authenticate-oidc</b>는 OIDC 호환 IdP에 직접 연결하는 방식이라, Authorization·Token·User Info 엔드포인트와 Client ID·Secret을 손으로 넣습니다.
+Cognito 앱 클라이언트의 콜백 URL에는 <Code>https://&lt;ALB-domain&gt;/oauth2/idpresponse</Code>를 <b>정확히, 모두 소문자로</b> 등록합니다. 외부 연합 IdP가 있다면 그 IdP의 콜백은 ALB가 아니라 <b>Cognito User Pool 도메인</b>을 가리킵니다. <b>authenticate-oidc</b>는 OIDC 호환 IdP에 직접 연결하는 방식이라, Authorization·Token·User Info 엔드포인트와 Client ID·Secret을 손으로 넣고, 그 IdP 쪽에도 리다이렉트 URI로 같은 <Code>https://&lt;ALB-domain&gt;/oauth2/idpresponse</Code>를 등록합니다.
 
 <WarnBox>ALB는 인증 코드 교환을 위해 IdP의 <b>Token·User Info 엔드포인트에 IPv4로 나갈 수 있어야 합니다.</b> 보안 그룹 아웃바운드와 네트워크 ACL이 이를 허용해야 하며, <b>내부 ALB</b>나 <Code>dualstack-without-public-ipv4</Code>처럼 퍼블릭 IPv4 출구가 없는 구성은 보통 <b>NAT Gateway</b>를 통해 이 경로를 만듭니다.</WarnBox>
 
