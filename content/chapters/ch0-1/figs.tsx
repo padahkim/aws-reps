@@ -125,6 +125,253 @@ export function GlobalInfraSvg() {
   );
 }
 
+/** §01 — AZ 장애 & 고가용성 인터랙티브 시뮬레이터. */
+export function AzFailureSimulator() {
+  const [multiAz, setMultiAz] = useState(false);
+  const [azADown, setAzADown] = useState(false);
+  const [showEbsInfo, setShowEbsInfo] = useState(false);
+
+  return (
+    <SimFrame title="AZ 장애 & 고가용성 시뮬레이터" icon="⚡">
+      <div style={{ fontSize: "0.86rem", color: C.inkSoft, marginBottom: 12 }}>
+        배치 방식과 장애 상황을 직접 눌러보며, Multi-AZ가 어떻게 고가용성을 만드는지 확인해 보세요.
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: C.ink }}>배치 방식:</span>
+        <button
+          type="button"
+          className="widget-btn"
+          onClick={() => setMultiAz(false)}
+          style={{
+            ...chipBtn(!multiAz, C.blue, C.blueSoft),
+            padding: "5px 12px",
+            fontSize: "0.82rem",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          단일 AZ 배포 (서버 1대)
+        </button>
+        <button
+          type="button"
+          className="widget-btn"
+          onClick={() => setMultiAz(true)}
+          style={{
+            ...chipBtn(multiAz, C.teal, C.tealSoft),
+            padding: "5px 12px",
+            fontSize: "0.82rem",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          Multi-AZ 분산 배포 (서버 2대)
+        </button>
+
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: azADown ? C.red : C.inkSoft }}>
+            {azADown ? "⚡ AZ-a 정전 발생 중" : "정상 전력"}
+          </span>
+          <Switch
+            on={azADown}
+            onClick={() => setAzADown(!azADown)}
+            colorOn={C.red}
+            label="AZ-a 장애 발생"
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 12 }}>
+        {/* AZ-a 카드 */}
+        <div
+          style={{
+            border: `1.5px solid ${azADown ? C.red : C.line}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            background: azADown ? C.redSoft : "#fff",
+            transition: "background 0.2s, border-color 0.2s",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: "0.85rem", color: azADown ? C.red : C.ink }}>
+              AZ-a (ap-northeast-2a)
+            </span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: azADown ? C.red : C.teal }}>
+              {azADown ? "🔥 전력 차단 / 다운" : "🟢 가동 중"}
+            </span>
+          </div>
+
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 8px",
+                borderRadius: 6,
+                background: azADown ? "rgba(255,255,255,0.7)" : C.blueSoft,
+                border: `1px solid ${azADown ? C.red : C.line}`,
+              }}
+            >
+              <span style={{ fontSize: "0.9rem" }}>🖥</span>
+              <div style={{ fontSize: "0.78rem" }}>
+                <b>EC2 인스턴스 A</b>
+                <span style={{ color: azADown ? C.red : C.inkSoft, marginLeft: 6 }}>
+                  {azADown ? "(작동 중지 ✖)" : "(요청 처리 중)"}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 8px",
+                borderRadius: 6,
+                background: azADown ? "rgba(255,255,255,0.7)" : C.amberSoft,
+                border: `1px solid ${azADown ? C.red : C.line}`,
+              }}
+            >
+              <span style={{ fontSize: "0.9rem" }}>💾</span>
+              <div style={{ fontSize: "0.78rem" }}>
+                <b>EBS 볼륨 A</b>
+                <span style={{ color: azADown ? C.red : C.amberText, marginLeft: 6 }}>
+                  {azADown ? "(접근 불가 ✖)" : "(EC2 A에 마운트)"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AZ-b 카드 */}
+        <div
+          style={{
+            border: `1.5px solid ${multiAz ? C.teal : C.line}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            background: multiAz ? "#fff" : "#FAFAFA",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: "0.85rem", color: C.ink }}>
+              AZ-b (ap-northeast-2b)
+            </span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: C.teal }}>
+              🟢 정상 (독립 데이터센터)
+            </span>
+          </div>
+
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            {multiAz ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  background: C.tealSoft,
+                  border: `1px solid ${C.teal}`,
+                }}
+              >
+                <span style={{ fontSize: "0.9rem" }}>🖥</span>
+                <div style={{ fontSize: "0.78rem" }}>
+                  <b>EC2 인스턴스 B</b>
+                  <span style={{ color: C.teal, marginLeft: 6, fontWeight: 700 }}>
+                    {azADown ? "(트래픽 단독 수용 중 ✔)" : "(트래픽 분산 처리 중)"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: "12px 8px",
+                  borderRadius: 6,
+                  border: `1px dashed ${C.line}`,
+                  textAlign: "center",
+                  fontSize: "0.78rem",
+                  color: C.inkSoft,
+                }}
+              >
+                배치된 서버 없음 (단일 AZ 모드)
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowEbsInfo(!showEbsInfo)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "2px 0",
+                color: C.blue,
+                fontSize: "0.73rem",
+                textAlign: "left",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              {showEbsInfo ? "▲ EBS 연결 제약 접기" : "❓ AZ-a의 EBS를 이 서버에 바로 붙일 수 있나요?"}
+            </button>
+            {showEbsInfo && (
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  color: C.red,
+                  background: C.redSoft,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  lineHeight: 1.5,
+                }}
+              >
+                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다. AZ-b 인스턴스에서 쓰려면 <b>스냅샷을 생성해 AZ-b에 새 볼륨으로 복원</b>해야 합니다 (시험 단골 함정).
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 결과 판정 배너 */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: "10px 14px",
+          borderRadius: 8,
+          background: !azADown ? (multiAz ? C.tealSoft : "#F4F6F8") : multiAz ? C.tealSoft : C.redSoft,
+          border: `1.5px solid ${!azADown ? (multiAz ? C.teal : C.line) : multiAz ? C.teal : C.red}`,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: MONO,
+            fontSize: "0.85rem",
+            fontWeight: 800,
+            color: !azADown ? (multiAz ? C.teal : C.ink) : multiAz ? C.teal : C.red,
+          }}
+        >
+          {!azADown
+            ? multiAz
+              ? "✔ Multi-AZ 정상 운용 중 (장애 대비 완료)"
+              : "ℹ 단일 AZ 가동 중 (단, AZ-a 장애 시 전체 중단 위험)"
+            : multiAz
+              ? "✔ 서비스 정상 유지 (고가용성 달성!)"
+              : "✖ 서비스 전체 중단! (502 Bad Gateway)"}
+        </div>
+        <div style={{ fontSize: "0.78rem", color: C.ink, marginTop: 4, lineHeight: 1.5 }}>
+          {!azADown
+            ? multiAz
+              ? "서버 2대가 서로 다른 가용영역에 분산되어 있어, 한 건물에 불이 나도 서비스가 멈추지 않습니다."
+              : "지금은 잘 동작하지만, AWS도 결국 데이터센터 건물입니다. AZ-a에 전력 문제나 화재가 나면 즉시 중단됩니다."
+            : multiAz
+              ? "AZ-a가 완전히 정전되었지만, 전력·네트워크가 완전히 독립된 AZ-b의 인스턴스가 살아 있어 서비스가 중단 없이 이어집니다. 이것이 AWS가 정의하는 고가용성(HA)입니다."
+              : "서버가 1대뿐인 AZ-a가 죽으면서 요청을 받아줄 서버가 0대가 되었습니다. 이것이 단일 장애점(SPoF)입니다."}
+        </div>
+      </div>
+    </SimFrame>
+  );
+}
+
 export function ApiConvergeSvg() {
   const client = (x: number, title: string, l1: ReactNode, l2: string) => (
     <>
