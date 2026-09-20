@@ -251,7 +251,7 @@ export function OverviewGateSvg() {
       ))}
 
       {/* IAM 관문 */}
-      <rect x={250} y={90} width={130} height={120} rx={10} fill="#FFF" stroke={C.ink} strokeWidth={2} />
+      <rect x={250} y={90} width={130} height={120} rx={10} fill={C.card} stroke={C.ink} strokeWidth={2} />
       <text x={315} y={120} fontSize={19} fontWeight={900} fill={C.ink} textAnchor="middle">IAM</text>
       <text x={315} y={140} fontSize={10.5} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>인증 + 인가</text>
       <g transform="translate(292,152)">
@@ -277,7 +277,7 @@ export function OverviewGateSvg() {
         ["SQS", 720, 165],
       ].map(([t, x, y], i) => (
         <g key={i}>
-          <rect x={x as number} y={y as number} width={70} height={44} rx={7} fill="#FFF" stroke={C.teal} strokeWidth={1.5} />
+          <rect x={x as number} y={y as number} width={70} height={44} rx={7} fill={C.card} stroke={C.teal} strokeWidth={1.5} />
           <text x={(x as number) + 35} y={(y as number) + 27} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle" fontFamily={MONO}>{t}</text>
         </g>
       ))}
@@ -308,7 +308,7 @@ export function ComponentsSvg() {
         [170, 175],
       ].map(([x, y], i) => (
         <g key={i}>
-          <rect x={x} y={y} width={90} height={60} rx={9} fill="#FFF" stroke={C.blue} strokeWidth={1.5} />
+          <rect x={x} y={y} width={90} height={60} rx={9} fill={C.card} stroke={C.blue} strokeWidth={1.5} />
           <circle cx={x + 45} cy={y + 22} r={9} fill="none" stroke={C.blue} strokeWidth={1.6} />
           <path d={`M${x + 30} ${y + 46} a15 15 0 0 1 30 0`} fill="none" stroke={C.blue} strokeWidth={1.6} />
           <text x={x + 45} y={y + 56} fontSize={9} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>User</text>
@@ -339,7 +339,7 @@ export function ComponentsSvg() {
       <path d="M520 150 C 500 150, 490 155, 479 155" stroke={C.amber} strokeWidth={2} fill="none" markerEnd="url(#arrow-comp-amber)" />
 
       {/* 역할을 맡는 주체(Trust) */}
-      <rect x={520} y={210} width={250} height={120} rx={12} fill="#FFF" stroke={C.red} strokeWidth={1.5} strokeDasharray="5 4" />
+      <rect x={520} y={210} width={250} height={120} rx={12} fill={C.card} stroke={C.red} strokeWidth={1.5} strokeDasharray="5 4" />
       <text x={535} y={234} fontSize={11.5} fontWeight={900} fill={C.red} fontFamily={MONO}>역할을 맡는 주체 (Trust)</text>
       {[
         ["EC2 / Lambda", 262],
@@ -435,7 +435,7 @@ export function PolicyAnatomy() {
                   fontWeight: 700,
                   color: r.chip,
                   border: `1px solid ${r.chip}`,
-                  background: "#FFF",
+                  background: C.card,
                   padding: "1px 7px",
                   borderRadius: 5,
                   whiteSpace: "nowrap",
@@ -467,7 +467,7 @@ export function AuthFlowSvg() {
 
       <line x1={120} y1={103} x2={168} y2={103} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-authn)" />
 
-      <rect x={172} y={58} width={160} height={92} rx={10} fill="#FFF" stroke={C.blue} strokeWidth={2.5} />
+      <rect x={172} y={58} width={160} height={92} rx={10} fill={C.card} stroke={C.blue} strokeWidth={2.5} />
       <text x={252} y={84} fontSize={13.5} fontWeight={900} fill={C.blue} textAnchor="middle">① 인증 AuthN</text>
       <text x={252} y={104} fontSize={11} fill={C.ink} textAnchor="middle">&ldquo;너 누구야?&rdquo;</text>
       <text x={252} y={122} fontSize={10} fill={C.inkSoft} textAnchor="middle">비밀번호 · 액세스 키(SigV4)</text>
@@ -475,7 +475,7 @@ export function AuthFlowSvg() {
 
       <line x1={332} y1={103} x2={380} y2={103} stroke={C.inkSoft} strokeWidth={2} markerEnd="url(#arrow-authn)" />
 
-      <rect x={384} y={58} width={160} height={92} rx={10} fill="#FFF" stroke={C.amber} strokeWidth={2.5} />
+      <rect x={384} y={58} width={160} height={92} rx={10} fill={C.card} stroke={C.amber} strokeWidth={2.5} />
       <text x={464} y={84} fontSize={13.5} fontWeight={900} fill={C.amberText} textAnchor="middle">② 인가 AuthZ</text>
       <text x={464} y={104} fontSize={11} fill={C.ink} textAnchor="middle">&ldquo;뭐 할 수 있어?&rdquo;</text>
       <text x={464} y={122} fontSize={10} fill={C.inkSoft} textAnchor="middle">정책 수집 · 평가</text>
@@ -543,7 +543,7 @@ export function CrossAccountSvg() {
         </marker>
       </defs>
 
-      <rect x={20} y={28} width={310} height={168} rx={12} fill="#FFF" stroke={C.blue} strokeWidth={2} strokeDasharray="7 5" />
+      <rect x={20} y={28} width={310} height={168} rx={12} fill={C.card} stroke={C.blue} strokeWidth={2} strokeDasharray="7 5" />
       <text x={175} y={52} fontSize={13} fontWeight={900} fill={C.blue} textAnchor="middle">계정 A</text>
       <text x={92} y={102} fontSize={26} textAnchor="middle">👤</text>
       <text x={92} y={126} fontSize={11} fontWeight={700} fill={C.ink} textAnchor="middle">IAM 유저</text>
@@ -551,11 +551,11 @@ export function CrossAccountSvg() {
       <text x={235} y={103} fontSize={11.5} fontWeight={900} fill={C.blue} textAnchor="middle">자격 증명 정책</text>
       <text x={235} y={121} fontSize={10} fill={C.inkSoft} textAnchor="middle" fontFamily={MONO}>s3:GetObject Allow</text>
 
-      <rect x={430} y={28} width={310} height={168} rx={12} fill="#FFF" stroke={C.teal} strokeWidth={2} strokeDasharray="7 5" />
+      <rect x={430} y={28} width={310} height={168} rx={12} fill={C.card} stroke={C.teal} strokeWidth={2} strokeDasharray="7 5" />
       <text x={585} y={52} fontSize={13} fontWeight={900} fill={C.teal} textAnchor="middle">계정 B</text>
       <rect x={456} y={76} width={110} height={66} rx={10} fill={C.tealSoft} stroke={C.teal} strokeWidth={2} />
       <text x={511} y={114} fontSize={13} fontWeight={900} fill={C.teal} textAnchor="middle">🪣 S3 버킷</text>
-      <rect x={586} y={84} width={134} height={52} rx={9} fill="#FFF" stroke={C.teal} strokeWidth={1.5} />
+      <rect x={586} y={84} width={134} height={52} rx={9} fill={C.card} stroke={C.teal} strokeWidth={1.5} />
       <text x={653} y={105} fontSize={11.5} fontWeight={900} fill={C.teal} textAnchor="middle">버킷 정책</text>
       <text x={653} y={123} fontSize={10} fill={C.inkSoft} textAnchor="middle">계정 A 허용</text>
 
@@ -588,7 +588,7 @@ export function StsSequenceSvg() {
       </defs>
       {lanes.map(([t, x, col], i) => (
         <g key={i}>
-          <rect x={x - 85} y={18} width={170} height={36} rx={9} fill="#FFF" stroke={col} strokeWidth={2} />
+          <rect x={x - 85} y={18} width={170} height={36} rx={9} fill={C.card} stroke={col} strokeWidth={2} />
           <text x={x} y={41} fontSize={12} fontWeight={900} fill={col} textAnchor="middle">{t}</text>
           <line x1={x} y1={54} x2={x} y2={300} stroke={C.line} strokeWidth={1.5} strokeDasharray="4 4" />
         </g>
@@ -698,7 +698,7 @@ export function EvalEngine() {
                     padding: "7px 10px",
                     borderRadius: 8,
                     border: `1.5px solid ${isStop ? C.red : C.line}`,
-                    background: isStop ? C.redSoft : "#fff",
+                    background: isStop ? C.redSoft : C.card,
                   }}
                 >
                   <span style={{ fontFamily: MONO, fontSize: "0.7rem", fontWeight: 700, color: isStop ? C.red : C.inkSoft, minWidth: 14 }}>{i}</span>
@@ -1138,7 +1138,7 @@ export function PolicyRequestTester() {
                     padding: "8px 10px",
                     borderRadius: 8,
                     border: `1.5px solid ${irrelevant ? C.line : s.matched ? C.teal : C.red}`,
-                    background: "#fff",
+                    background: C.card,
                     opacity: irrelevant ? 0.55 : 1,
                   }}
                 >

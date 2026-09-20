@@ -77,7 +77,7 @@ export const outlineBtn = (accent: string, soft: string) =>
     "--btn-bg": C.card,
     "--btn-fg": accent,
     "--btn-hover-bg": soft,
-    "--btn-hover-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+    "--btn-hover-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
     "--btn-ring": accent,
     borderColor: accent,
   }) as CSSProperties;
@@ -92,7 +92,7 @@ export const chipBtn = (active: boolean, accent: string, soft: string): CSSPrope
   active
     ? ({
         "--btn-bg": soft,
-        "--btn-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
         "--btn-hover-bg": soft,
         "--btn-ring": accent,
         borderColor: accent,
@@ -102,7 +102,7 @@ export const chipBtn = (active: boolean, accent: string, soft: string): CSSPrope
         "--btn-bg": C.card,
         "--btn-fg": C.inkSoft,
         "--btn-hover-bg": soft,
-        "--btn-hover-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-hover-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
         "--btn-ring": accent,
         borderColor: C.line,
         fontWeight: 400,
@@ -284,11 +284,11 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
             zIndex: 10,
             display: "block",
             width: pos.width,
-            background: C.card,
+            background: `var(--popover-bg, ${C.card})`,
             color: C.ink,
-            border: `1px solid ${C.line}`,
+            border: `1px solid var(--popover-border, ${C.line})`,
             borderRadius: 10,
-            boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.24)",
             padding: "10px 12px",
             // 트리거가 b/굵은 표 셀 안에 있어도 팝오버는 본문 톤을 유지한다
             fontSize: "0.82rem",

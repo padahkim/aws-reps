@@ -19,7 +19,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
+  ],
 };
 
 export default function RootLayout({
@@ -28,7 +31,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        {/* FOUC 방지 인라인 스크립트 (#282) — 브라우저 렌더링 시작 전 localStorage 테마를 적용해 깜빡임 방지 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"||t==="system"){document.documentElement.setAttribute("data-theme",t);}else{document.documentElement.setAttribute("data-theme","system");}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>
         {/* 전역 앱바 (#247) — 설치형 PWA 에는 브라우저 뒤로 버튼이 없다. 여기가 이 앱의
             유일한 되돌아오기 장치이므로 `<main>` 밖, 모든 화면 위에 온다. */}

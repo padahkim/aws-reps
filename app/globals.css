@@ -6,20 +6,156 @@
   --accent: #2563eb;
   /* 전역 앱바 높이 (#247) — 바 자신과 앵커 스크롤 정지선이 같은 값을 봐야 한다 */
   --app-bar-h: 2.75rem;
+
+  /* 서피스 계층 (Elevation & Surface Luminescence, #282) */
+  --card-bg: #ffffff;
+  --card-fg: #171e26;
+  --card-muted: #3d4b5c;
+  --card-border: #e2dfd8;
+  --popover-bg: #ffffff;
+  --popover-border: #e2dfd8;
+
+  /* 본문 프리미티브 토큰 */
+  --table-head-bg: #171e26;
+  --table-head-fg: #ffffff;
+  --exam-bg: #fdebd3;
+  --exam-border: #e8830c;
+  --exam-title: #9a5b06;
+  --warn-bg: #f8e4df;
+  --warn-border: #b9432c;
+  --warn-title: #b9432c;
+  --fold-bg: #e3edf6;
+  --fold-title: #2e5e8c;
+  --checklist-bg: #171e26;
+  --checklist-border: transparent;
+  --sec-num-bg: #171e26;
+  --sec-num-fg: #ffffff;
+
+  /* SVG 도식 및 공용 팔레트 */
+  --ink: #171e26;
+  --ink-soft: #3d4b5c;
+  --blue: #2e5e8c;
+  --blue-soft: #e3edf6;
+  --teal: #0e7c7b;
+  --teal-soft: #dcf0ef;
+  --amber: #e8830c;
+  --amber-soft: #fdebd3;
+  --amber-text: #9a5b06;
+  --red: #b9432c;
+  --red-soft: #f8e4df;
+  --line: #e2dfd8;
+  --code-fg: #ffd9a0;
 }
 
-/* 향후 정식 테마 시스템(토글 + 다크 전용 SVG 팔레트) 도입 전까지 라이트 모드로 고정 (#278 UX 피드백).
-   본문 도식(Fig)·표(Table)가 라이트 캔버스를 전제로 설계되어 있어, OS 다크 모드 자동 전환 시
-   발생하는 눈부심(Glare / Halation)을 방지하고 일관된 종이책 가독성을 유지한다. */
+/* 시스템 다크 모드 (@media prefers-color-scheme: dark) — 사용자가 라이트를 강제하지 않은 경우 적용 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --border: #2e3238;
+    --accent: #58a6ff;
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    /* 서피스 계층 */
+    --card-bg: #161b22;
+    --card-fg: #e6edf3;
+    --card-muted: #8b949e;
+    --card-border: #2e3238;
+    --popover-bg: #21262d;
+    --popover-border: #363b42;
+
+    /* 본문 프리미티브 토큰 */
+    --table-head-bg: #21262d;
+    --table-head-fg: #f0f6fc;
+    --exam-bg: rgba(232, 131, 12, 0.14);
+    --exam-border: #e8830c;
+    --exam-title: #f59e0b;
+    --warn-bg: rgba(185, 67, 44, 0.15);
+    --warn-border: #ef4444;
+    --warn-title: #f85149;
+    --fold-bg: rgba(46, 94, 140, 0.18);
+    --fold-title: #58a6ff;
+    --checklist-bg: #161b22;
+    --checklist-border: #2e3238;
+    --sec-num-bg: #21262d;
+    --sec-num-fg: #f0f6fc;
+
+    /* SVG 도식 및 공용 팔레트 */
+    --ink: #e6edf3;
+    --ink-soft: #8b949e;
+    --blue: #58a6ff;
+    --blue-soft: rgba(56, 139, 253, 0.15);
+    --teal: #2dd4bf;
+    --teal-soft: rgba(45, 212, 191, 0.15);
+    --amber: #f59e0b;
+    --amber-soft: rgba(232, 131, 12, 0.18);
+    --amber-text: #f59e0b;
+    --red: #f85149;
+    --red-soft: rgba(248, 81, 73, 0.15);
+    --line: #2e3238;
+    --code-fg: #ffd9a0;
+    --btn-hover-text: #ffffff;
+  }
+}
+
+/* 사용자 명시적 다크 모드 ([data-theme="dark"]) */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --border: #2e3238;
+  --accent: #58a6ff;
+
+  /* 서피스 계층 */
+  --card-bg: #161b22;
+  --card-fg: #e6edf3;
+  --card-muted: #8b949e;
+  --card-border: #2e3238;
+  --popover-bg: #21262d;
+  --popover-border: #363b42;
+
+  /* 본문 프리미티브 토큰 */
+  --table-head-bg: #21262d;
+  --table-head-fg: #f0f6fc;
+  --exam-bg: rgba(232, 131, 12, 0.14);
+  --exam-border: #e8830c;
+  --exam-title: #f59e0b;
+  --warn-bg: rgba(185, 67, 44, 0.15);
+  --warn-border: #ef4444;
+  --warn-title: #f85149;
+  --fold-bg: rgba(46, 94, 140, 0.18);
+  --fold-title: #58a6ff;
+  --checklist-bg: #161b22;
+  --checklist-border: #2e3238;
+  --sec-num-bg: #21262d;
+  --sec-num-fg: #f0f6fc;
+
+  /* SVG 도식 및 공용 팔레트 */
+  --ink: #e6edf3;
+  --ink-soft: #8b949e;
+  --blue: #58a6ff;
+  --blue-soft: rgba(56, 139, 253, 0.15);
+  --teal: #2dd4bf;
+  --teal-soft: rgba(45, 212, 191, 0.15);
+  --amber: #f59e0b;
+  --amber-soft: rgba(232, 131, 12, 0.18);
+  --amber-text: #f59e0b;
+  --red: #f85149;
+  --red-soft: rgba(248, 81, 73, 0.15);
+  --line: #2e3238;
+  --code-fg: #ffd9a0;
+  --btn-hover-text: #ffffff;
+}
+
+/* 사용자 명시적 라이트 모드 ([data-theme="light"]) */
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 html {
-  color-scheme: light;
+  color-scheme: light dark;
   /* 앵커 점프(/glossary#용어id)가 앱바 밑에 가려지지 않게 스크롤 정지선을 바 높이만큼
      내린다 (#247). .glossary-item 의 scroll-margin-top 1rem 은 바가 없던 시절의 여백이라
      그것만으로는 항목 머리가 바에 물린다. */
@@ -118,6 +254,66 @@ main {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--muted);
+}
+
+.app-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* 테마 선택기 (#282) — 세그먼트 버튼 컨트롤 */
+.theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 1.75rem;
+  padding: 0 7px;
+  border: none;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-btn:hover {
+  color: var(--fg);
+}
+
+.theme-btn.active {
+  background: var(--bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.theme-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 520px) {
+  .theme-btn .theme-label {
+    display: none;
+  }
+  .theme-btn {
+    padding: 0 6px;
+  }
 }
 
 /* 도식 모바일 전환 (#101) — FigSwitch(content/chapters/ui.tsx)의 두 변형을 폭으로 전환한다.
