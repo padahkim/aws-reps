@@ -125,6 +125,266 @@ export function GlobalInfraSvg() {
   );
 }
 
+/** §01 — AZ 장애 & 고가용성 인터랙티브 시뮬레이터. */
+export function AzFailureSimulator() {
+  const [multiAz, setMultiAz] = useState(false);
+  const [azADown, setAzADown] = useState(false);
+  const [showEbsInfo, setShowEbsInfo] = useState(false);
+
+  return (
+    <SimFrame title="AZ 장애 & 고가용성 시뮬레이터" icon="⚡">
+      <div style={{ fontSize: "0.86rem", color: C.inkSoft, marginBottom: 12 }}>
+        배치 방식과 장애 상황을 직접 눌러보며, Multi-AZ가 어떻게 고가용성을 만드는지 확인해 보세요.
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: C.ink }}>배치 방식:</span>
+        <button
+          type="button"
+          className="widget-btn"
+          aria-pressed={!multiAz}
+          onClick={() => setMultiAz(false)}
+          style={{
+            ...chipBtn(!multiAz, C.blue, C.blueSoft),
+            padding: "5px 12px",
+            fontSize: "0.82rem",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          단일 AZ 배포 (서버 1대)
+        </button>
+        <button
+          type="button"
+          className="widget-btn"
+          aria-pressed={multiAz}
+          onClick={() => setMultiAz(true)}
+          style={{
+            ...chipBtn(multiAz, C.teal, C.tealSoft),
+            padding: "5px 12px",
+            fontSize: "0.82rem",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          Multi-AZ 분산 배포 (서버 2대)
+        </button>
+
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: azADown ? C.red : C.inkSoft }}>
+            {azADown ? "⚡ AZ-a 정전 발생 중" : "정상 전력"}
+          </span>
+          <Switch
+            on={azADown}
+            onClick={() => setAzADown(!azADown)}
+            colorOn={C.red}
+            label="AZ-a 장애 발생"
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 12 }}>
+        {/* AZ-a 카드 */}
+        <div
+          style={{
+            border: `1.5px solid ${azADown ? C.red : C.line}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            background: azADown ? C.redSoft : "#fff",
+            transition: "background 0.2s, border-color 0.2s",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: "0.85rem", color: azADown ? C.red : C.ink }}>
+              AZ-a (ap-northeast-2a)
+            </span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: azADown ? C.red : C.teal }}>
+              {azADown ? "🔥 전력 차단 / 다운" : "🟢 가동 중"}
+            </span>
+          </div>
+
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 8px",
+                borderRadius: 6,
+                background: azADown ? "rgba(255,255,255,0.7)" : C.blueSoft,
+                border: `1px solid ${azADown ? C.red : C.line}`,
+              }}
+            >
+              <span style={{ fontSize: "0.9rem" }}>🖥</span>
+              <div style={{ fontSize: "0.78rem" }}>
+                <b>EC2 인스턴스 A</b>
+                <span style={{ color: azADown ? C.red : C.inkSoft, marginLeft: 6 }}>
+                  {azADown ? "(작동 중지 ✖)" : "(요청 처리 중)"}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 8px",
+                borderRadius: 6,
+                background: azADown ? "rgba(255,255,255,0.7)" : C.amberSoft,
+                border: `1px solid ${azADown ? C.red : C.line}`,
+              }}
+            >
+              <span style={{ fontSize: "0.9rem" }}>💾</span>
+              <div style={{ fontSize: "0.78rem" }}>
+                <b>EBS 볼륨 A</b>
+                <span style={{ color: azADown ? C.red : C.amberText, marginLeft: 6 }}>
+                  {azADown ? "(접근 불가 ✖)" : "(EC2 A에 마운트)"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AZ-b 카드 */}
+        <div
+          style={{
+            border: `1.5px solid ${multiAz ? C.teal : C.line}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            background: multiAz ? "#fff" : "#FAFAFA",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: "0.85rem", color: C.ink }}>
+              AZ-b (ap-northeast-2b)
+            </span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: C.teal }}>
+              🟢 정상 (독립 데이터센터)
+            </span>
+          </div>
+
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            {multiAz ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  background: C.tealSoft,
+                  border: `1px solid ${C.teal}`,
+                }}
+              >
+                <span style={{ fontSize: "0.9rem" }}>🖥</span>
+                <div style={{ fontSize: "0.78rem" }}>
+                  <b>EC2 인스턴스 B</b>
+                  <span style={{ color: C.teal, marginLeft: 6, fontWeight: 700 }}>
+                    {azADown ? "(ALB가 트래픽 단독 전달 중 ✔)" : "(ALB가 트래픽 분산 전달 중)"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: "12px 8px",
+                  borderRadius: 6,
+                  border: `1px dashed ${C.line}`,
+                  textAlign: "center",
+                  fontSize: "0.78rem",
+                  color: C.inkSoft,
+                }}
+              >
+                배치된 서버 없음 (단일 AZ 모드)
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowEbsInfo(!showEbsInfo)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "2px 0",
+                color: C.blue,
+                fontSize: "0.73rem",
+                textAlign: "left",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              {showEbsInfo ? "▲ EBS 연결 제약 접기" : "❓ AZ-a의 EBS를 이 서버에 바로 붙일 수 있나요?"}
+            </button>
+            {showEbsInfo && (
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  color: C.red,
+                  background: C.redSoft,
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  lineHeight: 1.5,
+                }}
+              >
+                <b>불가 ⚠:</b> EBS 볼륨은 특정 AZ에 물리적으로 묶입니다.{" "}
+                {azADown ? (
+                  <>
+                    이미 다운된 볼륨에서는 새 스냅샷을 뜰 수 없으므로,{" "}
+                    <b>평소 미리 생성해 둔 스냅샷에서 AZ-b에 새 볼륨을 생성해 마운트</b>해야 합니다 (시험 단골 함정).
+                  </>
+                ) : (
+                  <>
+                    AZ-b 인스턴스에서 쓰려면{" "}
+                    <b>미리 스냅샷을 생성해 두고, 그 스냅샷으로 AZ-b에 새 볼륨을 복원해 마운트</b>해야 합니다 (시험 단골 함정).
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 결과 판정 배너 */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: "10px 14px",
+          borderRadius: 8,
+          background: !azADown ? (multiAz ? C.tealSoft : "#F4F6F8") : multiAz ? C.tealSoft : C.redSoft,
+          border: `1.5px solid ${!azADown ? (multiAz ? C.teal : C.line) : multiAz ? C.teal : C.red}`,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: MONO,
+            fontSize: "0.85rem",
+            fontWeight: 800,
+            color: !azADown ? (multiAz ? C.teal : C.ink) : multiAz ? C.teal : C.red,
+          }}
+        >
+          {!azADown
+            ? multiAz
+              ? "✔ Multi-AZ 정상 운용 중 (장애 대비 완료)"
+              : "ℹ 단일 AZ 가동 중 (단, AZ-a 장애 시 전체 중단 위험)"
+            : multiAz
+              ? "✔ 서비스 정상 유지 (ALB가 AZ-b로 트래픽 자동 우회)"
+              : "✖ 서비스 전체 중단 (단일 장애점 SPoF — 서버 무응답)"}
+        </div>
+        <div style={{ fontSize: "0.78rem", color: C.ink, marginTop: 4, lineHeight: 1.5 }}>
+          {!azADown
+            ? multiAz
+              ? "서버 2대가 서로 다른 가용영역에 분산되어 있어, 한 건물에 불이 나도 서비스가 멈추지 않습니다."
+              : "지금은 잘 동작하지만, AWS도 결국 데이터센터 건물입니다. AZ-a에 전력 문제나 화재가 나면 즉시 중단됩니다."
+            : multiAz
+              ? "AZ-a가 완전히 정전되었지만, 앞단 로드 밸런서(ALB)가 헬스체크로 장애를 감지하고 트래픽을 정상인 AZ-b의 인스턴스로 자동 우회하여 서비스가 끊김 없이 이어집니다. 이것이 AWS가 정의하는 고가용성(HA)입니다."
+              : "서버가 1대뿐인 AZ-a가 죽으면서 요청을 받아줄 서버가 0대가 되었습니다. 라우팅할 대상이 없으므로 서비스가 완전히 멈춥니다(단일 장애점 SPoF)."}
+        </div>
+      </div>
+    </SimFrame>
+  );
+}
+
 export function ApiConvergeSvg() {
   const client = (x: number, title: string, l1: ReactNode, l2: string) => (
     <>
@@ -609,5 +869,274 @@ export function BlindSpotSvg() {
         AI는 보여준 것 안에선 천재다 — 무엇을 보여줄지는 사람이 정한다
       </text>
     </svg>
+  );
+}
+
+/** §00 — AI 사고 심층 랩: 코드 바깥의 시스템 맹점 파헤치기 */
+export function AiBlindSpotLab() {
+  const [activeTab, setActiveTab] = useState<"security" | "cost" | "auth">("security");
+
+  const data = {
+    security: {
+      badge: "🚨 보안 구멍",
+      label: "보안: S3 퍼블릭 유출",
+      color: C.red,
+      colorSoft: C.redSoft,
+      title: "웹사이트 이미지 403 Forbidden 에러",
+      userPrompt: "“웹사이트에서 S3 이미지가 403 에러로 안 떠요. 고쳐줘!”",
+      aiMistake: (
+        <>
+          <div><b>AI의 위험한 처방:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “403 에러는 권한이 없어서 발생합니다. S3 버킷의 퍼블릭 차단을 해제하고 아래 정책을 추가하세요:”
+          </div>
+          <pre
+            style={{
+              margin: "8px 0 6px",
+              padding: "8px 10px",
+              borderRadius: 8,
+              background: "#1E293B",
+              color: "#F87171",
+              fontFamily: MONO,
+              fontSize: "0.78rem",
+              lineHeight: 1.5,
+              overflowX: "auto",
+            }}
+          >
+            {`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket/*"
+    }
+  ]
+}`}
+          </pre>
+          <div style={{ color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: "Principal": "*"로 인해 전 세계 누구나 파일을 다운로드할 수 있게 열려 회사 데이터 유출 사고 발생!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "최신 AI 코딩 에이전트도 진짜로 이런 위험하고 멍청한 설정을 주나요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>네, 지금도 ChatGPT(Codex)나 Claude Code 같은 최신 코딩 에이전트에 맥락 없이 “S3 이미지 403 해결해줘”라고만 치면 실제로 가장 흔히 작성해 주는 diff입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>맥락 없는 질문의 한계:</b> 질문자가 'CloudFront 뒤에 숨겨야 한다'는 아키텍처 맥락을 주지 않으면, 아무리 뛰어난 AI라도 403 에러를 당장 없애는 가장 빠른 통계적 경로(퍼블릭 개방)를 선택합니다.
+            </li>
+            <li>
+              <b>경고는 달아도 코드는 열어버린다:</b> 최신 모델은 답변 끝에 '보안상 주의하라'는 각주를 덧붙이기도 하지만, 정작 메인으로 짜준 diff는 버킷 빗장을 푸는 코드입니다. 초심자는 에러가 사라지니 안심하고 배포했다가 유출 사고로 이어집니다.
+            </li>
+            <li>
+              <b>판단과 책임은 사람의 몫:</b> AI 모델이 멍청해서가 아니라, 시스템의 보안 경계와 비즈니스 책임은 사람이 정해줘야 하기 때문입니다.
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“S3 버킷은 퍼블릭 차단(비공개)을 유지하고, CloudFront OAC로만 안전하게 서빙되도록 정책 짜줘”",
+      solutionResult: (
+        <>
+          버킷을 전 세계에 여는 대신, 오직 캐시 서버(CloudFront)만 열 수 있는 전용 열쇠(OAC)를 쥐어주는 <b>안전한 최신 보안 아키텍처</b>가 완성됩니다.
+        </>
+      ),
+    },
+    cost: {
+      badge: "💸 요금 폭탄",
+      label: "요금: 이벤트 무한 루프",
+      color: C.amber,
+      colorSoft: C.amberSoft,
+      title: "청구서에 찍힌 예상의 5배 요금 폭탄",
+      userPrompt: "“Lambda로 파일 처리하는데 요금이 너무 많이 나왔어요. 코드에 while 무한 루프가 있나 봐줘”",
+      aiMistake: (
+        <>
+          <div><b>AI의 오판:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “코드 전체를 검토했으나 <code>while</code>문이나 재귀 호출이 전혀 없습니다. 코드 문법에는 아무 이상이 없으니 안심하셔도 됩니다.”
+          </div>
+          <div style={{ marginTop: 8, color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: 코드는 멀쩡하지만, 몇 시간 만에 함수가 수백만 번 실행되어 월말 요금 폭탄!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "인프라 YAML 설정 파일에 S3 트리거를 다 적어줬는데도 AI가 못 잡나요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>못 잡습니다. 설정 파일과 코드 문법 둘 다 각각은 100% 정상 문법이기 때문입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>분리된 컨텍스트:</b> 실무에선 인프라 템플릿(YAML)과 비즈니스 코드(JS/Python)가 분리되어 있어, AI에게 코드와 에러 로그만 보여주는 경우가 대부분입니다.
+            </li>
+            <li>
+              <b>런타임 이벤트의 맹점:</b> 설령 YAML을 통째로 줘도, <code>S3 업로드 → Lambda 실행</code> 설정 자체는 표준 문법입니다. 문제는 람다 함수가 결과를 '자기를 깨운 바로 그 버킷'에 다시 저장하며 생기는 <b>런타임 이벤트 무한 핑퐁</b>입니다.
+            </li>
+            <li>
+              (이 사고가 얼마나 정적으로 잡기 어려웠으면 AWS 본사조차 2023년 말에야 클라우드 자체에서 재귀 루프를 강제 차단하는 감지 기능을 추가했을 정도입니다).
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“S3 업로드 이벤트는 uploads/ 접두사(prefix)로만 제한하고, 결과는 별도 버킷에 저장하도록 이벤트 흐름을 분리해줘”",
+      solutionResult: (
+        <>
+          코드 내부를 고치는 게 아니라, <b>서비스 간 이벤트 연결 경로를 분리</b>하여 무한 루프 가능성을 원천 차단합니다.
+        </>
+      ),
+    },
+    auth: {
+      badge: "🔑 권한 사고",
+      label: "권한: AccessDenied 삽질",
+      color: C.blue,
+      colorSoft: C.blueSoft,
+      title: "프로덕션에서만 AccessDenied 발생",
+      userPrompt: "“로컬 내 컴퓨터에선 DB랑 S3가 잘 읽히는데, 배포하니까 AccessDenied 에러가 나요. 에러 로그 보고 고쳐줘”",
+      aiMistake: (
+        <>
+          <div><b>AI의 헛발질:</b></div>
+          <div style={{ marginTop: 4, color: C.inkSoft }}>
+            “데이터베이스 조회 함수의 쿼리 매개변수나 예외 처리 로직에 오류가 있는 것 같습니다. 아래와 같이 애플리케이션 코드를 수정해 보세요...”
+          </div>
+          <div style={{ marginTop: 8, color: C.red, fontWeight: 700, fontSize: "0.82rem" }}>
+            🚨 참사: 코드는 100% 무죄인데, AI 말만 믿고 멀쩡한 비즈니스 로직만 몇 시간째 뜯어고치는 삽질 반복!
+          </div>
+        </>
+      ),
+      skepticismQuestion: "초심자는 '에러 났으니 코드를 고치는 게 당연하지 않나?'라고 생각하기 쉬운데 왜 문제인가요?",
+      skepticismAnswer: (
+        <>
+          <p style={{ margin: "4px 0" }}>
+            <b>코드가 틀린 게 아니라, 코드를 실행하는 '주체(자격 증명)'가 환경마다 다르기 때문입니다.</b>
+          </p>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0, lineHeight: 1.6 }}>
+            <li>
+              <b>로컬 개발 환경:</b> 내 PC에 등록된 내 관리자 AWS 계정 키로 실행되므로 모든 리소스에 접근 가능했습니다.
+            </li>
+            <li>
+              <b>클라우드 프로덕션:</b> 내 PC 키가 아니라, 서버(Lambda)에 부여된 <b>실행 역할(IAM Role)</b>로 실행됩니다. 여기에 권한이 빠져 있어서 거부당한 것입니다.
+            </li>
+            <li>
+              AI는 눈앞의 코드 문법만 볼 뿐 서버의 클라우드 IAM 역할을 알지 못하므로, 죄 없는 코드만 계속 만지작거립니다.
+            </li>
+          </ul>
+        </>
+      ),
+      solutionPrompt: "“코드엔 문제없어. 이 Lambda가 S3 객체를 읽을 수 있도록 IAM 실행 역할에 최소 권한 정책을 추가해줘”",
+      solutionResult: (
+        <>
+          멀쩡한 코드는 한 줄도 건드리지 않고, <b>클라우드 실행 주체에게 올바른 IAM 권한을 부여</b>하여 1분 만에 깔끔하게 해결합니다.
+        </>
+      ),
+    },
+  };
+
+  const current = data[activeTab];
+
+  return (
+    <SimFrame title="AI 사고 심층 랩: 코드 바깥의 시스템 맹점 파헤치기" icon="🎛">
+      <div style={{ fontSize: "0.86rem", color: C.inkSoft, marginBottom: 14 }}>
+        탭을 눌러 각 사고에서 AI가 왜 어처구니없는 오판을 하는지, 그리고 독자들이 가장 많이 품는 현실적인 의문의 진실을 확인해 보세요.
+      </div>
+
+      {/* 탭 버튼 */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {(["security", "cost", "auth"] as const).map((key) => {
+          const item = data[key];
+          const active = activeTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              className="widget-btn"
+              aria-pressed={active}
+              onClick={() => setActiveTab(key)}
+              style={{
+                ...chipBtn(active, item.color, item.colorSoft),
+                padding: "6px 13px",
+                fontSize: "0.82rem",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 상세 내용 카드 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* 1. 초심자의 질문 & AI의 오판 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.line}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: "#FFFFFF",
+          }}
+        >
+          <div style={{ fontSize: "0.82rem", fontWeight: 700, color: C.inkSoft, marginBottom: 4 }}>
+            💬 초심자의 질문
+          </div>
+          <div style={{ fontSize: "0.92rem", fontWeight: 700, color: C.ink, marginBottom: 12 }}>
+            {current.userPrompt}
+          </div>
+
+          <div
+            style={{
+              borderTop: `1px dashed ${C.line}`,
+              paddingTop: 10,
+              fontSize: "0.86rem",
+            }}
+          >
+            {current.aiMistake}
+          </div>
+        </div>
+
+        {/* 2. 현실적인 독자의 의문 & 시스템 진실 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.amber}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: C.amberSoft,
+          }}
+        >
+          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: C.amberText, marginBottom: 6 }}>
+            🤔 잠깐! {current.skepticismQuestion}
+          </div>
+          <div style={{ fontSize: "0.85rem", color: C.ink, lineHeight: 1.6 }}>
+            {current.skepticismAnswer}
+          </div>
+        </div>
+
+        {/* 3. 시스템을 아는 개발자의 질문 & 정석 설계 */}
+        <div
+          style={{
+            border: `1.5px solid ${C.teal}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            background: C.tealSoft,
+          }}
+        >
+          <div style={{ fontSize: "0.85rem", fontWeight: 800, color: C.teal, marginBottom: 4 }}>
+            ✨ 시스템을 이해한 개발자의 질문
+          </div>
+          <div style={{ fontSize: "0.9rem", fontWeight: 700, color: C.ink, marginBottom: 6 }}>
+            {current.solutionPrompt}
+          </div>
+          <div style={{ fontSize: "0.84rem", color: C.inkSoft, lineHeight: 1.5 }}>
+            👉 <b>결과:</b> {current.solutionResult}
+          </div>
+        </div>
+      </div>
+    </SimFrame>
   );
 }
