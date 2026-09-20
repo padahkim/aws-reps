@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { recordSelfQuizAttempt } from "@/lib/progress/attempt";
 import { chapterPreview } from "../chapter-index";
 import { glossary } from "../glossary";
@@ -194,43 +195,62 @@ export function Switch({
  * 깨므로 하지 않는다 — 표 안 용어는 Term 없이 두고, 같은 용어의 프로즈 등장 지점에 건다
  * (#194 전면 적용 시 이 규칙을 따른다).
  */
+/** 팝오버·힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
+const CARD_ROOM = 180;
+/** 양쪽 다 좁을 때 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
+const MIN_CARD = 96;
+
 export function Term({ id, children }: { id: string; children?: ReactNode }) {
   const t = glossary.find((g) => g.id === id);
-  // 팝오버 배치(px, 래퍼 기준 left + 카드 폭) — 열 때 한 번 계산한다. null = 닫힘.
-  const [pos, setPos] = useState<{ left: number; width: number } | null>(null);
+  // 뷰포트 기준 배치(px) — 열 때 한 번 계산한다. null = 닫힘.
+  // 세로는 top(아래로 펼침) 또는 bottom(위로 펼침) 중 하나만 값을 갖는다.
+  type Pos = { top?: number; bottom?: number; left: number; width: number; flip: boolean; room: number };
+  const [pos, setPos] = useState<Pos | null>(null);
   const open = pos !== null;
   const wrapRef = useRef<HTMLSpanElement>(null);
+  const popRef = useRef<HTMLSpanElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // 배치: 용어 아래 왼쪽 정렬을 기본으로, 컬럼(main) 밖으로 나가는 만큼만 밀어 넣는다.
-  // 계산은 **마운트 전에** 끝낸다 — 팝오버를 일단 left:0 으로 붙였다가 보정하면, 그 한 번의
-  // 레이아웃에서 문서 폭이 뷰포트를 넘고(용어가 줄 오른쪽에 있을수록 크게), 모바일 브라우저는
-  // 그 폭에 맞춰 페이지를 축소한다. 축소는 팝오버가 제자리로 돌아와도 되돌아오지 않아
-  // 화면 전체가 작아진 채로 남는다 (#250 — 설치형 PWA/iOS Safari 에서 재현, useLayoutEffect
-  // 로도 못 막는다: 축소를 부르는 건 페인트가 아니라 레이아웃이다).
-  // 폭도 여기서 정한다 — CSS(min(320px, …))로 두면 clamp 계산이 폭을 알 수 없어 다시
-  // 측정 → 보정 순서로 돌아간다.
+  // 계산은 **마운트 전에** 끝낸다 — 팝오버를 일단 붙였다가 보정하면, 그 한 번의 레이아웃에서
+  // 문서 폭이 뷰포트를 넘고 모바일 브라우저는 그 폭에 맞춰 페이지를 축소한다 (#250).
+  //
+  // Table 등 overflow: hidden / auto 조상에 잘리지 않도록 createPortal 로 document.body 에
+  // 마운트하며, fixed 로 뷰포트 위에 띄운다 (#274). 뷰포트 아래 여유가 부족하면 위로 뒤집는다.
   const openPopover = () => {
     const wrap = wrapRef.current;
     if (!wrap) return;
     const col = wrap.closest("main") ?? document.documentElement;
     const pad = 8;
-    const wrapRect = wrap.getBoundingClientRect();
+    const r = wrap.getBoundingClientRect();
     const colRect = col.getBoundingClientRect();
+    const vh = window.innerHeight;
     const width = Math.min(320, colRect.width - pad * 2);
-    const left = Math.max(colRect.left + pad, Math.min(wrapRect.left, colRect.right - pad - width));
-    setPos({ left: left - wrapRect.left, width });
+    const left = Math.max(colRect.left + pad, Math.min(r.left, colRect.right - pad - width));
+
+    const below = vh - r.bottom - pad;
+    const above = r.top - pad;
+    const flip = below < CARD_ROOM && above > below;
+    const room = Math.max(flip ? above : below, MIN_CARD);
+
+    setPos(
+      flip
+        ? { bottom: vh - r.top + 6, left, width, flip, room }
+        : { top: r.bottom + 6, left, width, flip, room },
+    );
   };
 
-  // dismiss: 바깥 탭/클릭(document pointerdown — 리포 최초의 클릭아웃사이드) + Escape.
+  // dismiss: 바깥 탭/클릭(document pointerdown) + Escape + 리사이즈/스크롤.
   // Escape 는 초점을 트리거로 되돌린다 — 팝오버 링크에 초점이 있던 채 닫히면 초점이 유실된다.
-  // 리사이즈/회전도 닫는다 (PR #213 라운드 5) — 배치는 열 때 한 번 계산하므로 열린 채
-  // 뷰포트가 바뀌면 낡은 클램프가 카드를 컬럼 밖으로 민다. 팝오버는 일시적 UI라
-  // 재계산(리스너 + 재측정)보다 닫기가 단순하고, 다시 탭하면 새 뷰포트 기준으로 열린다.
+  // createPortal 로 body 에 붙었으므로 wrapRef 와 popRef 모두의 바깥이어야 닫는다.
+  // fixed 는 스크롤을 따라오지 못하므로 스크롤·리사이즈 시 닫는다 (표 가로 스크롤도 capture 로 수집).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setPos(null);
+      const target = e.target as Node;
+      if (!wrapRef.current?.contains(target) && !popRef.current?.contains(target)) {
+        setPos(null);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -238,33 +258,37 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
         btnRef.current?.focus();
       }
     };
-    const onResize = () => setPos(null);
+    const onShift = () => setPos(null);
+    const onScroll = (e: Event) => {
+      if (!popRef.current?.contains(e.target as Node)) setPos(null);
+    };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", onShift);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", onShift);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [open]);
 
   // 없는 id — 검증기가 커밋 전에 잡지만, 런타임 방어로 본문 텍스트만 남긴다
   if (!t) return <>{children ?? id}</>;
 
+  const handleBlur = (e: React.FocusEvent) => {
+    const to = e.relatedTarget as Node | null;
+    if (to && !wrapRef.current?.contains(to) && !popRef.current?.contains(to)) {
+      setPos(null);
+    }
+  };
+
   return (
     <span
       ref={wrapRef}
       style={{ position: "relative", display: "inline-block" }}
-      // 키보드 초점이 밖으로 나가면 닫는다 (PR #213 Codex 지적) — Tab으로 옆 용어 트리거에
-      // 옮겨 열면 pointerdown이 없어 이전 팝오버가 남아 겹친다. relatedTarget이 null인
-      // focusout(팝오버 안 비초점 영역 클릭 등)은 닫지 않는다 — 바깥 클릭은 어차피
-      // document pointerdown 리스너가 맡고 있고, 여기서 null까지 닫으면 팝오버 본문을
-      // 클릭(텍스트 선택)하는 순간 닫혀 버린다.
-      onBlur={(e) => {
-        const to = e.relatedTarget as Node | null;
-        if (to && !wrapRef.current?.contains(to)) setPos(null);
-      }}
+      onBlur={handleBlur}
     >
       <button
         ref={btnRef}
@@ -275,68 +299,72 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
       >
         {children ?? t.term}
       </button>
-      {pos && (
-        <span
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            left: pos.left,
-            zIndex: 10,
-            display: "block",
-            width: pos.width,
-            background: C.card,
-            color: C.ink,
-            border: `1px solid ${C.line}`,
-            borderRadius: 10,
-            boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
-            padding: "10px 12px",
-            // 트리거가 b/굵은 표 셀 안에 있어도 팝오버는 본문 톤을 유지한다
-            fontSize: "0.82rem",
-            fontWeight: 400,
-            lineHeight: 1.65,
-            textAlign: "left",
-            whiteSpace: "normal",
-          }}
-        >
-          <span style={{ display: "block", fontWeight: 700 }}>
-            {t.term}
-            {t.full && (
-              <span style={{ marginLeft: 6, fontWeight: 400, fontSize: "0.78rem", color: C.inkSoft }}>
-                {t.full}
-              </span>
+      {pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <span
+            ref={popRef}
+            onBlur={handleBlur}
+            style={{
+              position: "fixed",
+              top: pos.top,
+              bottom: pos.bottom,
+              left: pos.left,
+              zIndex: 30, // 앱바(40) 아래, 본문 카드 위
+              display: "block",
+              width: pos.width,
+              maxHeight: pos.room,
+              overflowY: "auto",
+              boxSizing: "border-box",
+              background: C.card,
+              color: C.ink,
+              border: `1px solid ${C.line}`,
+              borderRadius: 10,
+              boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+              padding: "10px 12px",
+              // 트리거가 b/굵은 표 셀 안에 있어도 팝오버는 본문 톤을 유지한다
+              fontSize: "0.82rem",
+              fontWeight: 400,
+              lineHeight: 1.65,
+              textAlign: "left",
+              whiteSpace: "normal",
+            }}
+          >
+            <span style={{ display: "block", fontWeight: 700 }}>
+              {t.term}
+              {t.full && (
+                <span style={{ marginLeft: 6, fontWeight: 400, fontSize: "0.78rem", color: C.inkSoft }}>
+                  {t.full}
+                </span>
+              )}
+            </span>
+            <span style={{ display: "block", margin: t.detail ? "4px 0 8px" : "4px 0 0" }}>{t.short}</span>
+            {/* 링크는 detail 이 있는 용어에만 — 팝오버가 이미 term·full·short 전부를 보여주므로,
+                detail 없는 항목은 용어집이 더 줄 게 없어 "자세히"가 과대 약속이 된다 (실기기 검수
+                피드백). detail 이 채워지면(#215) 링크가 자동으로 살아난다.
+                next/link 가 아니라 일반 a — Link 클라이언트 전환은 hash 만 바꾸고 브라우저의
+                :target 상태를 갱신하지 않아, /glossary 의 대상 항목 하이라이트(#192,
+                .glossary-item:target)가 켜지지 않는다. 실제 내비게이션이어야 :target 이 계산된다. */}
+            {t.detail && (
+              <a
+                href={`/glossary#${t.id}`}
+                style={{
+                  // 카드가 색 고정이므로 링크색도 고정 팔레트(C.blue) — var(--accent)는 다크에서 안 읽힌다
+                  color: C.blue,
+                  fontSize: "0.78rem",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                용어집에서 자세히 →
+              </a>
             )}
-          </span>
-          <span style={{ display: "block", margin: t.detail ? "4px 0 8px" : "4px 0 0" }}>{t.short}</span>
-          {/* 링크는 detail 이 있는 용어에만 — 팝오버가 이미 term·full·short 전부를 보여주므로,
-              detail 없는 항목은 용어집이 더 줄 게 없어 "자세히"가 과대 약속이 된다 (실기기 검수
-              피드백). detail 이 채워지면(#215) 링크가 자동으로 살아난다.
-              next/link 가 아니라 일반 a — Link 클라이언트 전환은 hash 만 바꾸고 브라우저의
-              :target 상태를 갱신하지 않아, /glossary 의 대상 항목 하이라이트(#192,
-              .glossary-item:target)가 켜지지 않는다. 실제 내비게이션이어야 :target 이 계산된다. */}
-          {t.detail && (
-            <a
-              href={`/glossary#${t.id}`}
-              style={{
-                // 카드가 색 고정이므로 링크색도 고정 팔레트(C.blue) — var(--accent)는 다크에서 안 읽힌다
-                color: C.blue,
-                fontSize: "0.78rem",
-                textDecoration: "underline",
-                textUnderlineOffset: 3,
-              }}
-            >
-              용어집에서 자세히 →
-            </a>
-          )}
-        </span>
-      )}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }
-
-/** 힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
-const CARD_ROOM = 180;
-/** 양쪽 다 좁을 때 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
-const MIN_CARD = 96;
 
 /**
  * 본문 약어 힌트 (#259) — 트리거에 커서를 올리거나(마우스) 탭하면(터치) 풀이름 + 한 줄
