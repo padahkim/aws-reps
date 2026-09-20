@@ -217,6 +217,8 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
   //
   // Table 등 overflow: hidden / auto 조상에 잘리지 않도록 createPortal 로 document.body 에
   // 마운트하며, fixed 로 뷰포트 위에 띄운다 (#274). 뷰포트 아래 여유가 부족하면 위로 뒤집는다.
+  // 세로 room 은 카드에 할당된 쪽의 실제 여유 공간을 넘지 않게 상한을 두어, 가로 모드·가상
+  // 키보드 등 좁은 뷰포트에서도 화면 밖으로 넘치지 않고 내부 스크롤되게 한다 (PR #283 Codex P2).
   const openPopover = () => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -228,10 +230,10 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
     const width = Math.min(320, colRect.width - pad * 2);
     const left = Math.max(colRect.left + pad, Math.min(r.left, colRect.right - pad - width));
 
-    const below = vh - r.bottom - pad;
-    const above = r.top - pad;
+    const below = vh - r.bottom - 6 - pad;
+    const above = r.top - 6 - pad;
     const flip = below < CARD_ROOM && above > below;
-    const room = Math.max(flip ? above : below, MIN_CARD);
+    const room = Math.max(0, flip ? above : below);
 
     setPos(
       flip
@@ -284,6 +286,51 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
     }
   };
 
+  /** 팝오버 마지막 포커스 가능 요소에서 Tab 시 트리거 다음 본문 요소로 초점을 넘긴다 (PR #283 Codex P2) */
+  const focusNextFromTrigger = () => {
+    setPos(null);
+    const btn = btnRef.current;
+    if (!btn) return;
+    const focusables = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => !popRef.current?.contains(el) && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0));
+    const idx = focusables.indexOf(btn);
+    if (idx !== -1 && idx + 1 < focusables.length) {
+      focusables[idx + 1].focus();
+    }
+  };
+
+  /** 트리거에서 Tab 시 포털 링크로 초점을 건네 키보드 순서를 복원한다 (PR #283 Codex P2) */
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab" && open) {
+      if (!e.shiftKey) {
+        const link = popRef.current?.querySelector<HTMLElement>("a[href]");
+        if (link) {
+          e.preventDefault();
+          link.focus();
+        } else {
+          setPos(null);
+        }
+      } else {
+        setPos(null);
+      }
+    }
+  };
+
+  /** 포털 링크에서 Tab/Shift+Tab 시 트리거 다음/트리거로 초점을 연결한다 */
+  const handlePopoverKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      if (e.shiftKey) {
+        btnRef.current?.focus();
+      } else {
+        focusNextFromTrigger();
+      }
+    }
+  };
+
   return (
     <span
       ref={wrapRef}
@@ -296,6 +343,7 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
         className="term-trigger"
         aria-expanded={open}
         onClick={() => (open ? setPos(null) : openPopover())}
+        onKeyDown={handleTriggerKeyDown}
       >
         {children ?? t.term}
       </button>
@@ -305,6 +353,7 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
           <span
             ref={popRef}
             onBlur={handleBlur}
+            onKeyDown={handlePopoverKeyDown}
             style={{
               position: "fixed",
               top: pos.top,
