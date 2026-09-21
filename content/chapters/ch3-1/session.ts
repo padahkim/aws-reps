@@ -32,7 +32,7 @@ export const session: SessionData = {
       id: "c2",
       section: "02",
       q: "IAM과 Cognito는 무엇을 기준으로 갈리나요? 기능이 아닌 그 기준을 말해 보세요.",
-      a: "사용자가 누구인가로 갈린다. IAM은 내가 신뢰하는 내부 주체(개발자·관리자·계정 안의 서비스)를, Cognito는 AWS 계정 밖의 외부 앱 사용자를 맡는다. 규모도 따라 갈린다 — IAM은 수십~수백 명, Cognito는 수천~수백만 명이다. Cognito는 IAM을 대체하지 않는다 — 외부 사용자를 IAM 역할에 연결해 주는 다리다.",
+      a: "사용자가 어떤 경로로 접근하는가로 갈린다. IAM은 내가 신뢰하는 주체(개발자·관리자·계정 안의 서비스)의 AWS 콘솔·CLI·리소스 접근을, Cognito는 사내외 애플리케이션 사용자의 로그인을 맡는다. 규모도 따라 갈린다 — IAM은 수십~수백 명, Cognito는 수천~수백만 명이다. Cognito는 IAM을 대체하지 않는다 — 애플리케이션 사용자를 IAM 역할에 연결해 주는 다리다.",
       why: {
         q: "“앱 고객마다 IAM 사용자를 만든다”가 왜 언제나 오답일까요?",
         a: "IAM 사용자는 계정당 5,000명 한도라 십만 명 규모에서 애초에 담기지 않는다. 게다가 IAM 사용자는 계정 안의 주체라 하나 만들 때마다 내 계정의 관리 대상이 늘어난다 — 외부 고객은 계정 안에 자리를 차지하지 않아야 하고, 그래서 신원을 밖에 두고 필요할 때 역할만 빌려주는 구조가 나왔다.",
@@ -136,16 +136,16 @@ export const session: SessionData = {
       id: "c13",
       section: "11",
       q: "Identity Pool이 공급자 증명을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
-      a: "① 사용자가 IdP(User Pool·Google·SAML 등)에 로그인해 공급자 증명을 받는다 — User Pool·OIDC는 ID 토큰, SAML은 assertion, 소셜 공급자는 access 토큰이다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
+      a: "① 사용자가 IdP(User Pool·Google·Apple·SAML 등)에 로그인해 공급자 증명을 받는다 — User Pool·Google·Apple은 ID 토큰, Facebook·Amazon은 OAuth access 토큰, OIDC는 공급자 설정에 맞는 토큰, SAML은 assertion을 전달한다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
     },
     {
       id: "c14",
       section: "11",
-      q: "AWS 계정 밖의 사람이 어떻게 IAM 역할을 맡을 수 있는지, 신뢰 정책으로 설명해 보세요.",
+      q: "애플리케이션 사용자가 어떻게 IAM 역할을 맡을 수 있는지, 신뢰 정책으로 설명해 보세요.",
       a: "IAM 역할의 신뢰 정책 Principal에 cognito-identity.amazonaws.com을 적어 두면 “Cognito Identity가 검증해 데려온 사용자라면 이 역할을 맡아도 좋다”가 된다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로다. 단 Principal만으로는 저장이 안 되고, Condition에 어느 Identity Pool인지(aud)를 반드시 함께 적고, 인증 사용자용 역할에는 amr=authenticated, 게스트용에는 unauthenticated 조건을 걸어 두 역할을 가른다. 실제 임시 자격 증명 발급은 ch0-2 §07의 STS가 한다. 역할은 인증된 사용자용과 게스트용을 각각 지정하고, 규칙(Rules)으로 속성에 따라 더 세분할 수 있다.",
       why: {
         q: "Identity Pool이 직접 자격 증명을 만들지 않고 STS를 거치는 구조가 왜 자연스러운가요?",
-        a: "임시 자격 증명 발급은 이미 STS의 일이기 때문이다. IAM 사용자가 역할을 맡을 때도, 회사 IdP로 페더레이션할 때도 발급자는 STS 하나다 — Cognito는 “이 외부 사용자가 진짜인가”만 판정하고 발급은 기존 통로에 맡긴다. 그래서 감사·만료 같은 성질이 다른 경로와 똑같이 적용된다.",
+        a: "임시 자격 증명 발급은 이미 STS의 일이기 때문이다. IAM 사용자가 역할을 맡을 때도, 회사 IdP로 페더레이션할 때도 발급자는 STS 하나다 — Cognito는 “이 애플리케이션 사용자가 진짜인가”만 판정하고 발급은 기존 통로에 맡긴다. 그래서 감사·만료 같은 성질이 다른 경로와 똑같이 적용된다.",
       },
     },
 
@@ -172,7 +172,7 @@ export const session: SessionData = {
       id: "c17",
       section: "13",
       q: "API Gateway가 토큰에 하는 일과 ALB가 하는 일의 차이를 말해 보세요.",
-      a: "API Gateway는 앱이 이미 받아 온 토큰을 검증한다. ALB는 한 걸음 더 나아가 로그인 자체를 대신 수행한다 — 미인증 요청을 Cognito Hosted UI로 리다이렉트해 로그인시키고 세션 쿠키를 발급한 뒤, 인증된 요청만 타깃 그룹으로 넘긴다. 그래서 백엔드에서 인증 코드를 통째로 걷어낼 수 있고, 이것을 인증 오프로드라고 부른다.\n전제 조건은 HTTPS 리스너다 — HTTP 리스너에는 인증 액션을 걸 수 없다. 또 ALB가 Token·User Info 엔드포인트에 IPv4로 나갈 수 있어야 하므로, 내부 ALB나 퍼블릭 IPv4 출구가 없는 구성에는 보안 그룹·NACL의 아웃바운드 허용과 NAT 경로가 필요하다.",
+      a: "API Gateway는 앱이 이미 받아 온 토큰을 검증한다. ALB는 한 걸음 더 나아가 로그인 자체를 대신 수행한다 — 미인증 요청을 Cognito Hosted UI로 리다이렉트해 로그인시키고 세션 쿠키를 발급한 뒤, 인증된 요청만 타깃 그룹으로 넘긴다. 그래서 백엔드에서 로그인 플로우 코드를 걷어낼 수 있지만, ALB가 보낸 x-amzn-oidc-data의 서명을 검증하고 signer가 예상한 ALB ARN인지 확인한 뒤에만 클레임으로 인가해야 한다.\n전제 조건은 HTTPS 리스너다 — HTTP 리스너에는 인증 액션을 걸 수 없다. 또 ALB가 Token·User Info 엔드포인트에 IPv4로 나갈 수 있어야 하므로, 내부 ALB나 퍼블릭 IPv4 출구가 없는 구성에는 보안 그룹·NACL의 아웃바운드 허용과 NAT 경로가 필요하다.",
       why: {
         q: "인증 규칙이 HTTPS 리스너에서만 허용되는 이유는 무엇일까요?",
         a: "인증 과정에서 자격 증명과 세션 쿠키가 오가기 때문이다. HTTP는 평문이라 그 값이 그대로 노출되고, 쿠키를 가로채면 로그인 자체를 훔칠 수 있다 — 그래서 암호화된 리스너에서만 허용한다.",

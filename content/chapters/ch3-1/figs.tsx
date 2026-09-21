@@ -145,7 +145,7 @@ export function TwoPoolsSvg() {
       <circle cx="72" cy="150" r="26" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
       <text x="72" y="156" textAnchor="middle" fontSize="18">👤</text>
       <text x="72" y="196" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>웹·모바일 사용자</text>
-      <text x="72" y="211" textAnchor="middle" fontSize="9.5" fill={C.inkSoft}>AWS 계정 밖의 수백만 명</text>
+      <text x="72" y="211" textAnchor="middle" fontSize="9.5" fill={C.inkSoft}>앱 사용자 수백만 명</text>
 
       <rect x="230" y="58" width="200" height="84" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
       <text x="330" y="86" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.amberText}>User Pool (CUP)</text>

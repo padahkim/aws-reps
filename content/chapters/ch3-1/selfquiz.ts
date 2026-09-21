@@ -21,8 +21,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-cognito-external-users",
     section: "01",
-    q: "Cognito가 신원을 부여하는 대상은 AWS 계정 안의 주체인가, 밖의 사람인가?",
-    a: "밖이다 — 앱에 가입한 외부 사용자가 대상이고, 이들은 AWS 계정 안에 자리를 차지하지 않는다.",
+    q: "Cognito가 신원을 부여하는 대상은 AWS 콘솔·CLI에 접근하는 IAM 주체인가, 애플리케이션 사용자인가?",
+    a: "애플리케이션 사용자다 — 사내외 앱에 로그인하는 사람이며, IAM 사용자·역할로 AWS 계정 안에 등록할 필요가 없다.",
   },
 
   // ── 02 IAM과 Cognito의 구분 ──────────────────────────────────────────
