@@ -10,22 +10,25 @@ import { FigZoom } from "./fig-lightbox";
  *   - 박스 밖 일반 텍스트는 앱 CSS 변수(--fg, --muted)를 따라 테마에 순응
  */
 
-/** 원본 콘텐츠 공통 팔레트 (aws-dva-stage0.html :root에서 추출). */
+/**
+ * 원본 콘텐츠 공통 팔레트 (aws-dva-stage0.html :root에서 추출).
+ * 다크 모드(#282)에서는 CSS 커스텀 속성을 통해 테마별 서피스/도식 색상으로 동적 전환된다.
+ */
 export const C = {
-  ink: "#171E26",
-  inkSoft: "#3D4B5C",
-  card: "#FFFFFF",
-  amber: "#E8830C",
-  amberSoft: "#FDEBD3",
-  amberText: "#9A5B06",
-  teal: "#0E7C7B",
-  tealSoft: "#DCF0EF",
-  blue: "#2E5E8C",
-  blueSoft: "#E3EDF6",
-  red: "#B9432C",
-  redSoft: "#F8E4DF",
-  line: "#E2DFD8",
-  codeFg: "#FFD9A0",
+  ink: "var(--ink, #171E26)",
+  inkSoft: "var(--ink-soft, #3D4B5C)",
+  card: "var(--card-bg, #FFFFFF)",
+  amber: "var(--amber, #E8830C)",
+  amberSoft: "var(--amber-soft, #FDEBD3)",
+  amberText: "var(--amber-text, #9A5B06)",
+  teal: "var(--teal, #0E7C7B)",
+  tealSoft: "var(--teal-soft, #DCF0EF)",
+  blue: "var(--blue, #2E5E8C)",
+  blueSoft: "var(--blue-soft, #E3EDF6)",
+  red: "var(--red, #B9432C)",
+  redSoft: "var(--red-soft, #F8E4DF)",
+  line: "var(--line, #E2DFD8)",
+  codeFg: "var(--code-fg, #FFD9A0)",
 } as const;
 
 /** 폰트 스택 — 챕터 figs.tsx는 복제하지 말고 여기서 가져다 쓴다 (#156). */
@@ -78,8 +81,8 @@ export function Sec({
             fontFamily: MONO,
             fontWeight: 700,
             fontSize: "0.85rem",
-            color: "#fff",
-            background: C.ink,
+            color: "var(--sec-num-fg, #fff)",
+            background: "var(--sec-num-bg, " + C.ink + ")",
             borderRadius: 8,
             padding: "4px 10px",
           }}

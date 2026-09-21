@@ -33,10 +33,10 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        {/* FOUC 방지 인라인 스크립트 (#282) — 브라우저 렌더링 시작 전 localStorage 테마를 적용해 깜빡임 방지 */}
+        {/* FOUC 및 테마 색상 방지 인라인 스크립트 (#282) — 브라우저 렌더링 시작 전 localStorage 테마를 적용해 깜빡임 및 메타 색상 불일치 방지 */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"||t==="system"){document.documentElement.setAttribute("data-theme",t);}else{document.documentElement.setAttribute("data-theme","system");}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("theme");var theme=(t==="light"||t==="dark"||t==="system")?t:"system";document.documentElement.setAttribute("data-theme",theme);if(theme==="dark"||theme==="light"){var color=theme==="dark"?"#0d1117":"#ffffff";var metas=document.querySelectorAll('meta[name="theme-color"]');for(var i=0;i<metas.length;i++){metas[i].setAttribute("content",color);}}}catch(e){}})();`,
           }}
         />
       </head>

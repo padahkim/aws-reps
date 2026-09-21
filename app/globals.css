@@ -4,6 +4,7 @@
   --muted: #6b7280;
   --border: #e5e7eb;
   --accent: #2563eb;
+  --accent-fg: #ffffff;
   /* 전역 앱바 높이 (#247) — 바 자신과 앵커 스크롤 정지선이 같은 값을 봐야 한다 */
   --app-bar-h: 2.75rem;
 
@@ -56,6 +57,7 @@
     --muted: #8b949e;
     --border: #2e3238;
     --accent: #58a6ff;
+    --accent-fg: #0d1117;
 
     /* 서피스 계층 */
     --card-bg: #161b22;
@@ -107,6 +109,7 @@
   --muted: #8b949e;
   --border: #2e3238;
   --accent: #58a6ff;
+  --accent-fg: #0d1117;
 
   /* 서피스 계층 */
   --card-bg: #161b22;
@@ -152,6 +155,12 @@
 /* 사용자 명시적 라이트 모드 ([data-theme="light"]) */
 :root[data-theme="light"] {
   color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html {
@@ -554,7 +563,7 @@ a:hover {
   border: 1px solid var(--accent);
   border-radius: 7px;
   background: var(--accent);
-  color: var(--bg);
+  color: var(--accent-fg, #ffffff);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
