@@ -1,0 +1,39 @@
+import { ExamLi, ExamPoint, Fig, Note, Table } from "../../ui";
+import { Term } from "../../interactive";
+import { TwoPoolsSvg } from "../figs";
+
+<Term id="cognito">Amazon Cognito</Term>는 <b>웹·모바일 애플리케이션의 사용자</b>에게 신원(Identity)을 부여하는 서비스입니다. 여기서 중요한 전제가 하나 있습니다 — 이 사용자는 <b>AWS 콘솔·CLI에 접근하는 IAM 주체가 아니라 애플리케이션에 로그인하는 사람</b>입니다. 사내 앱 직원부터 앱을 내려받아 가입한 고객 수백만 명까지 대상이 될 수 있습니다.
+
+Cognito는 이름 하나에 성격이 다른 서비스 둘이 묶여 있습니다. 이 둘을 가르는 것이 이 챕터에서 가장 먼저 잡아야 할 것입니다.
+
+<Table
+  head={["", "User Pool (CUP)", "Identity Pool (CIP)"]}
+  rows={[
+    [
+      "묻는 것",
+      <>“<b>너 누구야?</b>” — 인증(Authentication)</>,
+      <>“<b>뭘 할 수 있어?</b>” — 인가(Authorization)</>,
+    ],
+    [
+      "하는 일",
+      <>회원가입·로그인을 처리하고 사용자를 저장한다</>,
+      <>이미 로그인한 사용자에게 AWS 접근 권한을 준다</>,
+    ],
+    [
+      "내주는 것",
+      <><b>JWT 토큰</b> (ID·Access) + Refresh 토큰</>,
+      <><b>임시 AWS 자격 증명</b> (<Term id="sts">STS</Term> 발급)</>,
+    ],
+  ]}
+/>
+
+<Fig caption="Cognito의 두 축 — 왼쪽 사용자는 같은 사람이지만, 위로 가면 “내 백엔드에 로그인”이고 아래로 가면 “AWS 리소스를 직접 만짐”이다">
+  <TwoPoolsSvg />
+</Fig>
+
+<Note>이름이 헷갈리기 쉽습니다 — Identity Pool의 옛 이름이 <b>Federated Identities(연합 자격 증명)</b>인데, User Pool에도 “연합 로그인” 기능이 따로 있습니다. 둘은 다른 것입니다. §03과 §11에서 각각 다시 짚습니다.</Note>
+
+<ExamPoint>
+  <ExamLi>산출물로 가른다 — <b>JWT가 나오면 User Pool</b>, <b>임시 AWS 자격 증명이 나오면 Identity Pool</b>이다.</ExamLi>
+  <ExamLi>“사용자가 S3에 <b>직접</b> 접근” 같은 표현의 <b>직접</b>이 Identity Pool을 가리키는 신호다.</ExamLi>
+</ExamPoint>

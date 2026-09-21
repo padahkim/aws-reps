@@ -1,0 +1,43 @@
+import { Checklist } from "../ui";
+
+<Checklist
+  title="체크리스트 — 이 문장이 술술 나오면 통과"
+  items={[
+    {
+      text: "User Pool = 인증(JWT 발급) · Identity Pool = 인가(STS 임시 AWS 자격 증명). 게스트 접근은 Identity Pool만",
+      freq: "★★★",
+    },
+    {
+      text: "“hundreds of users”·“mobile”·“소셜/SAML 로그인”·“앱 로그인” → Cognito, “AWS 콘솔/CLI·리소스 권한” → IAM. 내부 직원이라도 앱 로그인이면 Cognito",
+      freq: "★★★",
+    },
+    {
+      text: "토큰 3종 — ID=신원 클레임, Access=API 권한(스코프), Refresh=재발급. ID·Access 기본 60분, Refresh 기본 30일",
+      freq: "★★★",
+    },
+    {
+      text: "토큰은 Authorization 헤더로 전달 — REST API Cognito 권한 부여자는 JWT 원문, HTTP API JWT 권한 부여자는 원문 또는 Bearer 형식",
+      freq: "★★★",
+    },
+    {
+      text: "정책 변수 ${cognito-identity.amazonaws.com:sub} + s3:prefix / dynamodb:LeadingKeys로 사용자별 격리",
+      freq: "★★★",
+    },
+    {
+      text: "ALB 인증은 HTTPS 리스너 전용이며 IdP로 IPv4 아웃바운드가 필요. OnUnauthenticatedRequest = authenticate(기본) · deny(401) · allow",
+      freq: "★★☆",
+    },
+    {
+      text: "Hosted UI 커스텀 도메인의 ACM 인증서는 반드시 us-east-1",
+      freq: "★★☆",
+    },
+    {
+      text: "Lambda 트리거는 Pre/Post로 시점이 갈린다 — Custom Auth는 Define → Create → Verify, 기존 DB 이관은 User Migration",
+      freq: "★★☆",
+    },
+    {
+      text: "JWT는 Header·Payload·Signature. Payload는 디코딩만 하면 보이므로 비밀을 담지 않는다 — sub가 사용자 고유 UUID",
+      freq: "★☆☆",
+    },
+  ]}
+/>
