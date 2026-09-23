@@ -10,22 +10,25 @@ import { FigZoom } from "./fig-lightbox";
  *   - 박스 밖 일반 텍스트는 앱 CSS 변수(--fg, --muted)를 따라 테마에 순응
  */
 
-/** 원본 콘텐츠 공통 팔레트 (aws-dva-stage0.html :root에서 추출). */
+/**
+ * 원본 콘텐츠 공통 팔레트 (aws-dva-stage0.html :root에서 추출).
+ * 다크 모드(#282)에서는 CSS 커스텀 속성을 통해 테마별 서피스/도식 색상으로 동적 전환된다.
+ */
 export const C = {
-  ink: "#171E26",
-  inkSoft: "#3D4B5C",
-  card: "#FFFFFF",
-  amber: "#E8830C",
-  amberSoft: "#FDEBD3",
-  amberText: "#9A5B06",
-  teal: "#0E7C7B",
-  tealSoft: "#DCF0EF",
-  blue: "#2E5E8C",
-  blueSoft: "#E3EDF6",
-  red: "#B9432C",
-  redSoft: "#F8E4DF",
-  line: "#E2DFD8",
-  codeFg: "#FFD9A0",
+  ink: "var(--ink, #171E26)",
+  inkSoft: "var(--ink-soft, #3D4B5C)",
+  card: "var(--card-bg, #FFFFFF)",
+  amber: "var(--amber, #E8830C)",
+  amberSoft: "var(--amber-soft, #FDEBD3)",
+  amberText: "var(--amber-text, #9A5B06)",
+  teal: "var(--teal, #0E7C7B)",
+  tealSoft: "var(--teal-soft, #DCF0EF)",
+  blue: "var(--blue, #2E5E8C)",
+  blueSoft: "var(--blue-soft, #E3EDF6)",
+  red: "var(--red, #B9432C)",
+  redSoft: "var(--red-soft, #F8E4DF)",
+  line: "var(--line, #E2DFD8)",
+  codeFg: "var(--code-fg, #FFD9A0)",
 } as const;
 
 /** 폰트 스택 — 챕터 figs.tsx는 복제하지 말고 여기서 가져다 쓴다 (#156). */
@@ -78,8 +81,8 @@ export function Sec({
             fontFamily: MONO,
             fontWeight: 700,
             fontSize: "0.85rem",
-            color: "#fff",
-            background: C.ink,
+            color: "var(--sec-num-fg, #fff)",
+            background: "var(--sec-num-bg, " + C.ink + ")",
             borderRadius: 8,
             padding: "4px 10px",
           }}
@@ -289,8 +292,8 @@ export function Table({
                 key={h}
                 scope="col"
                 style={{
-                  background: C.ink,
-                  color: "#fff",
+                  background: "var(--table-head-bg, " + C.ink + ")",
+                  color: "var(--table-head-fg, #fff)",
                   fontWeight: 700,
                   textAlign: "left",
                   padding: "10px 14px",
@@ -336,9 +339,9 @@ export function ExamPoint({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        background: C.amberSoft,
+        background: "var(--exam-bg, " + C.amberSoft + ")",
         color: C.ink,
-        borderLeft: `5px solid ${C.amber}`,
+        borderLeft: `5px solid var(--exam-border, ${C.amber})`,
         borderRadius: "0 12px 12px 0",
         padding: "1rem 1.25rem",
         margin: "1.5rem 0",
@@ -348,7 +351,7 @@ export function ExamPoint({ children }: { children: ReactNode }) {
         style={{
           fontWeight: 900,
           fontSize: "0.85rem",
-          color: C.amberText,
+          color: "var(--exam-title, " + C.amberText + ")",
           letterSpacing: "0.06em",
           fontFamily: MONO,
         }}
@@ -369,16 +372,16 @@ export function WarnBox({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        background: C.redSoft,
+        background: "var(--warn-bg, " + C.redSoft + ")",
         color: C.ink,
-        borderLeft: `5px solid ${C.red}`,
+        borderLeft: `5px solid var(--warn-border, ${C.red})`,
         borderRadius: "0 12px 12px 0",
         padding: "0.85rem 1.15rem",
         margin: "1.25rem 0",
         fontSize: "0.93rem",
       }}
     >
-      <b style={{ color: C.red }}>⚠ 함정 </b>
+      <b style={{ color: "var(--warn-title, " + C.red + ")" }}>⚠ 함정 </b>
       {children}
     </div>
   );
@@ -394,7 +397,7 @@ export function Fold({ topic, children }: { topic: string; children: ReactNode }
   return (
     <details
       style={{
-        background: C.blueSoft,
+        background: "var(--fold-bg, " + C.blueSoft + ")",
         color: C.ink, // 배경·글자색 쌍 고정 — 다크 모드에서 상속 글자색(밝음)이 밝은 배경에 묻힌다
         border: `1px solid ${C.line}`,
         borderRadius: 12,
@@ -407,7 +410,7 @@ export function Fold({ topic, children }: { topic: string; children: ReactNode }
           cursor: "pointer",
           fontWeight: 700,
           fontSize: "0.9rem",
-          color: C.blue,
+          color: "var(--fold-title, " + C.blue + ")",
           padding: "0.75rem 0",
         }}
       >
@@ -429,9 +432,10 @@ export function Checklist({
   return (
     <div
       style={{
-        background: C.ink,
+        background: "var(--checklist-bg, " + C.ink + ")",
         color: "#EDEBE6",
         borderRadius: 16,
+        border: "1px solid var(--checklist-border, transparent)",
         padding: "1.75rem 1.6rem",
         marginTop: "3rem",
       }}

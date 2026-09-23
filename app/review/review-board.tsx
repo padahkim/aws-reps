@@ -563,7 +563,7 @@ function ScopeButton({
         cursor: "pointer",
         border: primary ? "none" : "1px solid var(--border)",
         background: primary ? "var(--accent)" : "transparent",
-        color: primary ? "#fff" : "var(--fg)",
+        color: primary ? "var(--accent-fg, #fff)" : "var(--fg)",
       }}
     >
       {label}
