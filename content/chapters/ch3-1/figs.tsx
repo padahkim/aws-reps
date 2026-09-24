@@ -82,40 +82,56 @@ function StepFlow({
 
 /* ── SVG 공용 조각 (이 챕터 안에서만) ──────────────────────────────────── */
 
+/**
+ * 꺼짐 상태의 톤 — 테마 토큰에서 섞어 만든다 (#288). 라이트에서는 원래의 옅은 회색과 거의 같고,
+ * 다크에서는 어둡게 가라앉아 꺼진 상자가 켜진 상자보다 밝아지지 않는다 (ch0-1 #284 전례).
+ */
+const OFF_FILL = "color-mix(in srgb, var(--border) 20%, transparent)";
+const OFF_TEXT = "color-mix(in srgb, var(--muted) 60%, var(--card-bg))";
+const OFF_LINE_TEXT = "color-mix(in srgb, var(--muted) 40%, var(--card-bg))";
+
 /** 켜짐/꺼짐 두 상태를 가진 도식이라, 상자·글자·화살표가 전부 active 를 받는다. */
 const box = (on: boolean, fill: string, stroke: string) => ({
-  fill: on ? fill : "#FBFAF8",
+  fill: on ? fill : OFF_FILL,
   stroke: on ? stroke : C.line,
   strokeWidth: on ? 2 : 1.2,
 });
 const label = (on: boolean, color: string, size = 12) => ({
-  fill: on ? color : "#A6A399",
+  fill: on ? color : OFF_TEXT,
   fontWeight: on ? 700 : 500,
   fontSize: size,
 });
 const line = (on: boolean, color: string = C.blue) => ({
-  stroke: on ? color : "#DEDBD3",
+  stroke: on ? color : C.line,
   strokeWidth: on ? 2.4 : 1.4,
   fill: "none",
-  markerEnd: on ? `url(#ah-${color.replace("#", "")})` : "url(#ah-off)",
+  markerEnd: on ? `url(#${headId(color)})` : "url(#ah-off)",
 });
 const lineText = (on: boolean, color: string = C.blue) => ({
-  fill: on ? color : "#C6C3BA",
+  fill: on ? color : OFF_LINE_TEXT,
   fontSize: 10.5,
   fontWeight: on ? 700 : 500,
 });
 
-/** 화살촉 정의 — 색마다 하나씩. id 가 DOM 전역이라 색을 접미사로 붙여 충돌을 피한다. */
+/**
+ * 화살촉 색 — marker id 는 색 값이 아니라 이 고정 키로 만든다. C 의 값이 `var(--x, #hex)` 라
+ * 색 문자열에서 id 를 파생하면 url(#…) 참조가 깨져 화살촉이 사라진다 (#288).
+ */
+const HEAD_COLORS = { blue: C.blue, teal: C.teal, amber: C.amber, red: C.red };
+const headId = (color: string) =>
+  `ah-${Object.entries(HEAD_COLORS).find(([, c]) => c === color)?.[0] ?? "off"}`;
+
+/** 화살촉 정의 — 색마다 하나씩. id 가 DOM 전역이라 색 키를 접미사로 붙여 충돌을 피한다. */
 function Heads() {
   return (
     <defs>
-      {[C.blue, C.teal, C.amber, C.red].map((col) => (
-        <marker key={col} id={`ah-${col.replace("#", "")}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      {Object.entries(HEAD_COLORS).map(([key, col]) => (
+        <marker key={key} id={`ah-${key}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
           <path d="M0,0 L8,4 L0,8 z" fill={col} />
         </marker>
       ))}
       <marker id="ah-off" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-        <path d="M0,0 L8,4 L0,8 z" fill="#DEDBD3" />
+        <path d="M0,0 L8,4 L0,8 z" fill={C.line} />
       </marker>
     </defs>
   );
@@ -157,11 +173,11 @@ export function TwoPoolsSvg() {
       <text x="330" y="220" textAnchor="middle" fontSize="10.5" fill={C.ink}>“뭘 할 수 있어?” — 인가</text>
       <text x="330" y="238" textAnchor="middle" fontSize="10.5" fill={C.ink}>임시 AWS 자격 증명 (STS)</text>
 
-      <rect x="508" y="58" width="160" height="84" rx="10" fill="#FBFAF8" stroke={C.line} />
+      <rect x="508" y="58" width="160" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
       <text x="588" y="92" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>API Gateway · ALB</text>
       <text x="588" y="112" textAnchor="middle" fontSize="10" fill={C.inkSoft}>내 백엔드 API 보호</text>
 
-      <rect x="508" y="172" width="160" height="84" rx="10" fill="#FBFAF8" stroke={C.line} />
+      <rect x="508" y="172" width="160" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
       <text x="588" y="206" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>S3 · DynamoDB</text>
       <text x="588" y="226" textAnchor="middle" fontSize="10" fill={C.inkSoft}>AWS 리소스 직접 접근</text>
 
