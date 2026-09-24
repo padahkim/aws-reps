@@ -76,7 +76,7 @@ export const sections: SectionMeta[] = [
   { num: "01", title: "Cognito 개요 — 두 개의 풀", sub: "애플리케이션 사용자를 위한 신원 서비스", freq: "mid", freqLabel: "빈출 ★★☆ · 전제 개념" },
   { num: "02", title: "IAM과 Cognito의 구분", sub: "AWS 주체의 접근 vs 애플리케이션 사용자 로그인", freq: "hi", freqLabel: "최빈출 ★★★ · 키워드 매칭 단골" },
   { num: "03", title: "User Pool = 인증", sub: "서버리스 사용자 DB · MFA · 연합 로그인", freq: "hi", freqLabel: "최빈출 ★★★ · CUP의 정의" },
-  { num: "04", title: "CUP 로그인 흐름", sub: "ID/PW 검증부터 JWT 발급까지 5단계", freq: "hi", freqLabel: "최빈출 ★★★ · 흐름 그대로 출제" },
+  { num: "04", title: "CUP 로그인 흐름", sub: "인증 흐름 · 로그인 요청부터 토큰 제시까지 5단계", freq: "hi", freqLabel: "최빈출 ★★★ · 흐름 그대로 출제" },
   { num: "05", title: "토큰 3종 — ID · Access · Refresh", sub: "용도가 다르고 수명이 다르다", freq: "hi", freqLabel: "최빈출 ★★★ · 구분이 정답 키" },
   { num: "06", title: "JWT 구조", sub: "Header · Payload(sub) · Signature", freq: "mid", freqLabel: "빈출 ★★☆ · 디코딩 문제 대비" },
   { num: "07", title: "API Gateway 통합 — Cognito 권한 부여자", sub: "Authorization 헤더의 JWT로 API를 지킨다", freq: "hi", freqLabel: "최빈출 ★★★ · 서버리스 단골 조합" },
