@@ -20,7 +20,7 @@ export const session: SessionData = {
       id: "c1",
       section: "01",
       q: "Cognito 안에 든 두 서비스를 “묻는 것 · 하는 일 · 내주는 것” 세 축으로 갈라 설명해 보세요.",
-      a: "• User Pool은 “너 누구야?”를 묻는다(인증) — 회원가입·로그인을 처리하고 사용자를 저장하며, 내주는 것은 JWT 토큰이다.\n• Identity Pool은 “뭘 할 수 있어?”를 묻는다(인가) — 이미 로그인한 사용자에게 AWS 접근 권한을 주며, 내주는 것은 STS가 발급한 임시 AWS 자격 증명이다.\n두 축을 가르는 가장 빠른 기준은 세 번째다 — 산출물이 JWT면 User Pool, 임시 자격 증명이면 Identity Pool.",
+      a: "• User Pool은 “너 누구야?”를 묻는다(인증) — 회원가입·로그인을 처리하고 사용자를 저장하며, 내주는 것은 JWT 토큰이다.\n• Identity Pool은 “뭘 할 수 있어?”를 묻는다(인가) — 로그인한 사용자(원하면 게스트까지)에게 AWS 접근 권한을 주며, 내주는 것은 STS가 발급한 임시 AWS 자격 증명이다.\n두 축을 가르는 가장 빠른 기준은 세 번째다 — 산출물이 JWT면 User Pool, 임시 자격 증명이면 Identity Pool.",
       why: {
         q: "로그인과 AWS 권한 부여가 한 서비스에 묶이지 않고 둘로 나뉘어 있는 이유는 무엇일까요?",
         a: "두 일이 필요해지는 시점이 다르기 때문이다. 앱 대부분은 “내 백엔드에 로그인”까지만 필요하고, 그 사용자가 AWS 리소스를 직접 만질 일은 없다 — 파일 업로드처럼 직접 접근이 필요한 앱만 두 번째가 필요하다. 둘을 한 덩어리로 묶으면 로그인만 필요한 앱까지 IAM 역할 설계를 떠안게 된다.",
@@ -32,7 +32,7 @@ export const session: SessionData = {
       id: "c2",
       section: "02",
       q: "IAM과 Cognito는 무엇을 기준으로 갈리나요? 기능이 아닌 그 기준을 말해 보세요.",
-      a: "사용자가 어떤 경로로 접근하는가로 갈린다. IAM은 내가 신뢰하는 주체(개발자·관리자·계정 안의 서비스)의 AWS 콘솔·CLI·리소스 접근을, Cognito는 사내외 애플리케이션 사용자의 로그인을 맡는다. 규모도 따라 갈린다 — IAM은 수십~수백 명, Cognito는 수천~수백만 명이다. Cognito는 IAM을 대체하지 않는다 — 애플리케이션 사용자를 IAM 역할에 연결해 주는 다리다.",
+      a: "사용자가 누구인가, 그리고 무엇에 접근하는가로 갈린다. IAM은 내가 신뢰하는 주체(개발자·관리자·계정 안의 서비스)의 AWS 콘솔·CLI·리소스 접근을, Cognito는 사내외 애플리케이션 사용자의 로그인을 맡는다. 규모도 따라 갈린다 — Cognito는 수백~수백만 명의 앱 사용자를 담는다. Cognito는 IAM을 대체하지 않는다 — 애플리케이션 사용자를 IAM 역할에 연결해 주는 다리다.",
       why: {
         q: "“앱 고객마다 IAM 사용자를 만든다”가 왜 언제나 오답일까요?",
         a: "IAM 사용자는 계정당 5,000명 한도라 십만 명 규모에서 애초에 담기지 않는다. 게다가 IAM 사용자는 계정 안의 주체라 하나 만들 때마다 내 계정의 관리 대상이 늘어난다 — 외부 고객은 계정 안에 자리를 차지하지 않아야 하고, 그래서 신원을 밖에 두고 필요할 때 역할만 빌려주는 구조가 나왔다.",
@@ -44,7 +44,7 @@ export const session: SessionData = {
       id: "c3",
       section: "03",
       q: "User Pool이 대신해 주는 일을 네 가지 이상 들고, 그중 이름 때문에 헷갈리는 기능 하나를 짚어 보세요.",
-      a: "사용자 저장(서버리스 사용자 DB), 간편 로그인과 비밀번호 재설정, 이메일·전화번호 확인, MFA, 유출된 자격 증명 차단, 그리고 연합 로그인이다.\n헷갈리는 것은 마지막 연합 로그인(Federation)이다 — Google·Facebook·SAML·OIDC 로그인은 User Pool 자체 기능이라 Identity Pool이 없어도 된다. Identity Pool의 옛 이름이 “Federated Identities”라서 생기는 혼동이다.",
+      a: "사용자 저장(서버리스 사용자 DB), 간편 로그인과 비밀번호 재설정, 이메일·전화번호 확인, MFA, 그리고 연합 로그인이다. 유출된 자격 증명 탐지도 있지만 Plus 플랜 기능이고, 로그인 때는 비밀번호를 평문으로 받는 흐름만 검사하며(SRP 로그인은 제외) 막을지 말지도 설정으로 정한다.\n헷갈리는 것은 마지막 연합 로그인(Federation)이다 — Google·Facebook·SAML·OIDC 로그인은 User Pool 자체 기능이라 Identity Pool이 없어도 된다. Identity Pool의 옛 이름이 “Federated Identities”라서 생기는 혼동이다.",
     },
 
     // ── 04 CUP 로그인 흐름 ──────────────────────────────────────────────
@@ -85,7 +85,7 @@ export const session: SessionData = {
       a: "Header(서명 알고리즘·키 ID) · Payload(사용자 정보 = 클레임) · Signature(위·변조 검증용 서명)를 점으로 이어 붙인 한 줄 문자열이다.\nPayload는 암호화가 아니라 서명이라 base64 디코딩만 하면 그대로 보인다 — 그래서 비밀을 담지 않는다. 서명이 막는 것은 내용이 새는 것이 아니라 내용이 바뀌는 것이다.",
       why: {
         q: "이메일이나 사용자 이름 대신 sub를 데이터의 키로 삼는 이유는 무엇일까요?",
-        a: "sub는 그 사용자의 불변 고유 UUID이기 때문이다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있어서 그것을 키로 저장해 두면 변경 순간 과거 데이터와의 연결이 끊긴다. 실제 username도 계정 생성 뒤 바꿀 수 없지만, 사용자 식별의 정본은 sub다. §12의 정책 변수도 같은 발상이다 — 다만 거기서 치환되는 값은 Identity Pool이 붙인 identity ID라서, 이 User Pool sub와는 다른 값이다.",
+        a: "sub는 그 사용자의 불변 고유 UUID이기 때문이다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있어서 그것을 키로 저장해 두면 변경 순간 과거 데이터와의 연결이 끊긴다. username도 계정 생성 뒤 바꿀 수 없지만, 삭제된 사용자의 username은 새 사용자가 다시 쓸 수 있어서 식별의 정본은 sub다. §12의 정책 변수도 같은 발상이다 — 다만 거기서 치환되는 값은 Identity Pool이 붙인 identity ID라서, 이 User Pool sub와는 다른 값이다.",
       },
     },
 
@@ -94,7 +94,7 @@ export const session: SessionData = {
       id: "c8",
       section: "07",
       q: "앱이 토큰을 API Gateway에 어떤 형태로 보내는지, 그 이름과 위치를 말해 보세요.",
-      a: "Authorization 헤더에 싣는다. REST API의 Cognito 사용자 풀 권한 부여자는 “Authorization: <JWT 원문>”으로 받고, HTTP API의 JWT 권한 부여자는 JWT 원문 또는 “Authorization: Bearer <JWT>”를 받는다. 쿼리 문자열이나 바디가 아니다. 토큰은 가진 사람에게 권한을 주므로 그 자체가 곧 열쇠다.",
+      a: "Authorization 헤더에 싣는다 — 값은 JWT 문자열이고, OAuth 관례대로 “Bearer <JWT>” 형식도 널리 쓰인다. HTTP API의 JWT 권한 부여자는 두 형식을 모두 받는다고 문서에 적혀 있다. 쿼리 문자열이나 바디가 아니다. 토큰은 가진 사람에게 권한을 주므로 그 자체가 곧 열쇠다.",
     },
     {
       id: "c9",
@@ -108,7 +108,7 @@ export const session: SessionData = {
       id: "c10",
       section: "08",
       q: "Hosted UI가 무엇을 대신해 주는지와, 커스텀 도메인을 붙일 때의 제약 하나를 말해 보세요.",
-      a: "로그인·가입·비밀번호 재설정 페이지를 Cognito가 대신 호스팅한다 — 앱은 그 주소로 리다이렉트만 하고, 로고·CSS로 외관만 손보면 된다.\n제약: 커스텀 도메인을 쓰려면 ACM 인증서가 반드시 us-east-1(버지니아 북부)에 있어야 한다. 내 앱이 어느 리전에 있든 마찬가지이고, 다른 리전의 인증서는 설정 화면 목록에 아예 뜨지 않는다. CloudFront와 같은 규칙이라 세트로 외운다.",
+      a: "로그인·가입·비밀번호 재설정 페이지를 Cognito가 대신 호스팅한다 — 앱은 그 주소로 리다이렉트만 하고, 로고·CSS로 외관만 손보면 된다.\n제약: 커스텀 도메인을 쓰려면 ACM 인증서가 반드시 us-east-1(버지니아 북부)에 있어야 한다. 내 앱이 어느 리전에 있든 마찬가지이고, 다른 리전의 인증서는 설정 화면 목록에 아예 뜨지 않는다. Cognito가 커스텀 도메인용 CloudFront 배포를 만들고 인증서를 거기에 붙이기 때문이라, CloudFront와 같은 규칙이다.",
     },
 
     // ── 09 Lambda 트리거 ────────────────────────────────────────────────
@@ -136,7 +136,7 @@ export const session: SessionData = {
       id: "c13",
       section: "11",
       q: "Identity Pool이 공급자 증명을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
-      a: "① 사용자가 IdP(User Pool·Google·Apple·SAML 등)에 로그인해 공급자 증명을 받는다 — User Pool·Google·Apple은 ID 토큰, Facebook·Amazon은 OAuth access 토큰, OIDC는 공급자 설정에 맞는 토큰, SAML은 assertion을 전달한다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
+      a: "① 사용자가 로그인 소스(User Pool·소셜·OIDC·SAML 등)에 로그인해 공급자 증명(토큰)을 받는다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
     },
     {
       id: "c14",
@@ -242,7 +242,7 @@ export const session: SessionData = {
       id: "m4",
       scenario: "서버리스 API를 사용자별로 보호해야 한다. 프런트엔드는 이미 로그인 토큰을 갖고 있다.",
       service: "API Gateway + Cognito 사용자 풀 권한 부여자",
-      why: "토큰을 Authorization 헤더로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다. REST API Cognito 권한 부여자에는 JWT 원문을 보낸다.",
+      why: "토큰을 Authorization 헤더로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다.",
       contrast: "ALB 인증은 로그인 자체를 대신 수행하는 쪽이다 — 이미 토큰이 있고 검증만 필요하면 API Gateway 권한 부여자가 맞다.",
     },
     {

@@ -37,7 +37,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-cognito-keyword-signals",
     section: "02",
     q: "지문에 “mobile”, “hundreds of users”, “앱 로그인”이 보인다 — 어느 서비스를 가리키는 신호인가?",
-    a: "Cognito다. 반대로 “AWS 콘솔/CLI 접근”·“개발자에게 AWS 리소스 권한 부여”는 IAM(또는 IAM Identity Center) 쪽 신호이고, 둘은 같은 문제의 정답·오답으로 짝지어 나온다 (사내 직원이어도 앱 로그인이 목적이면 앱 인증 도구의 몫이다).",
+    a: "Cognito다 — 수백~수백만 명 규모의 앱 사용자를 다루는 쪽이다. 반대로 “AWS 콘솔/CLI 접근”·“개발자에게 AWS 리소스 권한 부여”는 IAM(또는 IAM Identity Center) 쪽 신호이고, 둘은 같은 문제의 정답·오답으로 짝지어 나온다 (사내 직원이어도 앱 로그인이 목적이면 앱 인증 도구의 몫이다).",
   },
 
   // ── 03 User Pool = 인증 ──────────────────────────────────────────────
@@ -115,7 +115,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-jwt-sub-claim",
     section: "06",
     q: "Payload의 sub는 무엇이고, 왜 이메일 대신 이 값을 키로 쓰나?",
-    a: "그 사용자의 불변 고유 UUID다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있지만 sub는 바뀌지 않아서 “이 데이터는 누구 것인가”의 키로 쓴다. 실제 username도 계정 생성 뒤 바꿀 수 없지만, 사용자 식별의 정본은 sub다.",
+    a: "그 사용자의 불변 고유 UUID다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있지만 sub는 바뀌지 않아서 “이 데이터는 누구 것인가”의 키로 쓴다. username도 계정 생성 뒤 바꿀 수 없지만, 삭제된 사용자의 username은 새 사용자가 다시 쓸 수 있어서 식별의 정본은 sub다.",
   },
 
   // ── 07 API Gateway 통합 ──────────────────────────────────────────────
@@ -123,7 +123,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-apigw-bearer-header",
     section: "07",
     q: "앱은 토큰을 요청의 어디에 실어 보내나?",
-    a: "Authorization 헤더에 싣는다 — REST API의 Cognito 사용자 풀 권한 부여자는 JWT 원문을 받고, HTTP API의 JWT 권한 부여자는 원문 또는 Bearer 접두사 형식을 받는다. 쿼리 문자열이나 바디가 아니다.",
+    a: "Authorization 헤더에 싣는다 — 값은 JWT 문자열이고, 흔히 Bearer 접두사를 붙인 형식으로도 쓴다. 쿼리 문자열이나 바디가 아니다.",
   },
   {
     slug: "sq-apigw-scope-needs-access-token",
@@ -143,7 +143,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-hostedui-acm-us-east-1",
     section: "08",
     q: "앱이 서울 리전에 있다 — Hosted UI 커스텀 도메인용 ACM 인증서는 어느 리전에 만드나?",
-    a: "us-east-1(버지니아 북부)이다. 다른 리전에 만든 인증서는 Cognito 설정 화면에 아예 목록으로 뜨지 않는다. CloudFront와 같은 규칙이라 세트로 외운다.",
+    a: "us-east-1(버지니아 북부)이다. 다른 리전에 만든 인증서는 Cognito 설정 화면에 아예 목록으로 뜨지 않는다. 인증서가 Cognito가 만든 CloudFront 배포에 붙기 때문이라, CloudFront와 같은 규칙이다.",
   },
   {
     slug: "sq-hostedui-what-it-is",

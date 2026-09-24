@@ -10,8 +10,10 @@ import type { ChapterMeta, Question, SectionMeta } from "../../schema";
  * 사실 수정·보충: docs/_frozen/reports/axis2/aws-cognito-guide.md 지시 전부 반영.
  *   ① 토큰 3종의 개별 용도·수명을 §05 로 신설 (원본은 "JWT(ID·Access·Refresh)"로만 뭉뚱그렸다.
  *      Access·ID 기본 60분(5분~1일) · Refresh 기본 30일(60분~10년, refresh 가 상한))
- *   ② Authorization 헤더 토큰 — REST API는 JWT 원문, HTTP API는 원문 또는 Bearer 형식임을
- *      §07 에 명시 (원본은 "JWT 검증"까지만).
+ *   ② Authorization 헤더 토큰 — 헤더 위치와 값(JWT 문자열, 흔히 Bearer 접두사)을 §07 에 명시
+ *      (원본은 "JWT 검증"까지만). 접두사 규칙은 HTTP API JWT 권한 부여자만 문서에 명시돼 있고
+ *      (원문·Bearer 둘 다 허용), REST API Cognito 권한 부여자는 공식 규정이 없어 단정하지 않는다
+ *      — 원문은 AWS 예시로 확정, Bearer 허용 여부는 실측 대기 (#289, docs/VERIFIED_FACTS.md).
  *      REST API 의 Cognito 권한 부여자가 ID·Access 두 토큰을 다 받는다는 사실은 리포트에
  *      없어 공식 문서로 확인해 넣었다 (Access 토큰은 스코프 검사, ID 토큰은 백엔드로 전달).
  *   ③ Identity Pool → STS 임시 자격 증명 교환 흐름을 §11 에서 ch0-2 §07 STS 와 이어지게 서술.
@@ -36,7 +38,7 @@ export const chapterMeta: ChapterMeta = {
   objectives: [
     "User Pool(인증)과 Identity Pool(인가)을 갈라, 시나리오가 어느 쪽을 묻는지 고른다",
     "ID·Access·Refresh 세 토큰의 용도와 수명을 각각 구분해 설명한다",
-    "로그인으로 받은 토큰이 API Gateway·ALB·STS 중 어디로 흘러가는지 경로를 그린다",
+    "로그인 뒤의 세 경로를 가른다 — User Pool 토큰은 API Gateway가 검증하거나 Identity Pool이 자격 증명으로 바꾸고, ALB는 토큰 대신 로그인 자체를 대행한다",
     "정책 변수로 버킷 하나·테이블 하나를 사용자별로 격리하는 정책을 읽는다",
     "us-east-1 인증서·HTTPS 리스너·401 같은 조건을 시험장에서 바로 떠올린다",
   ],

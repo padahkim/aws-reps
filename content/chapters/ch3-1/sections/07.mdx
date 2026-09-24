@@ -3,11 +3,11 @@ import { Term } from "../../interactive";
 
 받은 토큰을 어디에 쓰는지의 첫 번째 답이 <Term id="api-gateway">API Gateway</Term>입니다. DVA 서버리스 아키텍처 문제에 거의 고정으로 나오는 조합입니다 — <b>사용자 → API Gateway(토큰 검증) → Lambda → DynamoDB</b>.
 
-앱은 토큰을 <b>HTTP 요청 헤더</b>에 실어 보냅니다. 토큰은 가진 사람(bearer)에게 권한을 주므로 그 자체가 곧 열쇠입니다. 다만 <Code>Authorization</Code> 헤더의 <b>문자열 형식은 API 유형에 따라 다릅니다.</b>
+앱은 토큰을 <b>HTTP 요청 헤더</b>에 실어 보냅니다. 토큰은 가진 사람(bearer)에게 권한을 주므로 그 자체가 곧 열쇠입니다. <Code>Authorization</Code> 헤더의 값은 <b>토큰(JWT) 문자열</b>이고, OAuth 관례대로 앞에 <Code>Bearer </Code> 접두사를 붙인 <Code>Bearer eyJ…</Code> 형식도 널리 쓰입니다.
 
 <CodeBlock title="REST API — Cognito 사용자 풀 권한 부여자">{`GET /orders HTTP/1.1\nHost: api.example.com\nAuthorization: eyJraWQiOiJ…`}</CodeBlock>
 
-REST API의 Cognito 사용자 풀 권한 부여자는 설정한 헤더 값을 <b>JWT 자체로</b> 읽으므로 <Code>Bearer </Code> 접두사 없이 보냅니다. 반면 HTTP API의 JWT 권한 부여자는 JWT 원문과 <Code>Bearer eyJ…</Code> 형식을 둘 다 받습니다.
+REST API의 Cognito 사용자 풀 권한 부여자는 AWS 예시에서 위처럼 <b>JWT 원문을 그대로</b> 넣습니다. <Code>Bearer </Code> 접두사를 붙인 형식을 받는지는 공식 문서가 어느 쪽으로도 못 박지 않습니다. 반면 HTTP API의 JWT 권한 부여자는 JWT 원문과 <Code>Bearer eyJ…</Code> 형식을 <b>둘 다 받는다고 문서에 적혀 있습니다.</b>
 
 API Gateway는 이 토큰을 <b>Cognito 권한 부여자(Authorizer)</b>로 검증합니다. 서명이 유효한지, 만료되지 않았는지, 우리 User Pool이 발급한 것인지를 확인하고 — 통과해야만 뒤의 Lambda가 호출됩니다. 어느 토큰을 보내느냐에 따라 검사하는 것이 달라집니다.
 
@@ -28,7 +28,7 @@ API Gateway는 이 토큰을 <b>Cognito 권한 부여자(Authorizer)</b>로 검�
 <Note>권한 부여자는 API 유형에 따라 이름이 다릅니다 — REST API는 <b>Cognito 사용자 풀 권한 부여자</b>, HTTP API는 <b>JWT 권한 부여자</b>가 내장돼 있습니다. 더 복잡한 판단(그룹·속성별 분기)이 필요하면 <b>Lambda 권한 부여자</b>로 직접 짭니다.</Note>
 
 <ExamPoint>
-  <ExamLi>토큰은 <b><Code>Authorization</Code> 헤더</b>로 전달된다 — REST API Cognito 권한 부여자는 JWT 원문, HTTP API JWT 권한 부여자는 원문 또는 <Code>Bearer</Code> 형식이다.</ExamLi>
+  <ExamLi>토큰은 <b><Code>Authorization</Code> 헤더</b>로 전달된다 — 쿼리 문자열이나 바디가 아니다.</ExamLi>
   <ExamLi>“API를 사용자별로 보호” + “서버리스” → <b>API Gateway + Cognito 권한 부여자</b>가 기본 정답 형태다.</ExamLi>
   <ExamLi>스코프 기반으로 메서드를 가르려면 <b>Access 토큰</b>이다 — ID 토큰에는 스코프 개념이 없다.</ExamLi>
 </ExamPoint>

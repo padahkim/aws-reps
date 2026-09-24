@@ -15,14 +15,16 @@ import { TriggerTimelineSvg } from "../figs";
     ["Post Confirmation", <>가입 확인이 끝난 <b>뒤</b> — 환영 메시지·초기 데이터 생성</>],
     ["Pre Authentication", <>로그인 요청을 받아들이기 <b>전</b> — 조건부 차단</>],
     ["Post Authentication", <>로그인이 끝난 <b>뒤</b> — 이벤트 로깅·분석</>],
-    ["Pre Token Generation", <>토큰을 발급하기 <b>직전</b> — 클레임 추가·수정. 기본(V1) 이벤트는 <b>ID 토큰만</b> 고치고, Access 토큰까지 고치려면 <b>V2 이벤트</b>(Lite 외 플랜)를 켠다</>],
+    ["Pre Token Generation", <>토큰을 발급하기 <b>직전</b> — 클레임 추가·수정. 기본(V1) 이벤트는 <b>ID 토큰만</b> 고치고, Access 토큰까지 고치려면 <b>V2 이벤트</b>(Essentials·Plus 플랜, §03)를 켠다</>],
     ["User Migration", <>기존 사용자 DB에서 User Pool로 <b>옮길 때</b></>],
-    ["Custom Message", <>확인·인증 <b>메시지 문구</b>를 바꿀 때 — SMS는 바로 되지만, <b>이메일 본문·제목은 SES를 발신자로 설정한 풀</b>(<Code>EmailSendingAccount=DEVELOPER</Code>)에서만 받아들여진다</>],
+    ["Custom Message", <>확인·인증 <b>메시지 문구</b>를 바꿀 때</>],
     ["Define Auth Challenge", <>다음 챌린지를 낼지, 토큰을 발급할지, 인증을 실패시킬지 <b>결정</b></>],
     ["Create Auth Challenge", <>CAPTCHA·보안 질문 같은 <b>챌린지를 생성</b></>],
     ["Verify Auth Challenge Response", <>사용자가 보낸 답이 기대한 값과 맞는지 <b>검증</b></>],
   ]}
 />
+
+<Note><b>Custom Message</b>로 바꾼 문구 중 SMS는 바로 적용되지만, <b>이메일 본문·제목은 SES를 발신자로 설정한 풀</b>(<Code>EmailSendingAccount=DEVELOPER</Code>)에서만 받아들여집니다.</Note>
 
 <Note><b>Custom Auth Flow는 트리거 이름이 아니라 세 트리거를 묶은 흐름</b>입니다. Define이 다음 단계를 정하고, Create가 질문을 만들고, Verify가 답을 검사합니다. 답이 틀리면 Define부터 다시 돌 수 있고, 모든 챌린지가 끝나면 Define이 토큰 발급을 지시합니다.</Note>
 
