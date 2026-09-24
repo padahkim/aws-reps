@@ -123,7 +123,7 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-apigw-bearer-header",
     section: "07",
     q: "앱은 토큰을 요청의 어디에 실어 보내나?",
-    a: "Authorization 헤더에 싣는다 — REST API의 Cognito 사용자 풀 권한 부여자는 JWT 원문을 받고, HTTP API의 JWT 권한 부여자는 원문 또는 Bearer 접두사 형식을 받는다. 쿼리 문자열이나 바디가 아니다.",
+    a: "Authorization 헤더에 싣는다 — 값은 JWT 문자열이고, 흔히 Bearer 접두사를 붙인 형식으로도 쓴다. 쿼리 문자열이나 바디가 아니다.",
   },
   {
     slug: "sq-apigw-scope-needs-access-token",

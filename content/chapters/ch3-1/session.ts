@@ -94,7 +94,7 @@ export const session: SessionData = {
       id: "c8",
       section: "07",
       q: "앱이 토큰을 API Gateway에 어떤 형태로 보내는지, 그 이름과 위치를 말해 보세요.",
-      a: "Authorization 헤더에 싣는다. REST API의 Cognito 사용자 풀 권한 부여자는 “Authorization: <JWT 원문>”으로 받고, HTTP API의 JWT 권한 부여자는 JWT 원문 또는 “Authorization: Bearer <JWT>”를 받는다. 쿼리 문자열이나 바디가 아니다. 토큰은 가진 사람에게 권한을 주므로 그 자체가 곧 열쇠다.",
+      a: "Authorization 헤더에 싣는다 — 값은 JWT 문자열이고, OAuth 관례대로 “Bearer <JWT>” 형식도 널리 쓰인다. HTTP API의 JWT 권한 부여자는 두 형식을 모두 받는다고 문서에 적혀 있다. 쿼리 문자열이나 바디가 아니다. 토큰은 가진 사람에게 권한을 주므로 그 자체가 곧 열쇠다.",
     },
     {
       id: "c9",
@@ -242,7 +242,7 @@ export const session: SessionData = {
       id: "m4",
       scenario: "서버리스 API를 사용자별로 보호해야 한다. 프런트엔드는 이미 로그인 토큰을 갖고 있다.",
       service: "API Gateway + Cognito 사용자 풀 권한 부여자",
-      why: "토큰을 Authorization 헤더로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다. REST API Cognito 권한 부여자에는 JWT 원문을 보낸다.",
+      why: "토큰을 Authorization 헤더로 받아 검증하고, 통과한 요청만 Lambda로 넘긴다.",
       contrast: "ALB 인증은 로그인 자체를 대신 수행하는 쪽이다 — 이미 토큰이 있고 검증만 필요하면 API Gateway 권한 부여자가 맞다.",
     },
     {
