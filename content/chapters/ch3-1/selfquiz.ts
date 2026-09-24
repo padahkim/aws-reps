@@ -221,8 +221,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-cip-assume-role-web-identity",
     section: "11",
-    q: "Identity Pool이 앱 대신 호출하는 STS API의 이름은?",
-    a: "AssumeRoleWithWebIdentity다 — ch0-2 §07에서 웹/모바일 로그인 사용자용으로 배운 그 API다. 앱이 직접 부를 수도 있지만, 모바일 앱에는 Cognito를 쓰는 것이 AWS 권장이다.",
+    q: "enhanced 흐름에서 Identity Pool이 앱 대신 호출하는 STS API의 이름은?",
+    a: "AssumeRoleWithWebIdentity다 — ch0-2 §07에서 웹/모바일 로그인 사용자용으로 배운 그 API다. basic(classic) 흐름을 켜면 앱이 이 API를 직접 부르지만, 모바일 앱에는 Cognito를 쓰는 것이 AWS 권장이다.",
   },
   {
     slug: "sq-cip-group-role",

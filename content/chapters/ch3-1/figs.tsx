@@ -332,7 +332,8 @@ export function RiskScoreSvg() {
 /**
  * 앱 중심 구도 (#292) — 증명과 자격 증명은 전부 앱을 거쳐 오간다. 서비스끼리 직접 이어지는
  * 구간은 ③(Identity Pool ↔ STS) 하나뿐이라 그 둘만 점선 “AWS 내부” 테두리로 묶었다.
- * 단계 번호 ①~⑤는 세션 도식(session.ts diagram.edges)의 번호와 같다.
+ * 단계 번호 ①~⑤는 세션 도식(session.ts diagram.edges)의 번호와 같다. enhanced(기본) 흐름 기준이다 —
+ * basic(classic) 흐름에서는 앱이 AssumeRoleWithWebIdentity 를 직접 부른다 (§11 Note, PR #298 Codex 1라운드).
  */
 function cipFlowSvg(step: number) {
   const s = (n: number) => step >= n;
@@ -394,11 +395,11 @@ function cipFlowSvg(step: number) {
 export function CipCredentialFlow() {
   return (
     <StepFlow
-      label="CIP 자격 증명 발급 흐름"
+      label="CIP 자격 증명 발급 흐름 (enhanced)"
       steps={[
         "① 앱이 사용자를 IdP(User Pool, Google, SAML 등)에 로그인시키고, 공급자 증명(ID 토큰·assertion 등)을 받아 쥔다.",
         "② 앱이 그 증명을 Identity Pool에 제출한다. Identity Pool은 증명이 진짜인지 검증하고, 이 사용자에게 줄 IAM 역할을 고른다.",
-        "③ Identity Pool이 앱 대신 STS의 AssumeRoleWithWebIdentity를 호출하고, STS가 그 역할의 임시 자격 증명을 발급한다. AWS 안에서 일어나는 구간이라 앱에는 보이지 않는다.",
+        "③ enhanced(기본) 흐름에서는 Identity Pool이 앱 대신 STS의 AssumeRoleWithWebIdentity를 호출하고, STS가 그 역할의 임시 자격 증명을 발급한다. AWS 안에서 일어나는 구간이라 앱에는 보이지 않는다.",
         "④ Identity Pool이 받은 임시 자격 증명(액세스 키 ID·비밀 액세스 키·세션 토큰)을 앱에 돌려준다.",
         "⑤ 앱이 그 자격 증명으로 요청에 서명해 S3·DynamoDB를 직접 호출한다 — 중간에 내 백엔드 서버가 끼지 않는다.",
         "로그인하지 않은 게스트도 ①을 건너뛰고 Identity Pool에 자격 증명을 요청할 수 있다. 이때는 게스트 전용 역할이 적용된다.",
