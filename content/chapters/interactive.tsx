@@ -32,7 +32,7 @@ export function SimFrame({ title, icon = "🎛", children }: { title: string; ic
     >
       <div
         style={{
-          background: C.ink,
+          background: "var(--table-head-bg, " + C.ink + ")",
           padding: "10px 16px",
           fontFamily: MONO,
           color: "#DCE6F2",

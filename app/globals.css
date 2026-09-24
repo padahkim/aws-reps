@@ -45,6 +45,7 @@
   --red: #b9432c;
   --red-soft: #f8e4df;
   --line: #e2dfd8;
+  --code-bg: #171e26;
   --code-fg: #ffd9a0;
 }
 
@@ -96,6 +97,7 @@
     --red: #f85149;
     --red-soft: rgba(248, 81, 73, 0.15);
     --line: #2e3238;
+    --code-bg: #21262d;
     --code-fg: #ffd9a0;
     --btn-hover-text: #ffffff;
   }
@@ -148,6 +150,7 @@
   --red: #f85149;
   --red-soft: rgba(248, 81, 73, 0.15);
   --line: #2e3238;
+  --code-bg: #21262d;
   --code-fg: #ffd9a0;
   --btn-hover-text: #ffffff;
 }
