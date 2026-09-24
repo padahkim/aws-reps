@@ -58,6 +58,7 @@ npm run dev
 | `@mdx-js/loader` | `^3.1.1` |
 | `@mdx-js/react` | `^3.1.1` |
 | `@next/mdx` | `^16.2.10` |
+| `@vercel/analytics` | `^2.0.1` |
 | `next` | `^16.2.10` |
 | `react` | `^19.2.7` |
 | `react-dom` | `^19.2.7` |
