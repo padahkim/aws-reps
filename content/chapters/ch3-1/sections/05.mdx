@@ -31,7 +31,7 @@ import { Term } from "../../interactive";
 
 <WarnBox>ID·Access 토큰의 유효기간은 <b>Refresh 토큰의 유효기간을 넘길 수 없습니다</b>. Refresh를 60분으로 줄여 놓고 Access를 1일로 두는 설정은 성립하지 않습니다 — 재발급 수단이 먼저 죽는 조합이기 때문입니다.</WarnBox>
 
-<Note>실제 화면에서는 이렇게 나타납니다 — 앱을 한 달 만에 열었는데 로그인 화면이 뜨지 않으면 Refresh 토큰이 살아 있어 조용히 재발급된 것이고, 로그인 화면이 뜨면 Refresh 토큰까지 만료된 것입니다.</Note>
+<Note>실제 화면에서는 이렇게 나타납니다 — 앱을 일주일 만에 열었는데 로그인 화면이 뜨지 않으면 Refresh 토큰이 살아 있어 조용히 재발급된 것이고, 로그인 화면이 뜨면 Refresh 토큰까지 만료된 것입니다.</Note>
 
 <Note><b>Grant와 스코프에 따라 실제 구성은 달라집니다.</b> Authorization Code Grant에서 <Code>openid</Code>를 요청하고 코드를 교환하면 ID·Access·Refresh 토큰을 받지만, <Code>openid</Code>가 없으면 <b>ID 토큰은 나오지 않습니다.</b> Implicit Grant는 <Code>openid</Code> 요청 시 ID·Access 토큰을 직접 돌려주되 <b>Refresh 토큰은 발급하지 않습니다.</b></Note>
 

@@ -36,7 +36,7 @@ export const chapterMeta: ChapterMeta = {
   objectives: [
     "User Pool(인증)과 Identity Pool(인가)을 갈라, 시나리오가 어느 쪽을 묻는지 고른다",
     "ID·Access·Refresh 세 토큰의 용도와 수명을 각각 구분해 설명한다",
-    "로그인으로 받은 토큰이 API Gateway·ALB·STS 중 어디로 흘러가는지 경로를 그린다",
+    "로그인 뒤의 세 경로를 가른다 — User Pool 토큰은 API Gateway가 검증하거나 Identity Pool이 자격 증명으로 바꾸고, ALB는 토큰 대신 로그인 자체를 대행한다",
     "정책 변수로 버킷 하나·테이블 하나를 사용자별로 격리하는 정책을 읽는다",
     "us-east-1 인증서·HTTPS 리스너·401 같은 조건을 시험장에서 바로 떠올린다",
   ],
