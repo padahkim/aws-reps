@@ -1,7 +1,7 @@
 import { Code, ExamLi, ExamPoint, Note, Table, WarnBox } from "../../ui";
 import { Term } from "../../interactive";
 
-User Pool 로그인 API로 로그인하면(§04) 토큰이 <b>세 개</b> 나옵니다. Hosted UI(OAuth) 경로는 Grant·scope에 따라 구성이 달라집니다 → §08. 셋을 “JWT 토큰”으로 뭉뚱그려 외우면 시험에서 갈리는 지점을 놓칩니다 — 용도가 다르고, 수명도 다릅니다.
+User Pool 로그인 API로 로그인하면(§04) 토큰이 <b>세 개</b> 나옵니다. Hosted UI(OAuth) 경로는 Grant·scope에 따라 구성이 달라집니다 → §08. 단, 로그인 API로 받은 Access 토큰의 스코프는 자기 정보 조회·수정용인 <Code>aws.cognito.signin.user.admin</Code> 하나뿐입니다 — 리소스 서버의 커스텀 스코프(§07)가 든 Access 토큰은 Hosted UI(OAuth) 경로로 받습니다(Pre Token Generation 트리거로 더하는 방법도 있다, §09). 셋을 “JWT 토큰”으로 뭉뚱그려 외우면 시험에서 갈리는 지점을 놓칩니다 — 용도가 다르고, 수명도 다릅니다.
 
 <Table
   head={["토큰", "용도", "기본 수명", "설정 가능 범위 (앱 클라이언트별, §03)"]}

@@ -16,7 +16,7 @@ API Gateway는 이 토큰을 <b>Cognito 권한 부여자(Authorizer)</b>로 검�
   rows={[
     [
       <><b>Access 토큰</b></>,
-      <>메서드에 <b>인가 스코프(Authorization scopes)</b>(커스텀 스코프는 User Pool의 리소스 서버에 정의)를 설정해 두면, 토큰의 OAuth 2.0 스코프가 그 메서드·경로에 맞는지 검사한다</>,
+      <>메서드에 <b>인가 스코프(Authorization scopes)</b>(커스텀 스코프는 User Pool의 리소스 서버에 정의하고, 그 스코프가 든 Access 토큰은 Hosted UI(OAuth) 경로로 받는다 — §05)를 설정해 두면, 토큰의 OAuth 2.0 스코프가 그 메서드·경로에 맞는지 검사한다</>,
     ],
     [
       <><b>ID 토큰</b></>,

@@ -20,10 +20,10 @@ import { JwtPartsSvg } from "../figs";
 
 <CodeBlock title="User Pool의 JWKS 주소">{`https://cognito-idp.<region>.amazonaws.com/<userPoolId>/.well-known/jwks.json`}</CodeBlock>
 
-API Gateway의 Cognito 권한 부여자(§07)를 쓰면 이 검증을 API Gateway가 대신 합니다. 백엔드(예: Lambda)에서 토큰을 <b>직접</b> 검증해야 한다면 순서는 이렇습니다.
+API Gateway의 Cognito 권한 부여자(§07)를 쓰면 토큰이 그 User Pool이 발급한 유효한 토큰인지(메서드에 인가 스코프를 설정했다면 스코프까지)는 API Gateway가 확인합니다. 다만 권한 부여자는 <b>User Pool 단위</b>로 설정해 앱 클라이언트를 지정하지 않으므로, 풀 하나에 앱 클라이언트가 여럿이고 특정 앱의 토큰만 받아야 한다면 앱 클라이언트 ID는 따로 확인해야 합니다. 백엔드(예: Lambda)에서 토큰을 <b>직접</b> 검증해야 한다면 순서는 이렇습니다.
 
 1. JWKS를 받아 두고, 토큰 Header의 <Code>kid</Code>(키 ID — 위 그림의 “키 ID”)와 같은 <Code>kid</Code>의 공개 키를 고른다. User Pool은 서명 키를 교체할 수 있으므로, 받아 둔 목록에 없는 <Code>kid</Code>가 오면 JWKS를 다시 받는다
-2. 고른 공개 키로 <b>Signature를 검증</b>한다 — 한 글자라도 바뀐 토큰은 여기서 걸린다
+2. 고른 공개 키로 <b>Signature를 검증</b>한다 — 한 글자라도 바뀐 토큰은 여기서 걸린다. User Pool은 <b>RS256</b>으로만 서명하므로 알고리즘은 RS256만 허용한다 (토큰 Header의 <Code>alg</Code>를 그대로 믿지 않는다)
 3. Payload의 클레임을 확인한다 — <Code>iss</Code>가 내 User Pool 주소(<Code>{`https://cognito-idp.<region>.amazonaws.com/<userPoolId>`}</Code>)인지, <Code>token_use</Code>가 기대한 종류(<Code>id</Code> 또는 <Code>access</Code>)인지, <Code>exp</Code>(만료 시각)가 지나지 않았는지. 앱 클라이언트 ID(ID 토큰의 <Code>aud</Code>, Access 토큰의 <Code>client_id</Code>)도 맞춰 본다
 
 Node.js라면 AWS가 권하는 <Code>aws-jwt-verify</Code> 라이브러리가 이 단계를 한 번에 해 줍니다.

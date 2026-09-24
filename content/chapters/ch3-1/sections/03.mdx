@@ -23,7 +23,7 @@ User Pool 하나에는 앱이 여럿 붙을 수 있습니다 — 웹 앱, 모바
 - <b>OAuth Grant·scope·콜백 URL</b> — Hosted UI로 로그인할 때 토큰을 받는 방식, 요청할 수 있는 권한 범위, 로그인 뒤 돌아올 주소 (§08)
 - <b>토큰 수명</b> — §05의 ID·Access·Refresh 유효기간도 앱 클라이언트마다 따로 정한다
 
-secret 유무로 앱 클라이언트가 둘로 갈립니다. 브라우저·모바일 앱처럼 사용자 기기에서 도는 앱은 코드를 누구나 열어 볼 수 있어 secret을 숨길 곳이 없으므로 secret 없는 <b>public client</b>로 두고, 백엔드 서버처럼 secret을 안전하게 보관할 수 있는 앱은 secret을 둔 <b>confidential client</b>로 둡니다. public client가 Hosted UI로 로그인할 때는 secret 대신 <b>PKCE</b>(로그인을 시작할 때 만든 일회용 비밀 값을 코드 교환 때 다시 내게 해, 중간에 가로챈 코드를 남이 쓰지 못하게 하는 장치)로 보호합니다 (§08).
+secret 유무로 앱 클라이언트가 둘로 갈립니다. 브라우저·모바일 앱처럼 사용자 기기에서 도는 앱은 코드를 누구나 열어 볼 수 있어 secret을 숨길 곳이 없으므로 secret 없는 <b>public client</b>로 두고, 백엔드 서버처럼 secret을 안전하게 보관할 수 있는 앱은 secret을 둔 <b>confidential client</b>로 둡니다. public client가 Hosted UI로 로그인할 때는 secret 대신 <b>PKCE</b>로 보호합니다 (§08). 앱이 로그인을 시작할 때 일회용 비밀 값 <Code>code_verifier</Code>를 만들어, 인가 요청에는 그 해시(SHA-256)인 <Code>code_challenge</Code>만 보내고 원본 <Code>code_verifier</Code>는 코드를 토큰으로 교환할 때 처음 보냅니다. 중간에 코드를 가로챈 쪽은 원본 값을 모르니 교환할 수 없습니다.
 
 <ExamPoint>
   <ExamLi>“사용자 DB를 직접 운영하지 않고 회원가입·로그인·MFA를 구현” → <b>User Pool</b>.</ExamLi>

@@ -55,7 +55,7 @@ export const session: SessionData = {
       a: "앱 클라이언트는 User Pool에 앱마다 하나씩 등록하는 설정 단위다. 앱은 로그인 요청마다 그 클라이언트 ID로 자신을 밝힌다. 담기는 설정은 클라이언트 ID와 client secret(만들지 말지 선택), 허용 인증 흐름, Hosted UI용 OAuth Grant·scope·콜백 URL, 그리고 ID·Access·Refresh 토큰 수명이다.\n둘을 가르는 것은 client secret 유무다. 브라우저·모바일 앱은 secret 없는 public client, secret을 안전하게 보관할 수 있는 백엔드 서버는 secret을 둔 confidential client다.",
       why: {
         q: "브라우저·모바일 앱의 앱 클라이언트에 secret을 두지 않는 이유는 무엇이고, 그 대신 무엇으로 보호하나요?",
-        a: "사용자 기기에 배포된 코드는 누구나 열어 볼 수 있어서, secret을 넣어도 숨겨지지 않기 때문이다 — 드러난 secret은 보호 수단이 못 된다. 그래서 secret 없는 public client로 두고, Hosted UI 로그인에서는 PKCE로 보호한다. 로그인을 시작할 때 만든 일회용 비밀 값을 코드 교환 때 다시 내야 하므로, 중간에 가로챈 코드만으로는 토큰을 받을 수 없다.",
+        a: "사용자 기기에 배포된 코드는 누구나 열어 볼 수 있어서, secret을 넣어도 숨겨지지 않기 때문이다 — 드러난 secret은 보호 수단이 못 된다. 그래서 secret 없는 public client로 두고, Hosted UI 로그인에서는 PKCE로 보호한다. 앱이 일회용 값 code_verifier를 만들어 인가 요청에는 그 해시(SHA-256)인 code_challenge만 보내고, 원본 code_verifier는 코드 교환 때 처음 보낸다. 중간에 코드를 가로챈 쪽은 원본 값을 모르니 토큰을 받을 수 없다.",
       },
     },
 
@@ -64,7 +64,7 @@ export const session: SessionData = {
       id: "c4",
       section: "04",
       q: "로그인 흐름에서 비밀번호와 토큰이 각각 누구와 누구 사이를 오가는지 말해 보세요.",
-      a: "비밀번호는 사용자와 User Pool 사이에서만 오간다. 토큰은 User Pool이 사용자에게 주고, 사용자가 다시 백엔드(API Gateway 등)에 제시한다. 백엔드는 이 대화에 끼지 않으며 비밀번호를 보지 못한다 — 받은 토큰을 검증할 뿐이다.",
+      a: "사용자 기기의 앱이 User Pool과 직접 대화하는 클라이언트 측 흐름에서, 비밀번호는 사용자와 User Pool 사이에서만 오간다. 토큰은 User Pool이 사용자에게 주고, 사용자가 다시 백엔드(API Gateway 등)에 제시한다. 백엔드는 이 대화에 끼지 않으며 비밀번호를 보지 못한다 — 받은 토큰을 검증할 뿐이다. 예외는 서버용 ADMIN_USER_PASSWORD_AUTH — 이때는 사용자가 비밀번호를 백엔드에 보내고, 백엔드가 그것으로 User Pool에 로그인을 요청한다.",
       why: {
         q: "소셜 로그인을 써도 앱이 받는 토큰이 언제나 User Pool 발급인 것이 왜 편한가요?",
         a: "앱 코드가 로그인 경로를 몰라도 되기 때문이다. 구글로 들어왔든 직접 가입했든 앱이 다루는 토큰의 형식과 발급자가 같아서, 새 소셜 제공자를 추가해도 앱의 검증 로직은 그대로다 — 변하는 것은 User Pool 설정뿐이다.",
@@ -73,8 +73,8 @@ export const session: SessionData = {
     {
       id: "c21",
       section: "04",
-      q: "로그인 요청 방식인 인증 흐름 다섯 가지를 들고, 각각이 비밀번호를 어떻게 다루는지(또는 무엇을 대신 내는지) 말해 보세요.",
-      a: "• USER_SRP_AUTH(SRP) — 비밀번호를 보내지 않고 “비밀번호를 안다”는 증명값만 보낸다. AWS가 권장하고 Amplify 등 SDK의 기본이다.\n• USER_PASSWORD_AUTH — 사용자 기기의 앱이 비밀번호를 (암호화된 연결 위로) 그대로 보낸다.\n• ADMIN_USER_PASSWORD_AUTH — 같은 방식이지만 서버용이라, 백엔드가 AdminInitiateAuth를 AWS 자격 증명(IAM)으로 서명해 부른다.\n• CUSTOM_AUTH — Lambda 트리거로 짠 챌린지(CAPTCHA 등)에 답한다(§09).\n• REFRESH_TOKEN_AUTH — 로그인이 아니라 갱신이다. 비밀번호 대신 Refresh 토큰을 내고 새 ID·Access 토큰을 받는다.\n어느 흐름을 쓸 수 있는지는 앱 클라이언트마다 켜 둔 설정이 정한다.",
+      q: "§04 표의 대표 인증 흐름들을 들고, 각각이 비밀번호를 어떻게 다루는지(또는 무엇을 대신 내는지) 말해 보세요.",
+      a: "DVA-C02에서 다루는 대표 흐름은 다음과 같다(흐름이 이것뿐인 것은 아니다).\n• USER_SRP_AUTH(SRP) — 비밀번호를 보내지 않고 “비밀번호를 안다”는 증명값만 보낸다. AWS가 권장하고 Amplify 등 SDK의 기본이다.\n• USER_PASSWORD_AUTH — 사용자 기기의 앱이 비밀번호를 (암호화된 연결 위로) 그대로 보낸다.\n• ADMIN_USER_PASSWORD_AUTH — 서버용이다. 사용자가 비밀번호를 백엔드에 보내고, 백엔드가 그것을 담아 AdminInitiateAuth를 AWS 자격 증명(IAM)으로 서명해 부른다.\n• CUSTOM_AUTH — Lambda 트리거로 짠 챌린지(CAPTCHA 등)에 답한다(§09).\n• REFRESH_TOKEN_AUTH — 로그인이 아니라 갱신이다. 비밀번호 대신 Refresh 토큰을 내고 새 ID·Access 토큰을 받는다.\n어느 흐름을 쓸 수 있는지는 앱 클라이언트마다 켜 둔 설정이 정한다.",
       why: {
         q: "유출된 자격 증명 탐지가 SRP 로그인을 검사하지 못하는 것과, User Migration이 SRP로 안 되는 것은 같은 이유에서 나옵니다. 그 이유는 무엇일까요?",
         a: "둘 다 비밀번호 원문이 있어야 일을 할 수 있는데, SRP는 원문 대신 증명값만 보내기 때문이다. 유출 탐지는 입력된 비밀번호를 유출 목록과 대 봐야 하고, User Migration은 그 비밀번호로 옛 DB에 로그인해 봐야 한다. 그래서 둘 다 원문이 오는 USER_PASSWORD_AUTH 계열에서만 작동한다.",
@@ -114,7 +114,7 @@ export const session: SessionData = {
       id: "c22",
       section: "06",
       q: "백엔드(Lambda)에서 User Pool 토큰을 직접 검증한다면 어떤 키로, 어떤 순서로 무엇을 확인하나요?",
-      a: "User Pool이 공개한 JWKS(https://cognito-idp.<region>.amazonaws.com/<userPoolId>/.well-known/jwks.json)의 공개 키로 검증한다.\n① 토큰 Header의 kid와 같은 kid의 공개 키를 JWKS에서 고른다 — 모르는 kid면 키가 교체됐을 수 있으니 JWKS를 다시 받는다. ② 그 키로 Signature를 검증한다. ③ Payload에서 iss가 내 User Pool 주소인지, token_use가 기대한 종류(id/access)인지, exp가 지나지 않았는지를 보고, 앱 클라이언트 ID(aud 또는 client_id)도 맞춰 본다.\nAPI Gateway의 Cognito 권한 부여자를 쓰면 이 검증을 API Gateway가 대신 한다.",
+      a: "User Pool이 공개한 JWKS(https://cognito-idp.<region>.amazonaws.com/<userPoolId>/.well-known/jwks.json)의 공개 키로 검증한다.\n① 토큰 Header의 kid와 같은 kid의 공개 키를 JWKS에서 고른다 — 모르는 kid면 키가 교체됐을 수 있으니 JWKS를 다시 받는다. ② 그 키로 Signature를 검증한다 — 알고리즘은 User Pool이 쓰는 RS256만 허용한다. ③ Payload에서 iss가 내 User Pool 주소인지, token_use가 기대한 종류(id/access)인지, exp가 지나지 않았는지를 보고, 앱 클라이언트 ID(aud 또는 client_id)도 맞춰 본다.\nAPI Gateway의 Cognito 권한 부여자를 쓰면 그 User Pool이 발급한 유효한 토큰인지(인가 스코프를 설정했다면 스코프까지)는 API Gateway가 확인한다. 권한 부여자는 User Pool 단위로 설정해 앱 클라이언트를 지정하지 않으므로, 특정 앱 클라이언트의 토큰만 받아야 하면 그 확인은 따로 해야 한다.",
       why: {
         q: "User Pool이 서명에 쓰는 키 정보를 누구나 받아 갈 수 있는 주소에 올려 두는데도 토큰을 위조할 수 없는 이유는 무엇일까요?",
         a: "올려 두는 것이 공개 키이기 때문이다. 서명은 User Pool만 가진 비밀 키로 만들고, 공개 키로는 그 서명을 검증만 할 수 있을 뿐 새 서명을 만들 수 없다. 그래서 공개 키가 누구 손에 있어도 위조 토큰은 서명 검증에서 걸린다.",
