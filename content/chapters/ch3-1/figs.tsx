@@ -155,40 +155,52 @@ function SvgFrame({ vb, aria, children }: { vb: string; aria: string; children: 
 
 /* ── §01 두 개의 풀 ───────────────────────────────────────────────────── */
 
+/**
+ * 앱 중심 구도 (#292) — 모든 화살표의 한쪽 끝이 가운데 앱이다. 두 풀은 앱이 부르고 답을
+ * 돌려받는 상대이고, 오른쪽 목적지도 앱이 직접 부른다. 예전 그림은 Identity Pool → S3 처럼
+ * 서비스가 서비스를 부르는 중계 체인으로 읽혀서 본문의 “사용자가 S3를 직접 호출”과 어긋났다.
+ */
 export function TwoPoolsSvg() {
   return (
-    <SvgFrame vb="0 0 700 300" aria="Cognito의 두 축 — User Pool은 인증, Identity Pool은 인가">
-      <circle cx="72" cy="150" r="26" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
-      <text x="72" y="156" textAnchor="middle" fontSize="18">👤</text>
-      <text x="72" y="196" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>웹·모바일 사용자</text>
-      <text x="72" y="211" textAnchor="middle" fontSize="9.5" fill={C.inkSoft}>앱 사용자 수백만 명</text>
+    <SvgFrame vb="0 0 700 300" aria="Cognito의 두 축 — 가운데 앱이 User Pool에서 JWT를 받아 내 백엔드 API에 제시하고, Identity Pool에서 임시 AWS 자격 증명을 받아 S3·DynamoDB를 직접 호출한다">
+      <rect x="16" y="40" width="172" height="84" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
+      <text x="102" y="68" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.amberText}>User Pool (CUP)</text>
+      <text x="102" y="88" textAnchor="middle" fontSize="10.5" fill={C.ink}>“너 누구야?” — 인증</text>
+      <text x="102" y="106" textAnchor="middle" fontSize="10.5" fill={C.ink}>로그인 성공 → JWT 발급</text>
 
-      <rect x="230" y="58" width="200" height="84" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
-      <text x="330" y="86" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.amberText}>User Pool (CUP)</text>
-      <text x="330" y="106" textAnchor="middle" fontSize="10.5" fill={C.ink}>“너 누구야?” — 인증</text>
-      <text x="330" y="124" textAnchor="middle" fontSize="10.5" fill={C.ink}>로그인 성공 → JWT 발급</text>
+      <rect x="16" y="176" width="172" height="84" rx="10" fill={C.tealSoft} stroke={C.teal} strokeWidth="2" />
+      <text x="102" y="204" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.teal}>Identity Pool (CIP)</text>
+      <text x="102" y="224" textAnchor="middle" fontSize="10.5" fill={C.ink}>“뭘 할 수 있어?” — 인가</text>
+      <text x="102" y="242" textAnchor="middle" fontSize="10.5" fill={C.ink}>임시 AWS 자격 증명 (STS)</text>
 
-      <rect x="230" y="172" width="200" height="84" rx="10" fill={C.tealSoft} stroke={C.teal} strokeWidth="2" />
-      <text x="330" y="200" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.teal}>Identity Pool (CIP)</text>
-      <text x="330" y="220" textAnchor="middle" fontSize="10.5" fill={C.ink}>“뭘 할 수 있어?” — 인가</text>
-      <text x="330" y="238" textAnchor="middle" fontSize="10.5" fill={C.ink}>임시 AWS 자격 증명 (STS)</text>
+      <rect x="276" y="40" width="148" height="220" rx="12" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
+      <text x="350" y="134" textAnchor="middle" fontSize="22">👤</text>
+      <text x="350" y="162" textAnchor="middle" fontSize="13" fontWeight="800" fill={C.blue}>앱</text>
+      <text x="350" y="180" textAnchor="middle" fontSize="10.5" fill={C.ink}>웹·모바일 사용자</text>
+      <text x="350" y="196" textAnchor="middle" fontSize="9.5" fill={C.inkSoft}>(수백만 명)</text>
 
-      <rect x="508" y="58" width="160" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
-      <text x="588" y="92" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>API Gateway · ALB</text>
-      <text x="588" y="112" textAnchor="middle" fontSize="10" fill={C.inkSoft}>내 백엔드 API 보호</text>
+      <rect x="512" y="40" width="172" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
+      <text x="598" y="74" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>내 백엔드 API</text>
+      <text x="598" y="94" textAnchor="middle" fontSize="10" fill={C.inkSoft}>API Gateway가 JWT 검증</text>
 
-      <rect x="508" y="172" width="160" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
-      <text x="588" y="206" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>S3 · DynamoDB</text>
-      <text x="588" y="226" textAnchor="middle" fontSize="10" fill={C.inkSoft}>AWS 리소스 직접 접근</text>
+      <rect x="512" y="176" width="172" height="84" rx="10" fill={OFF_FILL} stroke={C.line} />
+      <text x="598" y="210" textAnchor="middle" fontSize="11" fontWeight="700" fill={C.ink}>S3 · DynamoDB</text>
+      <text x="598" y="230" textAnchor="middle" fontSize="10" fill={C.inkSoft}>AWS 리소스 직접 접근</text>
 
-      <path d="M102,132 C158,106 190,98 226,98" style={line(true, C.amber)} />
-      <text x="132" y="94" style={lineText(true, C.amber)}>로그인</text>
-      <path d="M102,168 C158,192 190,208 226,212" style={line(true, C.teal)} />
-      <text x="118" y="212" style={lineText(true, C.teal)}>자격 증명 요청</text>
-      <path d="M434,100 L504,100" style={line(true, C.amber)} />
-      <text x="440" y="90" style={lineText(true, C.amber)}>인증 연동</text>
-      <path d="M434,214 L504,214" style={line(true, C.teal)} />
-      <text x="440" y="204" style={lineText(true, C.teal)}>임시 키로 호출</text>
+      <path d="M272,70 L193,70" style={line(true, C.amber)} />
+      <text x="200" y="62" style={lineText(true, C.amber)}>로그인</text>
+      <path d="M192,98 L271,98" style={line(true, C.amber)} />
+      <text x="200" y="114" style={lineText(true, C.amber)}>JWT</text>
+      <path d="M272,206 L193,206" style={line(true, C.teal)} />
+      <text x="200" y="198" style={lineText(true, C.teal)}>증명 제출</text>
+      <path d="M192,234 L271,234" style={line(true, C.teal)} />
+      <text x="200" y="250" style={lineText(true, C.teal)}>임시 자격 증명</text>
+
+      <path d="M428,82 L507,82" style={line(true, C.amber)} />
+      <text x="434" y="74" style={lineText(true, C.amber)}>JWT 제시</text>
+      <path d="M428,218 L507,218" style={line(true, C.teal)} />
+      <text x="434" y="210" style={lineText(true, C.teal)}>직접 호출</text>
+      <text x="434" y="234" style={lineText(true, C.teal)}>(임시 키로 서명)</text>
     </SvgFrame>
   );
 }
@@ -317,44 +329,64 @@ export function RiskScoreSvg() {
 
 /* ── §11 CIP 자격 증명 발급 흐름 ──────────────────────────────────────── */
 
+/**
+ * 앱 중심 구도 (#292) — 증명과 자격 증명은 전부 앱을 거쳐 오간다. 서비스끼리 직접 이어지는
+ * 구간은 ③(Identity Pool ↔ STS) 하나뿐이라 그 둘만 점선 “AWS 내부” 테두리로 묶었다.
+ * 단계 번호 ①~⑤는 세션 도식(session.ts diagram.edges)의 번호와 같다.
+ */
 function cipFlowSvg(step: number) {
   const s = (n: number) => step >= n;
   return (
-    <SvgFrame vb="0 0 700 330" aria="Identity Pool이 IdP 공급자 증명을 검증해 STS 임시 자격 증명으로 교환하는 흐름">
-      <circle cx="62" cy="150" r="26" style={box(true, C.blueSoft, C.blue)} />
-      <text x="62" y="156" textAnchor="middle" fontSize="18">👤</text>
-      <text x="62" y="196" textAnchor="middle" style={label(true, C.ink)}>사용자</text>
+    <SvgFrame vb="0 0 700 340" aria="앱이 IdP에 로그인해 증명을 받고, Identity Pool에 제출하면 Identity Pool이 앱 대신 STS에서 임시 자격 증명을 받아 앱에 돌려주고, 앱이 그것으로 S3·DynamoDB를 직접 호출하는 흐름">
+      <rect x="24" y="18" width="212" height="62" rx="10" style={box(s(0), C.blueSoft, C.blue)} />
+      <text x="130" y="42" textAnchor="middle" style={label(s(0), C.blue)}>로그인 IdP</text>
+      <text x="130" y="62" textAnchor="middle" style={label(s(0), C.ink, 11)}>User Pool · Google · SAML · OIDC</text>
 
-      <rect x="150" y="28" width="184" height="66" rx="10" style={box(s(0), C.blueSoft, C.blue)} />
-      <text x="242" y="54" textAnchor="middle" style={label(s(0), C.blue)}>로그인 IdP</text>
-      <text x="242" y="74" textAnchor="middle" style={label(s(0), C.ink, 11)}>User Pool · Google · SAML · OIDC</text>
+      <rect x="24" y="128" width="150" height="92" rx="10" style={box(true, C.blueSoft, C.blue)} />
+      <text x="99" y="158" textAnchor="middle" fontSize="18">👤</text>
+      <text x="99" y="184" textAnchor="middle" style={label(true, C.blue, 13)}>앱</text>
+      <text x="99" y="202" textAnchor="middle" style={label(true, C.ink, 11)}>(웹·모바일 사용자)</text>
 
-      <rect x="248" y="128" width="196" height="84" rx="10" style={box(s(1), C.tealSoft, C.teal)} />
-      <text x="346" y="156" textAnchor="middle" style={label(s(1), C.teal, 13)}>Identity Pool</text>
-      <text x="346" y="176" textAnchor="middle" style={label(s(1), C.ink)}>증명 유효성 검증</text>
-      <text x="346" y="196" textAnchor="middle" style={label(s(2), C.ink)}>→ STS 로 교환 요청</text>
+      <rect x="400" y="14" width="280" height="72" rx="10" style={box(s(5), C.redSoft, C.red)} />
+      <text x="540" y="38" textAnchor="middle" style={label(s(5), C.red)}>게스트(미인증)도 가능</text>
+      <text x="540" y="56" textAnchor="middle" style={label(s(5), C.ink, 11)}>① 로그인 없이 Identity Pool에 요청</text>
+      <text x="540" y="73" textAnchor="middle" style={label(s(5), C.ink, 11)}>→ 게스트 전용 IAM 역할</text>
 
-      <rect x="500" y="128" width="172" height="84" rx="10" style={box(s(2), C.amberSoft, C.amber)} />
-      <text x="586" y="156" textAnchor="middle" style={label(s(2), C.amberText, 13)}>STS</text>
-      <text x="586" y="176" textAnchor="middle" style={label(s(2), C.ink)}>임시 AWS 자격 증명</text>
-      <text x="586" y="196" textAnchor="middle" style={label(s(2), C.ink, 11)}>IAM 역할을 맡아 발급</text>
+      <rect x="272" y="98" width="420" height="146" rx="12" fill="none" stroke={C.line} strokeWidth="1.4" strokeDasharray="5 4" />
+      <text x="482" y="236" textAnchor="middle" style={label(s(2), C.inkSoft, 10.5)}>AWS 내부 구간 — 앱은 ③을 직접 부르지 않는다</text>
 
-      <rect x="376" y="252" width="296" height="62" rx="10" style={box(s(3), C.blueSoft, C.blue)} />
-      <text x="524" y="278" textAnchor="middle" style={label(s(3), C.blue)}>S3 · DynamoDB 직접 접근</text>
-      <text x="524" y="298" textAnchor="middle" style={label(s(3), C.ink, 11)}>IAM 정책 + 정책 변수로 범위 제한</text>
+      <rect x="282" y="128" width="170" height="92" rx="10" style={box(s(1), C.tealSoft, C.teal)} />
+      <text x="367" y="154" textAnchor="middle" style={label(s(1), C.teal, 13)}>Identity Pool</text>
+      <text x="367" y="174" textAnchor="middle" style={label(s(1), C.ink)}>증명 검증 · 역할 선택</text>
+      <text x="367" y="194" textAnchor="middle" style={label(s(2), C.ink)}>앱 대신 STS 호출</text>
 
-      <rect x="52" y="252" width="248" height="62" rx="10" style={box(s(4), C.redSoft, C.red)} />
-      <text x="176" y="278" textAnchor="middle" style={label(s(4), C.red)}>게스트(미인증)도 가능</text>
-      <text x="176" y="298" textAnchor="middle" style={label(s(4), C.ink, 11)}>게스트 전용 IAM 역할</text>
+      <rect x="560" y="128" width="120" height="92" rx="10" style={box(s(2), C.amberSoft, C.amber)} />
+      <text x="620" y="150" textAnchor="middle" style={label(s(2), C.amberText, 13)}>STS</text>
+      <text x="620" y="168" textAnchor="middle" style={label(s(2), C.ink, 11)}>AssumeRoleWith</text>
+      <text x="620" y="184" textAnchor="middle" style={label(s(2), C.ink, 11)}>WebIdentity</text>
+      <text x="620" y="204" textAnchor="middle" style={label(s(2), C.ink, 11)}>임시 자격 증명 발급</text>
 
-      <path d="M84,130 L146,80" style={line(s(0), C.blue)} />
-      <text x="56" y="102" style={lineText(s(0), C.blue)}>① 로그인</text>
-      <path d="M272,98 L322,124" style={line(s(1), C.teal)} />
-      <text x="286" y="116" style={lineText(s(1), C.teal)}>② 증명 전달</text>
-      <path d="M448,168 L495,168" style={line(s(2), C.amber)} />
-      <text x="446" y="156" style={lineText(s(2), C.amber)}>③ 교환</text>
-      <path d="M562,216 L536,248" style={line(s(3), C.blue)} />
-      <text x="574" y="238" style={lineText(s(3), C.blue)}>④ 직접 접근</text>
+      <rect x="272" y="262" width="420" height="62" rx="10" style={box(s(4), C.blueSoft, C.blue)} />
+      <text x="482" y="288" textAnchor="middle" style={label(s(4), C.blue)}>S3 · DynamoDB 직접 호출</text>
+      <text x="482" y="308" textAnchor="middle" style={label(s(4), C.ink, 11)}>IAM 정책 + 정책 변수로 범위 제한</text>
+
+      <path d="M70,124 L70,85" style={line(s(0), C.blue)} />
+      <text x="78" y="108" style={lineText(s(0), C.blue)}>① 로그인</text>
+      <path d="M150,84 L150,123" style={line(s(0), C.blue)} />
+      <text x="158" y="108" style={lineText(s(0), C.blue)}>증명 수령</text>
+
+      <path d="M178,156 L277,156" style={line(s(1), C.teal)} />
+      <text x="186" y="148" style={lineText(s(1), C.teal)}>② 증명 제출</text>
+      <path d="M278,196 L179,196" style={line(s(3), C.teal)} />
+      <text x="186" y="212" style={lineText(s(3), C.teal)}>④ 자격 증명</text>
+
+      <path d="M456,156 L555,156" style={line(s(2), C.amber)} />
+      <text x="464" y="148" style={lineText(s(2), C.amber)}>③ 역할 수임</text>
+      <path d="M556,196 L457,196" style={line(s(2), C.amber)} />
+      <text x="464" y="212" style={lineText(s(2), C.amber)}>자격 증명</text>
+
+      <path d="M99,224 L99,293 L267,293" style={line(s(4), C.blue)} />
+      <text x="110" y="284" style={lineText(s(4), C.blue)}>⑤ 서명해 직접 호출</text>
     </SvgFrame>
   );
 }
@@ -364,11 +396,12 @@ export function CipCredentialFlow() {
     <StepFlow
       label="CIP 자격 증명 발급 흐름"
       steps={[
-        "사용자가 IdP(User Pool, Google, SAML 등)에 로그인해 공급자 증명(ID 토큰·assertion 등)을 받는다.",
-        "그 증명을 Identity Pool에 넘긴다 — Identity Pool은 증명이 진짜인지부터 검증한다.",
-        "검증이 끝나면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다.",
-        "사용자는 그 임시 자격 증명으로 S3·DynamoDB 같은 AWS 리소스를 직접 호출한다.",
-        "로그인하지 않은 게스트에게도 별도 역할을 지정해 제한된 접근을 열어 줄 수 있다.",
+        "① 앱이 사용자를 IdP(User Pool, Google, SAML 등)에 로그인시키고, 공급자 증명(ID 토큰·assertion 등)을 받아 쥔다.",
+        "② 앱이 그 증명을 Identity Pool에 제출한다. Identity Pool은 증명이 진짜인지 검증하고, 이 사용자에게 줄 IAM 역할을 고른다.",
+        "③ Identity Pool이 앱 대신 STS의 AssumeRoleWithWebIdentity를 호출하고, STS가 그 역할의 임시 자격 증명을 발급한다. AWS 안에서 일어나는 구간이라 앱에는 보이지 않는다.",
+        "④ Identity Pool이 받은 임시 자격 증명(액세스 키 ID·비밀 액세스 키·세션 토큰)을 앱에 돌려준다.",
+        "⑤ 앱이 그 자격 증명으로 요청에 서명해 S3·DynamoDB를 직접 호출한다 — 중간에 내 백엔드 서버가 끼지 않는다.",
+        "로그인하지 않은 게스트도 ①을 건너뛰고 Identity Pool에 자격 증명을 요청할 수 있다. 이때는 게스트 전용 역할이 적용된다.",
       ]}
       render={cipFlowSvg}
     />
@@ -428,31 +461,46 @@ export function AlbAuthFlow() {
 
 /* ── §14 CUP + CIP 조합 ───────────────────────────────────────────────── */
 
+/**
+ * 앱 중심 구도 (#292) — 두 풀과 AWS 리소스가 전부 앱을 향한다. ①~③은 카드 c19 의 번호와 같다.
+ * STS 는 §11 그림에서 보인 내부 구간이라 여기서는 CIP 상자 안의 한 줄로 접었다.
+ */
 export function CombinedArchSvg() {
   return (
-    <SvgFrame vb="0 0 700 230" aria="CUP으로 로그인해 ID 토큰을 받고, CIP가 그것을 임시 AWS 자격 증명으로 바꿔 AWS 리소스에 접근한다">
-      <circle cx="52" cy="112" r="24" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
-      <text x="52" y="118" textAnchor="middle" fontSize="16">👤</text>
+    <SvgFrame vb="0 0 700 296" aria="앱이 CUP에 로그인해 ID 토큰을 받고, 그 ID 토큰을 CIP에 내 임시 AWS 자격 증명을 돌려받은 뒤, 그 자격 증명으로 S3·DynamoDB를 직접 호출한다">
+      <rect x="20" y="70" width="170" height="84" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
+      <text x="105" y="98" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.amberText}>User Pool (CUP)</text>
+      <text x="105" y="118" textAnchor="middle" fontSize="10.5" fill={C.ink}>인증 → ID 토큰</text>
+      <text x="105" y="136" textAnchor="middle" fontSize="10.5" fill={C.ink}>(소셜·SAML 연합 포함)</text>
 
-      <rect x="134" y="72" width="166" height="82" rx="10" fill={C.amberSoft} stroke={C.amber} strokeWidth="2" />
-      <text x="217" y="100" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.amberText}>① CUP 로그인</text>
-      <text x="217" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>인증 → ID 토큰</text>
-      <text x="217" y="138" textAnchor="middle" fontSize="10.5" fill={C.ink}>(소셜·SAML 연합 포함)</text>
+      <rect x="280" y="70" width="140" height="84" rx="12" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
+      <text x="350" y="100" textAnchor="middle" fontSize="18">👤</text>
+      <text x="350" y="124" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.blue}>앱</text>
+      <text x="350" y="142" textAnchor="middle" fontSize="10.5" fill={C.ink}>(웹·모바일)</text>
 
-      <rect x="356" y="72" width="166" height="82" rx="10" fill={C.tealSoft} stroke={C.teal} strokeWidth="2" />
-      <text x="439" y="100" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.teal}>② CIP 교환</text>
-      <text x="439" y="120" textAnchor="middle" fontSize="10.5" fill={C.ink}>ID 토큰 → 임시 AWS</text>
-      <text x="439" y="138" textAnchor="middle" fontSize="10.5" fill={C.ink}>자격 증명 (STS)</text>
+      <rect x="510" y="70" width="170" height="84" rx="10" fill={C.tealSoft} stroke={C.teal} strokeWidth="2" />
+      <text x="595" y="98" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.teal}>Identity Pool (CIP)</text>
+      <text x="595" y="118" textAnchor="middle" fontSize="10.5" fill={C.ink}>ID 토큰 → 임시 AWS</text>
+      <text x="595" y="136" textAnchor="middle" fontSize="10.5" fill={C.ink}>자격 증명 (뒤에서 STS)</text>
 
-      <rect x="578" y="72" width="100" height="82" rx="10" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
-      <text x="628" y="104" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.blue}>③ AWS</text>
-      <text x="628" y="124" textAnchor="middle" fontSize="10.5" fill={C.ink}>S3 · DynamoDB</text>
-      <text x="628" y="142" textAnchor="middle" fontSize="10.5" fill={C.ink}>직접 접근</text>
+      <rect x="250" y="196" width="200" height="56" rx="10" fill={C.blueSoft} stroke={C.blue} strokeWidth="2" />
+      <text x="350" y="220" textAnchor="middle" fontSize="12.5" fontWeight="800" fill={C.blue}>S3 · DynamoDB</text>
+      <text x="350" y="238" textAnchor="middle" fontSize="10.5" fill={C.ink}>임시 자격 증명으로 직접 접근</text>
 
-      <path d="M78,112 L129,112" style={line(true, C.amber)} />
-      <path d="M304,112 L351,112" style={line(true, C.teal)} />
-      <path d="M526,112 L573,112" style={line(true, C.blue)} />
-      <text x="350" y="196" textAnchor="middle" fontSize="11.5" fontWeight="700" fill={C.inkSoft}>“인증은 CUP, 인가는 CIP” — 두 서비스를 이어 붙여 완성한다</text>
+      <path d="M276,96 L195,96" style={line(true, C.amber)} />
+      <text x="202" y="88" style={lineText(true, C.amber)}>① 로그인</text>
+      <path d="M194,128 L275,128" style={line(true, C.amber)} />
+      <text x="202" y="144" style={lineText(true, C.amber)}>ID 토큰</text>
+
+      <path d="M424,96 L505,96" style={line(true, C.teal)} />
+      <text x="432" y="88" style={lineText(true, C.teal)}>② 토큰 제출</text>
+      <path d="M506,128 L425,128" style={line(true, C.teal)} />
+      <text x="432" y="144" style={lineText(true, C.teal)}>자격 증명</text>
+
+      <path d="M350,158 L350,191" style={line(true, C.blue)} />
+      <text x="360" y="180" style={lineText(true, C.blue)}>③ 직접 호출</text>
+
+      <text x="350" y="282" textAnchor="middle" fontSize="11.5" fontWeight="700" fill={C.inkSoft}>“인증은 CUP, 인가는 CIP” — 두 서비스를 앱이 이어 붙여 완성한다</text>
     </SvgFrame>
   );
 }
