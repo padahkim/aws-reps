@@ -210,7 +210,25 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-cip-trust-policy-principal",
     section: "11",
     q: "Cognito가 데려온 사용자가 IAM 역할을 맡을 수 있게 하려면, 역할의 신뢰 정책 Principal에 무엇을 적나?",
-    a: "cognito-identity.amazonaws.com이다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 실제 발급은 STS가 한다. 단 Condition에 어느 Identity Pool인지(aud)를 함께 적지 않으면 저장되지 않고, 인증 사용자용 역할과 게스트용 역할은 amr 조건(authenticated/unauthenticated)으로 가른다.",
+    a: "Principal.Federated에 cognito-identity.amazonaws.com을 적는다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 실제 발급은 STS가 한다. 단 Condition에 어느 Identity Pool인지(aud)를 함께 적지 않으면 저장되지 않고, 인증 사용자용 역할과 게스트용 역할은 amr 조건(authenticated/unauthenticated)으로 가른다.",
+  },
+  {
+    slug: "sq-cip-who-calls-s3",
+    section: "11",
+    q: "Identity Pool로 받은 자격 증명으로 S3를 부를 때, S3에 요청을 보내는 쪽은 앱인가 Identity Pool인가?",
+    a: "앱이다 — Identity Pool에게서 돌려받은 임시 자격 증명으로 앱이 요청에 서명해 직접 호출한다. Identity Pool과 STS는 자격 증명을 만들어 줄 뿐 S3 요청을 중계하지 않는다.",
+  },
+  {
+    slug: "sq-cip-assume-role-web-identity",
+    section: "11",
+    q: "Identity Pool이 앱 대신 호출하는 STS API의 이름은?",
+    a: "AssumeRoleWithWebIdentity다 — ch0-2 §07에서 웹/모바일 로그인 사용자용으로 배운 그 API다. 앱이 직접 부를 수도 있지만, 모바일 앱에는 Cognito를 쓰는 것이 AWS 권장이다.",
+  },
+  {
+    slug: "sq-cip-group-role",
+    section: "11",
+    q: "User Pool의 ‘편집자’ 그룹 사용자에게만 더 넓은 AWS 권한을 주려면 무엇을 설정하나?",
+    a: "편집자 그룹에 IAM 역할을 붙이고, Identity Pool의 역할 선택을 ‘토큰에서 역할 선택(Choose role from token)’으로 둔다. ID 토큰에 실린 그룹의 역할로 역할이 골라진다 — 그 역할의 신뢰 정책도 Identity Pool을 믿어야 한다.",
   },
 
   // ── 12 정책 변수 ─────────────────────────────────────────────────────
