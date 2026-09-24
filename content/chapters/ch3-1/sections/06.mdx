@@ -16,7 +16,20 @@ import { JwtPartsSvg } from "../figs";
 
 <Note>디코딩이 되니 <b>Payload에 비밀을 담으면 안 됩니다</b>. 서명(Signature)이 지키는 것은 “내용이 새는 것”이 아니라 “내용이 바뀌는 것”입니다 — 한 글자만 고쳐도 서명 검증이 깨지므로 위조된 토큰은 거부됩니다.</Note>
 
+그 서명 검증은 <b>누가, 무슨 키로</b> 할까요? User Pool은 자기만 가진 비밀 키로 토큰에 서명하고, 짝이 되는 <b>공개 키</b>를 누구나 받아 갈 수 있는 주소에 올려 둡니다. 이 공개 키 묶음을 <b>JWKS</b>(JSON Web Key Set)라 부릅니다. 공개 키로는 서명을 검증만 할 수 있고 새로 만들 수는 없어서, 공개해도 토큰을 위조할 수 없습니다.
+
+<CodeBlock title="User Pool의 JWKS 주소">{`https://cognito-idp.<region>.amazonaws.com/<userPoolId>/.well-known/jwks.json`}</CodeBlock>
+
+API Gateway의 Cognito 권한 부여자(§07)를 쓰면 이 검증을 API Gateway가 대신 합니다. 백엔드(예: Lambda)에서 토큰을 <b>직접</b> 검증해야 한다면 순서는 이렇습니다.
+
+1. JWKS를 받아 두고, 토큰 Header의 <Code>kid</Code>(키 ID — 위 그림의 “키 ID”)와 같은 <Code>kid</Code>의 공개 키를 고른다. User Pool은 서명 키를 교체할 수 있으므로, 받아 둔 목록에 없는 <Code>kid</Code>가 오면 JWKS를 다시 받는다
+2. 고른 공개 키로 <b>Signature를 검증</b>한다 — 한 글자라도 바뀐 토큰은 여기서 걸린다
+3. Payload의 클레임을 확인한다 — <Code>iss</Code>가 내 User Pool 주소(<Code>{`https://cognito-idp.<region>.amazonaws.com/<userPoolId>`}</Code>)인지, <Code>token_use</Code>가 기대한 종류(<Code>id</Code> 또는 <Code>access</Code>)인지, <Code>exp</Code>(만료 시각)가 지나지 않았는지. 앱 클라이언트 ID(ID 토큰의 <Code>aud</Code>, Access 토큰의 <Code>client_id</Code>)도 맞춰 본다
+
+Node.js라면 AWS가 권하는 <Code>aws-jwt-verify</Code> 라이브러리가 이 단계를 한 번에 해 줍니다.
+
 <ExamPoint>
   <ExamLi>Header = 서명 알고리즘, <b>Payload = 클레임(사용자 정보)</b>, Signature = 위·변조 검증. 디코딩(Base64URL) 문제는 Payload를 묻는다.</ExamLi>
   <ExamLi><Code>sub</Code>는 사용자 고유 ID다 — 바뀌지 않으므로 백엔드가 “이 데이터는 누구 것인가”를 기록하는 키로 쓴다.</ExamLi>
+  <ExamLi>백엔드에서 토큰을 직접 검증 → User Pool의 <b>JWKS 공개 키</b>(헤더 <Code>kid</Code>로 고른다)로 서명을 확인하고, <Code>iss</Code>·<Code>token_use</Code>·<Code>exp</Code>를 본다.</ExamLi>
 </ExamPoint>

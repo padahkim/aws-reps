@@ -1,4 +1,4 @@
-import { Code, ExamLi, ExamPoint, Note, WarnBox } from "../../ui";
+import { Code, ExamLi, ExamPoint, Note, Table, WarnBox } from "../../ui";
 import { Term } from "../../interactive";
 
 로그인 화면을 직접 만들지 않아도 됩니다. <b>Hosted UI</b>는 Cognito가 <b>로그인·가입·비밀번호 재설정 페이지를 대신 호스팅</b>해 주는 기능입니다 — 앱은 그 주소로 사용자를 리다이렉트하고, 인증 결과를 콜백에서 받습니다.
@@ -9,7 +9,25 @@ import { Term } from "../../interactive";
 
 <Note><b>이름에 주의</b> — 2024년 11월 AWS는 Hosted UI의 후속으로 <b>Managed login(관리형 로그인)</b>을 내놓았고, 그전 것은 이제 <b>classic hosted UI</b>라고 부릅니다. Managed login은 Essentials·Plus 플랜에서 쓸 수 있고, Lite 플랜에서는 classic hosted UI만 쓸 수 있습니다. 시험 지문에는 Hosted UI라는 이름으로 나올 수 있어 이 챕터도 Hosted UI로 부릅니다 — 둘이 같은 자리의 기능이라는 것만 알아 두면 됩니다.</Note>
 
-<Note>권장 방식인 <b>Authorization Code Grant</b>에서는 콜백에 토큰이 아니라 <Code>code</Code>가 옵니다. 앱이 그 코드를 <Code>/oauth2/token</Code> 엔드포인트에서 토큰으로 교환하며, <Code>openid</Code> 스코프를 요청했을 때 ID·Access·Refresh 토큰을 받습니다. <Code>openid</Code>가 없으면 <b>ID 토큰은 발급되지 않습니다.</b> 공개 클라이언트는 보통 <b>PKCE</b>로 코드를 보호합니다. <b>Implicit Grant</b>는 <Code>openid</Code> 요청 시 콜백에 ID·Access 토큰을 직접 붙이지만 <b>Refresh 토큰은 발급하지 않습니다.</b></Note>
+Hosted UI는 OAuth 2.0 방식으로 동작합니다. 그래서 §04의 SDK 로그인(로그인하면 토큰이 세 개)과 달리, 앱 클라이언트(§03)에 허용해 둔 <b>Grant</b>(토큰을 받아 가는 방식)와 요청한 <b>scope</b>에 따라 받는 토큰 구성이 달라집니다. Google·SAML 같은 연합 로그인 사용자도 SDK 로그인 API로는 로그인시킬 수 없어 이 경로로 들어옵니다.
+
+<Table
+  head={["Grant", "콜백에 오는 것", "받는 토큰"]}
+  rows={[
+    [
+      <><b>Authorization Code Grant</b> (권장)</>,
+      <>토큰이 아니라 <Code>code</Code> — 앱이 그 코드를 <Code>/oauth2/token</Code> 엔드포인트에서 토큰으로 교환한다</>,
+      <><Code>openid</Code> 스코프를 요청했으면 ID·Access·Refresh. <Code>openid</Code>가 없으면 <b>ID 토큰은 나오지 않는다</b></>,
+    ],
+    [
+      <><b>Implicit Grant</b></>,
+      <>토큰 자체 — 교환 단계 없이 콜백에 바로 붙는다</>,
+      <><Code>openid</Code> 요청 시 ID·Access. <b>Refresh 토큰은 발급하지 않는다</b></>,
+    ],
+  ]}
+/>
+
+public client(§03)는 Authorization Code Grant에 <b>PKCE</b>를 붙여 코드를 보호하는 것이 권장 구성입니다 — Implicit Grant는 PKCE와 함께 쓸 수 없습니다.
 
 <WarnBox>커스텀 도메인을 쓰려면 <b>ACM 인증서가 반드시 us-east-1(버지니아 북부)에 있어야 합니다</b>. 내 앱이 서울 리전에 있어도 인증서만은 us-east-1입니다 — 다른 리전에 만든 인증서는 Cognito 설정 화면에 <b>아예 목록에 뜨지 않습니다</b>. (ACM = AWS Certificate Manager, HTTPS 인증서를 발급·관리하는 서비스입니다.)</WarnBox>
 
@@ -18,4 +36,5 @@ import { Term } from "../../interactive";
 <ExamPoint>
   <ExamLi>“Hosted UI + 커스텀 도메인 + 인증서 위치” → <b>us-east-1</b>. 리소스가 있는 리전을 고르는 선택지가 오답으로 붙어 나온다.</ExamLi>
   <ExamLi>“로그인 화면을 개발하지 않고 붙이고 싶다” → <b>Hosted UI</b>.</ExamLi>
+  <ExamLi>Grant별 토큰 차이 — <b>Implicit Grant에는 Refresh 토큰이 없고</b>, 어느 Grant든 <Code>openid</Code>를 요청하지 않으면 <b>ID 토큰이 없다</b>.</ExamLi>
 </ExamPoint>
