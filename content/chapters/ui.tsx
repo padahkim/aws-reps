@@ -28,6 +28,9 @@ export const C = {
   red: "var(--red, #B9432C)",
   redSoft: "var(--red-soft, #F8E4DF)",
   line: "var(--line, #E2DFD8)",
+  // 밝은 글자를 얹는 어두운 면(코드 칩·코드 블록)의 배경 — ink 는 다크에서 밝게 뒤집히므로
+  // 배경으로 쓰면 글자가 묻힌다. codeFg 와 쌍으로 두 테마 모두 어두운 면을 유지한다.
+  codeBg: "var(--code-bg, #171E26)",
   codeFg: "var(--code-fg, #FFD9A0)",
 } as const;
 
@@ -150,7 +153,7 @@ export function Code({ children }: { children: ReactNode }) {
       style={{
         fontFamily: MONO,
         fontSize: "0.86em",
-        background: C.ink,
+        background: C.codeBg,
         color: C.codeFg,
         padding: "2px 7px",
         borderRadius: 5,
@@ -187,7 +190,7 @@ export function CodeBlock({ title, children }: { title?: string; children: strin
           fontFamily: MONO,
           fontSize: "0.8rem",
           lineHeight: 1.7,
-          background: C.ink,
+          background: C.codeBg,
           color: "#D5E0EC",
           borderRadius: 11,
           padding: "1rem 1.15rem",

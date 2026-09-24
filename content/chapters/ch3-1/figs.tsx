@@ -247,7 +247,7 @@ export function JwtPartsSvg() {
         </g>
       ))}
       <text x="350" y="130" textAnchor="middle" fontSize="11" fill={C.inkSoft}>세 조각을 점(.)으로 이어 붙인 한 줄 문자열</text>
-      <rect x="24" y="146" width="652" height="46" rx="8" fill={C.ink} />
+      <rect x="24" y="146" width="652" height="46" rx="8" fill={C.codeBg} />
       <text x="40" y="176" fontSize="12" fontFamily={MONO} fill={C.codeFg}>eyJraWQiOiJ…  .  eyJzdWIiOiI5ZjMx…  .  NkZ1bWJlcl9zaWc…</text>
     </SvgFrame>
   );

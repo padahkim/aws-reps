@@ -389,7 +389,7 @@ export function PolicyAnatomy() {
           fontFamily: MONO,
           fontSize: "0.74rem",
           lineHeight: 1.85,
-          background: C.ink,
+          background: C.codeBg,
           color: "#C7D2E0",
           borderRadius: 11,
           padding: "1rem 1.1rem",
@@ -657,7 +657,7 @@ export function EvalEngine() {
 
   return (
     <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", margin: "1.25rem 0", color: C.ink }}>
-      <div style={{ background: C.ink, padding: "10px 16px", fontFamily: MONO, color: "#DCE6F2", fontSize: "0.82rem", fontWeight: 700 }}>
+      <div style={{ background: "var(--table-head-bg, " + C.ink + ")", padding: "10px 16px", fontFamily: MONO, color: "#DCE6F2", fontSize: "0.82rem", fontWeight: 700 }}>
         🎛 정책 평가 시뮬레이터 — 토글을 바꿔보세요
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 0 }}>
@@ -995,7 +995,7 @@ export function PolicyRequestTester() {
               fontFamily: MONO,
               fontSize: "0.72rem",
               lineHeight: 1.8,
-              background: C.ink,
+              background: C.codeBg,
               color: "#C7D2E0",
               borderRadius: 11,
               padding: "0.9rem 1rem",
