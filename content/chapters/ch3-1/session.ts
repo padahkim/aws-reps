@@ -1,14 +1,16 @@
 import type { SessionData } from "../../schema";
 
 /**
- * ch3-1 인출 세션 (#272) — 14개 섹션 전부에 개념 카드 19장.
+ * ch3-1 인출 세션 (#272) — 14개 섹션 전부에 개념 카드 23장.
  *
- * 배분은 기본 1장, 서술로 정리할 덩어리가 둘인 섹션만 2장 — 05(용도 구분 / 수명과 상한)·
- * 07(베어러 토큰 전달 / 토큰별 검증 차이)·11(교환 흐름 / 신뢰 정책)·12(격리 기법 / 조건 키)·
- * 13(오프로드의 의미 / 미인증 처리)이 그렇다.
+ * 배분은 기본 1장, 서술로 정리할 덩어리가 둘인 섹션만 2장 — 03(기능 목록 / 앱 클라이언트)·
+ * 04(흐름의 방향 / 인증 흐름)·05(용도 구분 / 수명과 상한)·06(구조와 Payload / JWKS 서명 검증)·
+ * 07(베어러 토큰 전달 / 토큰별 검증 차이)·08(Hosted UI와 도메인 / Grant별 토큰)·
+ * 11(교환 흐름 / 신뢰 정책)·12(격리 기법 / 조건 키)·13(오프로드의 의미 / 미인증 처리)이 그렇다.
+ * #290 에서 더한 카드(c20~c23)는 id 를 이어 붙였다 — 기존 id 는 진도 기록 키라 바꾸지 않는다.
  * why 는 #89 결정 ③의 신형식(질문 + 게이팅된 모범답)으로, 인과·기전이 실재하는 카드에만
  * 달았다 — 사실 나열형 카드에 억지 why 를 붙이지 않는다.
- * 셀프 퀴즈(./selfquiz.ts 35문항)와 주제가 겹치는 것은 허용하되 문장 재탕은 금지(#98) —
+ * 셀프 퀴즈(./selfquiz.ts 44문항)와 주제가 겹치는 것은 허용하되 문장 재탕은 금지(#98) —
  * 카드는 구조·인과를 서술로 묻고, 셀프 퀴즈는 판정형 핵심 사실을 맡는다.
  *
  * 물음은 전부 본문이 가르친 것만 묻는다 (CLAUDE.md Audience).
@@ -46,6 +48,16 @@ export const session: SessionData = {
       q: "User Pool이 대신해 주는 일을 네 가지 이상 들고, 그중 이름 때문에 헷갈리는 기능 하나를 짚어 보세요.",
       a: "사용자 저장(서버리스 사용자 DB), 간편 로그인과 비밀번호 재설정, 이메일·전화번호 확인, MFA, 그리고 연합 로그인이다. 유출된 자격 증명 탐지도 있지만 Plus 플랜 기능이고, 로그인 때는 비밀번호를 평문으로 받는 흐름만 검사하며(SRP 로그인은 제외) 막을지 말지도 설정으로 정한다.\n헷갈리는 것은 마지막 연합 로그인(Federation)이다 — Google·Facebook·SAML·OIDC 로그인은 User Pool 자체 기능이라 Identity Pool이 없어도 된다. Identity Pool의 옛 이름이 “Federated Identities”라서 생기는 혼동이다.",
     },
+    {
+      id: "c20",
+      section: "03",
+      q: "앱 클라이언트가 무엇이고 어떤 설정을 담는지 말한 뒤, public client와 confidential client가 무엇으로 갈리는지 설명해 보세요.",
+      a: "앱 클라이언트는 User Pool에 앱마다 하나씩 등록하는 설정 단위다. 앱은 로그인 요청마다 그 클라이언트 ID로 자신을 밝힌다. 담기는 설정은 클라이언트 ID와 client secret(만들지 말지 선택), 허용 인증 흐름, Hosted UI용 OAuth Grant·scope·콜백 URL, 그리고 ID·Access·Refresh 토큰 수명이다.\n둘을 가르는 것은 client secret 유무다. 브라우저·모바일 앱은 secret 없는 public client, secret을 안전하게 보관할 수 있는 백엔드 서버는 secret을 둔 confidential client다.",
+      why: {
+        q: "브라우저·모바일 앱의 앱 클라이언트에 secret을 두지 않는 이유는 무엇이고, 그 대신 무엇으로 보호하나요?",
+        a: "사용자 기기에 배포된 코드는 누구나 열어 볼 수 있어서, secret을 넣어도 숨겨지지 않기 때문이다 — 드러난 secret은 보호 수단이 못 된다. 그래서 secret 없는 public client로 두고, Hosted UI 로그인에서는 PKCE로 보호한다. 로그인을 시작할 때 만든 일회용 비밀 값을 코드 교환 때 다시 내야 하므로, 중간에 가로챈 코드만으로는 토큰을 받을 수 없다.",
+      },
+    },
 
     // ── 04 CUP 로그인 흐름 ──────────────────────────────────────────────
     {
@@ -58,13 +70,23 @@ export const session: SessionData = {
         a: "앱 코드가 로그인 경로를 몰라도 되기 때문이다. 구글로 들어왔든 직접 가입했든 앱이 다루는 토큰의 형식과 발급자가 같아서, 새 소셜 제공자를 추가해도 앱의 검증 로직은 그대로다 — 변하는 것은 User Pool 설정뿐이다.",
       },
     },
+    {
+      id: "c21",
+      section: "04",
+      q: "로그인 요청 방식인 인증 흐름 다섯 가지를 들고, 각각이 비밀번호를 어떻게 다루는지(또는 무엇을 대신 내는지) 말해 보세요.",
+      a: "• USER_SRP_AUTH(SRP) — 비밀번호를 보내지 않고 “비밀번호를 안다”는 증명값만 보낸다. AWS가 권장하고 Amplify 등 SDK의 기본이다.\n• USER_PASSWORD_AUTH — 사용자 기기의 앱이 비밀번호를 (암호화된 연결 위로) 그대로 보낸다.\n• ADMIN_USER_PASSWORD_AUTH — 같은 방식이지만 서버용이라, 백엔드가 AdminInitiateAuth를 AWS 자격 증명(IAM)으로 서명해 부른다.\n• CUSTOM_AUTH — Lambda 트리거로 짠 챌린지(CAPTCHA 등)에 답한다(§09).\n• REFRESH_TOKEN_AUTH — 로그인이 아니라 갱신이다. 비밀번호 대신 Refresh 토큰을 내고 새 ID·Access 토큰을 받는다.\n어느 흐름을 쓸 수 있는지는 앱 클라이언트마다 켜 둔 설정이 정한다.",
+      why: {
+        q: "유출된 자격 증명 탐지가 SRP 로그인을 검사하지 못하는 것과, User Migration이 SRP로 안 되는 것은 같은 이유에서 나옵니다. 그 이유는 무엇일까요?",
+        a: "둘 다 비밀번호 원문이 있어야 일을 할 수 있는데, SRP는 원문 대신 증명값만 보내기 때문이다. 유출 탐지는 입력된 비밀번호를 유출 목록과 대 봐야 하고, User Migration은 그 비밀번호로 옛 DB에 로그인해 봐야 한다. 그래서 둘 다 원문이 오는 USER_PASSWORD_AUTH 계열에서만 작동한다.",
+      },
+    },
 
     // ── 05 토큰 3종 ─────────────────────────────────────────────────────
     {
       id: "c5",
       section: "05",
-      q: "사용자 로그인에서 다루는 토큰 세 종류의 용도를 각각 구분하고, Implicit Grant의 예외를 설명해 보세요.",
-      a: "• ID 토큰 — 사용자가 누구인지를 담는다(이름·이메일·sub 같은 신원 클레임). 백엔드에 “이 사람이다”를 알린다.\n• Access 토큰 — 사용자가 무엇을 해도 되는지를 담는다(OAuth 2.0 스코프). API 호출을 인가하는 데 쓴다.\n• Refresh 토큰 — 앞의 두 토큰을 다시 발급받는 데만 쓴다. 사용자를 재로그인시키지 않기 위한 것이다.\nAuthorization Code Grant에서 openid 스코프를 요청하면 세 토큰을 모두 받지만, openid가 없으면 ID 토큰은 나오지 않는다. Implicit Grant는 openid 요청 시 ID·Access 토큰을 직접 반환하고 Refresh 토큰은 주지 않는다.",
+      q: "User Pool 로그인 API로 로그인하면 받는 토큰 세 종류의 용도를 각각 구분해 설명해 보세요.",
+      a: "• ID 토큰 — 사용자가 누구인지를 담는다(이름·이메일·sub 같은 신원 클레임). 백엔드에 “이 사람이다”를 알린다.\n• Access 토큰 — 사용자가 무엇을 해도 되는지를 담는다(OAuth 2.0 스코프). API 호출을 인가하는 데 쓴다.\n• Refresh 토큰 — 앞의 두 토큰을 다시 발급받는 데만 쓴다. 사용자를 재로그인시키지 않기 위한 것이다.\nHosted UI(OAuth) 경로에서는 Grant·scope에 따라 이 구성이 달라진다(§08).",
     },
     {
       id: "c6",
@@ -88,6 +110,16 @@ export const session: SessionData = {
         a: "sub는 그 사용자의 불변 고유 UUID이기 때문이다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있어서 그것을 키로 저장해 두면 변경 순간 과거 데이터와의 연결이 끊긴다. username도 계정 생성 뒤 바꿀 수 없지만, 삭제된 사용자의 username은 새 사용자가 다시 쓸 수 있어서 식별의 정본은 sub다. §12의 정책 변수도 같은 발상이다 — 다만 거기서 치환되는 값은 Identity Pool이 붙인 identity ID라서, 이 User Pool sub와는 다른 값이다.",
       },
     },
+    {
+      id: "c22",
+      section: "06",
+      q: "백엔드(Lambda)에서 User Pool 토큰을 직접 검증한다면 어떤 키로, 어떤 순서로 무엇을 확인하나요?",
+      a: "User Pool이 공개한 JWKS(https://cognito-idp.<region>.amazonaws.com/<userPoolId>/.well-known/jwks.json)의 공개 키로 검증한다.\n① 토큰 Header의 kid와 같은 kid의 공개 키를 JWKS에서 고른다 — 모르는 kid면 키가 교체됐을 수 있으니 JWKS를 다시 받는다. ② 그 키로 Signature를 검증한다. ③ Payload에서 iss가 내 User Pool 주소인지, token_use가 기대한 종류(id/access)인지, exp가 지나지 않았는지를 보고, 앱 클라이언트 ID(aud 또는 client_id)도 맞춰 본다.\nAPI Gateway의 Cognito 권한 부여자를 쓰면 이 검증을 API Gateway가 대신 한다.",
+      why: {
+        q: "User Pool이 서명에 쓰는 키 정보를 누구나 받아 갈 수 있는 주소에 올려 두는데도 토큰을 위조할 수 없는 이유는 무엇일까요?",
+        a: "올려 두는 것이 공개 키이기 때문이다. 서명은 User Pool만 가진 비밀 키로 만들고, 공개 키로는 그 서명을 검증만 할 수 있을 뿐 새 서명을 만들 수 없다. 그래서 공개 키가 누구 손에 있어도 위조 토큰은 서명 검증에서 걸린다.",
+      },
+    },
 
     // ── 07 API Gateway 통합 ─────────────────────────────────────────────
     {
@@ -109,6 +141,12 @@ export const session: SessionData = {
       section: "08",
       q: "Hosted UI가 무엇을 대신해 주는지와, 커스텀 도메인을 붙일 때의 제약 하나를 말해 보세요.",
       a: "로그인·가입·비밀번호 재설정 페이지를 Cognito가 대신 호스팅한다 — 앱은 그 주소로 리다이렉트만 하고, 로고·CSS로 외관만 손보면 된다.\n제약: 커스텀 도메인을 쓰려면 ACM 인증서가 반드시 us-east-1(버지니아 북부)에 있어야 한다. 내 앱이 어느 리전에 있든 마찬가지이고, 다른 리전의 인증서는 설정 화면 목록에 아예 뜨지 않는다. Cognito가 커스텀 도메인용 CloudFront 배포를 만들고 인증서를 거기에 붙이기 때문이라, CloudFront와 같은 규칙이다.",
+    },
+    {
+      id: "c23",
+      section: "08",
+      q: "Hosted UI(OAuth) 경로에서 Authorization Code Grant와 Implicit Grant가 콜백으로 돌려주는 것과 받는 토큰이 어떻게 다른지, openid 스코프가 어떤 차이를 만드는지 설명해 보세요.",
+      a: "• Authorization Code Grant(권장) — 콜백에 토큰이 아니라 code가 오고, 앱이 /oauth2/token에서 그 코드를 토큰으로 교환한다. openid를 요청했으면 ID·Access·Refresh 세 개를 받는다.\n• Implicit Grant — 교환 없이 콜백에 토큰이 바로 붙는다. openid 요청 시 ID·Access만 오고 Refresh 토큰은 없다.\nopenid를 요청하지 않으면 어느 쪽이든 ID 토큰이 나오지 않는다. public client는 Code Grant에 PKCE를 붙이는 것이 권장 구성이고, Implicit Grant는 PKCE와 함께 쓸 수 없다.",
     },
 
     // ── 09 Lambda 트리거 ────────────────────────────────────────────────
