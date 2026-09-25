@@ -295,8 +295,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-alb-signed-header",
     section: "13",
-    q: "ALB가 타깃에 붙여 주는 x-amzn-oidc-* 헤더 가운데 백엔드가 서명으로 진위를 확인할 수 있는 것은?",
-    a: "x-amzn-oidc-data 하나다 — ALB가 서명한 JWT이고, JWT 헤더의 signer에 그 ALB의 ARN이 들어 있다. x-amzn-oidc-accesstoken·x-amzn-oidc-identity는 서명 없는 legacy 헤더라 확인할 방법이 없다.",
+    q: "ALB가 타깃에 붙여 주는 x-amzn-oidc-* 헤더 가운데 ALB가 직접 서명하는 것, 그래서 사용자 식별·인가의 기준으로 쓰는 것은?",
+    a: "x-amzn-oidc-data 하나다 — ALB가 서명한 클레임 JWT이고, JWT 헤더의 signer에 그 ALB의 ARN이 들어 있다. x-amzn-oidc-accesstoken·x-amzn-oidc-identity에는 ALB 서명이 없다 (Cognito 방식의 accesstoken은 User Pool이 서명한 Access 토큰이라 JWKS로 따로 검증할 수는 있다).",
   },
 
   // ── 14 조합과 총정리 ─────────────────────────────────────────────────
