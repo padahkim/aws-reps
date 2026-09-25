@@ -64,7 +64,7 @@ export const session: SessionData = {
       id: "c4",
       section: "04",
       q: "로그인 흐름에서 비밀번호와 토큰이 각각 누구와 누구 사이를 오가는지 말해 보세요.",
-      a: "사용자 기기의 앱이 User Pool과 직접 대화하는 클라이언트 측 흐름에서, 비밀번호는 사용자와 User Pool 사이에서만 오간다. 토큰은 User Pool이 사용자에게 주고, 사용자가 다시 백엔드(API Gateway 등)에 제시한다. 백엔드는 이 대화에 끼지 않으며 비밀번호를 보지 못한다 — 받은 토큰을 검증할 뿐이다. 예외는 서버용 ADMIN_USER_PASSWORD_AUTH — 이때는 사용자가 비밀번호를 백엔드에 보내고, 백엔드가 그것으로 User Pool에 로그인을 요청한다.",
+      a: "사용자 기기의 앱이 User Pool과 직접 대화하는 클라이언트 측 흐름에서, 비밀번호는 사용자와 User Pool 사이에서만 오간다. 토큰은 User Pool이 사용자에게 주고, 사용자가 다시 백엔드(API Gateway 등)에 제시한다. 백엔드는 이 대화에 끼지 않으며 비밀번호를 보지 못한다 — 받은 토큰을 검증할 뿐이다. 로그인 요청을 앱 대신 백엔드 서버가 보내도록 짜면 그때는 백엔드가 비밀번호를 받는다 — 공개 API InitiateAuth로도, 관리자 API AdminInitiateAuth로도 그렇게 짤 수 있다.",
       why: {
         q: "소셜 로그인을 써도 앱이 받는 토큰이 언제나 User Pool 발급인 것이 왜 편한가요?",
         a: "앱 코드가 로그인 경로를 몰라도 되기 때문이다. 구글로 들어왔든 직접 가입했든 앱이 다루는 토큰의 형식과 발급자가 같아서, 새 소셜 제공자를 추가해도 앱의 검증 로직은 그대로다 — 변하는 것은 User Pool 설정뿐이다.",
@@ -74,7 +74,7 @@ export const session: SessionData = {
       id: "c21",
       section: "04",
       q: "§04 표의 대표 인증 흐름들을 들고, 각각이 비밀번호를 어떻게 다루는지(또는 무엇을 대신 내는지) 말해 보세요.",
-      a: "DVA-C02에서 다루는 대표 흐름은 다음과 같다(흐름이 이것뿐인 것은 아니다).\n• USER_SRP_AUTH(SRP) — 비밀번호를 보내지 않고 “비밀번호를 안다”는 증명값만 보낸다. AWS가 권장하고 Amplify 등 SDK의 기본이다.\n• USER_PASSWORD_AUTH — 사용자 기기의 앱이 비밀번호를 (암호화된 연결 위로) 그대로 보낸다.\n• ADMIN_USER_PASSWORD_AUTH — 서버용이다. 사용자가 비밀번호를 백엔드에 보내고, 백엔드가 그것을 담아 AdminInitiateAuth를 AWS 자격 증명(IAM)으로 서명해 부른다.\n• CUSTOM_AUTH — Lambda 트리거로 짠 챌린지(CAPTCHA 등)에 답한다(§09).\n• REFRESH_TOKEN_AUTH — 로그인이 아니라 갱신이다. 비밀번호 대신 Refresh 토큰을 내고 새 ID·Access 토큰을 받는다.\n어느 흐름을 쓸 수 있는지는 앱 클라이언트마다 켜 둔 설정이 정한다.",
+      a: "DVA-C02에서 다루는 대표 흐름은 다음과 같다(흐름이 이것뿐인 것은 아니다).\n• USER_SRP_AUTH(SRP) — 비밀번호를 보내지 않고 “비밀번호를 안다”는 증명값만 보낸다. AWS가 권장하고 Amplify 등 SDK의 기본이다.\n• USER_PASSWORD_AUTH — 비밀번호를 (암호화된 연결 위로) 그대로 보낸다. 공개 API InitiateAuth로 부르므로 IAM 자격 증명 없이 앱이든 백엔드든 부를 수 있다.\n• ADMIN_USER_PASSWORD_AUTH — 비밀번호를 그대로 보내는 것은 같지만 관리자 API AdminInitiateAuth로 부른다. 이 API는 AWS 자격 증명(IAM)으로 서명·인가해야 호출되므로 백엔드(서버)에서만 쓴다.\n• CUSTOM_AUTH — Lambda 트리거로 짠 챌린지(CAPTCHA 등)에 답한다(§09).\n• REFRESH_TOKEN_AUTH — 로그인이 아니라 갱신이다. 비밀번호 대신 Refresh 토큰을 내고 새 ID·Access 토큰을 받는다.\n어느 흐름을 쓸 수 있는지는 앱 클라이언트마다 켜 둔 설정이 정한다.",
       why: {
         q: "유출된 자격 증명 탐지가 SRP 로그인을 검사하지 못하는 것과, User Migration이 SRP로 안 되는 것은 같은 이유에서 나옵니다. 그 이유는 무엇일까요?",
         a: "둘 다 비밀번호 원문이 있어야 일을 할 수 있는데, SRP는 원문 대신 증명값만 보내기 때문이다. 유출 탐지는 입력된 비밀번호를 유출 목록과 대 봐야 하고, User Migration은 그 비밀번호로 옛 DB에 로그인해 봐야 한다. 그래서 둘 다 원문이 오는 USER_PASSWORD_AUTH 계열에서만 작동한다.",

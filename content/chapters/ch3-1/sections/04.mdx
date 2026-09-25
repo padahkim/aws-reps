@@ -1,11 +1,11 @@
 import { Code, ExamLi, ExamPoint, Table } from "../../ui";
 import { CupLoginFlow } from "../figs";
 
-User Pool 로그인에는 길이 둘 있습니다. 앱이 로그인 화면을 직접 만들고 SDK로 User Pool 로그인 API를 부르는 길이 하나, Cognito가 호스팅하는 로그인 페이지로 사용자를 보내는 <b>Hosted UI(OAuth)</b> 길이 또 하나입니다. 이 절은 앞의 길을 따라가고, Hosted UI는 §08에서 따로 봅니다. 아래 그림은 사용자 기기의 앱이 User Pool과 직접 대화하는 <b>클라이언트 측 흐름</b>을 그립니다. 로그인이 시작해서 끝나기까지 무엇이 오가는지를 다섯 단계로 봅니다. 단계를 눌러 가며 어느 상자와 화살표가 켜지는지 따라가 보세요.
+User Pool 로그인에는 길이 둘 있습니다. 앱이 로그인 화면을 직접 만들고 SDK로 User Pool 로그인 API를 부르는 길이 하나, Cognito가 호스팅하는 로그인 페이지로 사용자를 보내는 <b>Hosted UI(OAuth)</b> 길이 또 하나입니다. 이 절은 앞의 길을 따라가고, Hosted UI는 §08에서 따로 봅니다. 아래 그림은 사용자 기기의 앱이 User Pool을 직접 부르는 <b>클라이언트 측 흐름</b>을 그립니다. 로그인이 시작해서 끝나기까지 무엇이 오가는지를 다섯 단계로 봅니다. 단계를 눌러 가며 어느 상자와 화살표가 켜지는지 따라가 보세요.
 
 <CupLoginFlow />
 
-여기서 챙겨야 할 것은 <b>흐름의 방향</b>입니다. 이 클라이언트 측 흐름에서 사용자는 User Pool에 자격 증명을 주고, User Pool은 사용자에게 토큰을 줍니다. 백엔드(API Gateway와 그 뒤의 Lambda)는 이 대화에 끼지 않습니다 — 토큰을 받아 검증할 뿐이고, 비밀번호는 구경도 하지 못합니다. (서버가 비밀번호를 받는 예외는 아래 표의 <Code>ADMIN_USER_PASSWORD_AUTH</Code>입니다.)
+여기서 챙겨야 할 것은 <b>흐름의 방향</b>입니다. 이 클라이언트 측 흐름에서 사용자는 User Pool에 자격 증명을 주고, User Pool은 사용자에게 토큰을 줍니다. 백엔드(API Gateway와 그 뒤의 Lambda)는 이 대화에 끼지 않습니다 — 토큰을 받아 검증할 뿐이고, 비밀번호는 구경도 하지 못합니다. (로그인 요청을 앱 대신 백엔드 서버가 보내도록 짜면 그때는 서버가 비밀번호를 받습니다. 이런 서버 경유 로그인은 공개 API인 <Code>InitiateAuth</Code>로도, 관리자 API인 <Code>AdminInitiateAuth</Code>로도 짤 수 있고, 둘의 차이는 아래 표처럼 쓰는 API와 인가 방식입니다.)
 
 마지막 단계가 말하는 것도 같습니다. 사용자가 구글 계정으로 들어오든 직접 가입한 계정으로 들어오든, <b>앱이 최종적으로 받는 것은 언제나 User Pool이 발급한 토큰</b>입니다. 그래서 앱 코드는 사용자가 어느 경로로 로그인했는지 신경 쓰지 않아도 됩니다.
 
@@ -20,11 +20,11 @@ User Pool 로그인에는 길이 둘 있습니다. 앱이 로그인 화면을 �
     ],
     [
       <><Code>USER_PASSWORD_AUTH</Code></>,
-      <>비밀번호를 (암호화된 연결 위로) <b>그대로 보낸다</b>. 사용자 기기의 앱에서 부르는 흐름이다</>,
+      <>비밀번호를 (암호화된 연결 위로) <b>그대로 보낸다</b>. 공개 API <Code>InitiateAuth</Code>로 부르는 흐름이라 IAM 자격 증명이 필요 없다 — 사용자 기기의 앱이든 백엔드든 부를 수 있다 (앱 클라이언트에 secret이 있으면 그것으로 계산한 <Code>SECRET_HASH</Code>도 함께 보낸다)</>,
     ],
     [
       <><Code>ADMIN_USER_PASSWORD_AUTH</Code></>,
-      <><b>서버용</b>이다 — 사용자가 비밀번호를 <b>백엔드 서버</b>에 보내고, 서버가 그것을 담아 <Code>AdminInitiateAuth</Code> API를 AWS 자격 증명(IAM)으로 서명해 부른다. 위 그림과 달리 <b>백엔드가 비밀번호를 받는</b> 예외다</>,
+      <>비밀번호를 그대로 보내는 것은 같지만, <b>관리자 API <Code>AdminInitiateAuth</Code></b>로만 부른다. 이 API는 AWS 자격 증명(IAM)으로 서명하고 IAM 권한을 받아야 호출되므로, 그 자격 증명을 둘 수 있는 <b>백엔드(서버)</b>에서만 쓴다</>,
     ],
     [
       <><Code>CUSTOM_AUTH</Code></>,
@@ -42,5 +42,5 @@ User Pool 로그인에는 길이 둘 있습니다. 앱이 로그인 화면을 �
 <ExamPoint>
   <ExamLi>토큰을 발급하는 주체는 <b>언제나 User Pool</b>이다 — 소셜 로그인이라고 구글이 준 토큰을 앱이 그대로 쓰는 게 아니다.</ExamLi>
   <ExamLi>MFA 챌린지는 ②단계(검증) 안에서 일어난다 — 토큰이 나온 뒤가 아니다. (이메일·전화 확인은 가입 단계 절차다.)</ExamLi>
-  <ExamLi>비밀번호를 보내지 않는 흐름은 <b>SRP</b>, 서버가 IAM 자격 증명으로 부르는 흐름은 <b><Code>ADMIN_USER_PASSWORD_AUTH</Code></b>, 토큰 갱신은 <b><Code>REFRESH_TOKEN_AUTH</Code></b>다.</ExamLi>
+  <ExamLi>비밀번호를 보내지 않는 흐름은 <b>SRP</b>, IAM 자격 증명이 필요한 관리자 API(<Code>AdminInitiateAuth</Code>)로 부르는 흐름은 <b><Code>ADMIN_USER_PASSWORD_AUTH</Code></b>, 토큰 갱신은 <b><Code>REFRESH_TOKEN_AUTH</Code></b>다.</ExamLi>
 </ExamPoint>

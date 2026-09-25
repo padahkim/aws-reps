@@ -92,8 +92,8 @@ export const selfQuiz: SelfQuizEntry[] = [
   {
     slug: "sq-cup-admin-password-auth",
     section: "04",
-    q: "백엔드 서버가 AWS 자격 증명(IAM)으로 서명한 요청으로 사용자를 로그인시키는 인증 흐름의 이름은?",
-    a: "ADMIN_USER_PASSWORD_AUTH다 — AdminInitiateAuth API로 부르는 서버용 흐름이다. 사용자 기기의 앱이 비밀번호를 보내는 쪽은 USER_PASSWORD_AUTH다.",
+    q: "USER_PASSWORD_AUTH와 ADMIN_USER_PASSWORD_AUTH는 둘 다 비밀번호를 그대로 보낸다 — 둘을 가르는 기준은?",
+    a: "쓰는 API와 인가 방식이다. USER_PASSWORD_AUTH는 공개 API InitiateAuth라 IAM 자격 증명 없이 앱이든 백엔드든 부를 수 있고, ADMIN_USER_PASSWORD_AUTH는 관리자 API AdminInitiateAuth라 AWS 자격 증명(IAM)으로 서명·인가해야 해서 백엔드에서만 쓴다. “백엔드가 부르느냐”로는 가를 수 없다 — 백엔드도 InitiateAuth를 부를 수 있다.",
   },
 
   // ── 05 토큰 3종 ──────────────────────────────────────────────────────
