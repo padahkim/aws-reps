@@ -54,6 +54,19 @@ export const selfQuiz: SelfQuizEntry[] = [
     q: "User Pool을 “서버리스 ○○○ + 로그인 기능”으로 한 줄 정의하면 빈칸은?",
     a: "사용자 데이터베이스다 — 사용자 저장, 비밀번호 재설정, 이메일·전화 확인, MFA가 내장돼 있다.",
   },
+  {
+    slug: "sq-cup-app-client-token-lifetime",
+    section: "03",
+    q: "ID·Access·Refresh 토큰의 수명은 User Pool 전체에 한 번 정하나, 앱 클라이언트마다 정하나?",
+    a: "앱 클라이언트마다 정한다. 허용 인증 흐름과 Hosted UI용 Grant·scope·콜백 URL도 앱 클라이언트 단위 설정이다.",
+  },
+  {
+    slug: "sq-cup-public-client-no-secret",
+    section: "03",
+    q: "브라우저·모바일 앱용 앱 클라이언트에 client secret을 넣어 두는 구성 — 맞나?",
+    a: "맞지 않다 — 사용자 기기의 코드는 누구나 열어 볼 수 있어 secret을 숨길 수 없다. secret 없는 public client로 두고 Hosted UI 로그인은 PKCE로 보호한다. secret을 둔 confidential client는 secret을 안전하게 보관할 수 있는 서버용이다.",
+    yn: "아니오",
+  },
 
   // ── 04 CUP 로그인 흐름 ───────────────────────────────────────────────
   {
@@ -68,6 +81,19 @@ export const selfQuiz: SelfQuizEntry[] = [
     q: "MFA는 토큰이 발급된 뒤에 일어나나?",
     a: "아니다 — 자격 증명 검증 단계(②)의 챌린지로 일어나고 완료되어야 토큰이 나온다 (이메일·전화 확인은 로그인 검증이 아니라 가입 직후 절차다).",
     yn: "아니오",
+  },
+  {
+    slug: "sq-cup-srp-no-password",
+    section: "04",
+    q: "SRP 로그인(USER_SRP_AUTH)에서 앱은 비밀번호 원문을 User Pool에 보내나?",
+    a: "보내지 않는다 — “비밀번호를 안다”는 증명값만 보내고 User Pool이 그 증명을 검증한다. 원문이 오지 않으므로 유출된 자격 증명 검사와 User Migration에는 쓸 수 없다.",
+    yn: "아니오",
+  },
+  {
+    slug: "sq-cup-admin-password-auth",
+    section: "04",
+    q: "USER_PASSWORD_AUTH와 ADMIN_USER_PASSWORD_AUTH는 둘 다 비밀번호를 그대로 보낸다 — 둘을 가르는 기준은?",
+    a: "쓰는 API와 인가 방식이다. USER_PASSWORD_AUTH는 공개 API InitiateAuth라 IAM 자격 증명 없이 앱이든 백엔드든 부를 수 있고, ADMIN_USER_PASSWORD_AUTH는 관리자 API AdminInitiateAuth라 AWS 자격 증명(IAM)으로 서명·인가해야 해서 백엔드에서만 쓴다. “백엔드가 부르느냐”로는 가를 수 없다 — 백엔드도 InitiateAuth를 부를 수 있다.",
   },
 
   // ── 05 토큰 3종 ──────────────────────────────────────────────────────
@@ -117,6 +143,12 @@ export const selfQuiz: SelfQuizEntry[] = [
     q: "Payload의 sub는 무엇이고, 왜 이메일 대신 이 값을 키로 쓰나?",
     a: "그 사용자의 불변 고유 UUID다. 이메일·전화번호·preferred_username 같은 속성은 바뀔 수 있지만 sub는 바뀌지 않아서 “이 데이터는 누구 것인가”의 키로 쓴다. username도 계정 생성 뒤 바꿀 수 없지만, 삭제된 사용자의 username은 새 사용자가 다시 쓸 수 있어서 식별의 정본은 sub다.",
   },
+  {
+    slug: "sq-jwt-jwks-kid",
+    section: "06",
+    q: "Lambda에서 User Pool 토큰의 서명을 직접 검증하려면 어떤 키를 어디서 골라 쓰나?",
+    a: "User Pool의 JWKS(…/<userPoolId>/.well-known/jwks.json)에서 토큰 Header의 kid와 같은 공개 키를 골라 쓴다. 서명을 확인한 뒤 iss·token_use·exp도 확인한다.",
+  },
 
   // ── 07 API Gateway 통합 ──────────────────────────────────────────────
   {
@@ -150,6 +182,20 @@ export const selfQuiz: SelfQuizEntry[] = [
     section: "08",
     q: "“로그인 화면을 개발하지 않고 붙이고 싶다”의 답은?",
     a: "Hosted UI다 — Cognito가 로그인·가입·비밀번호 재설정 페이지를 대신 호스팅하고, 앱은 그 주소로 리다이렉트만 한다.",
+  },
+  {
+    slug: "sq-hostedui-implicit-no-refresh",
+    section: "08",
+    q: "Hosted UI에서 Implicit Grant로 로그인했다 — Refresh 토큰도 받나?",
+    a: "받지 못한다 — Implicit Grant는 openid 요청 시 ID·Access 토큰만 콜백에 바로 붙여 준다. Refresh까지 받으려면 Authorization Code Grant로 code를 교환한다.",
+    yn: "아니오",
+  },
+  {
+    slug: "sq-hostedui-openid-id-token",
+    section: "08",
+    q: "Authorization Code Grant에서 openid 스코프를 빼고 요청해도 ID 토큰이 나오나?",
+    a: "나오지 않는다 — ID 토큰은 openid 스코프를 요청했을 때만 발급된다. Implicit Grant도 마찬가지다.",
+    yn: "아니오",
   },
 
   // ── 09 Lambda 트리거 ─────────────────────────────────────────────────

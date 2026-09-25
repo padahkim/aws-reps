@@ -197,33 +197,38 @@ export function TwoPoolsSvg() {
 
 function cupFlowSvg(step: number) {
   const s = (n: number) => step >= n;
+  // 토큰은 User Pool → 사용자(앱)로 돌아오고(③), 앱이 API Gateway 에 제시한다(④) — 본문 §04 의
+  // "User Pool은 사용자에게 토큰을 준다 — 백엔드는 이 대화에 끼지 않는다"를 그대로 그린다 (#290).
+  // ④ 는 User Pool 상자 위로 돌아 가서, User Pool 이 API Gateway 로 토큰을 넘기는 것처럼 읽히지 않게 한다.
   return (
-    <SvgFrame vb="0 0 700 290" aria="User Pool 로그인 흐름 — 로그인, 검증, JWT 발급, 제시, 연합 로그인">
-      <circle cx="70" cy="120" r="26" style={box(true, C.blueSoft, C.blue)} />
-      <text x="70" y="126" textAnchor="middle" fontSize="18">👤</text>
-      <text x="70" y="166" textAnchor="middle" style={label(true, C.ink)}>사용자 (앱)</text>
+    <SvgFrame vb="0 0 700 300" aria="User Pool 로그인 흐름 — 앱이 로그인을 요청하고, User Pool이 검증한 뒤 토큰을 사용자에게 돌려주며, 앱이 그 토큰을 API Gateway에 제시한다. 연합 로그인도 User Pool이 처리한다">
+      <circle cx="70" cy="150" r="26" style={box(true, C.blueSoft, C.blue)} />
+      <text x="70" y="156" textAnchor="middle" fontSize="18">👤</text>
+      <text x="70" y="196" textAnchor="middle" style={label(true, C.ink)}>사용자 (앱)</text>
 
-      <rect x="250" y="66" width="190" height="104" rx="10" style={box(s(0), C.amberSoft, C.amber)} />
-      <text x="345" y="94" textAnchor="middle" style={label(s(0), C.amberText, 13)}>Cognito User Pool</text>
-      <text x="345" y="114" textAnchor="middle" style={label(s(0), C.ink)}>서버리스 사용자 DB</text>
-      <text x="345" y="134" textAnchor="middle" style={label(s(1), C.ink)}>ID·비밀번호 검증 · MFA</text>
-      <text x="345" y="154" textAnchor="middle" style={label(s(1), C.ink)}>(이메일·전화 확인은 가입 단계)</text>
+      <rect x="230" y="90" width="200" height="104" rx="10" style={box(s(0), C.amberSoft, C.amber)} />
+      <text x="330" y="116" textAnchor="middle" style={label(s(0), C.amberText, 13)}>Cognito User Pool</text>
+      <text x="330" y="136" textAnchor="middle" style={label(s(0), C.ink)}>서버리스 사용자 DB</text>
+      <text x="330" y="158" textAnchor="middle" style={label(s(1), C.ink)}>② ID·비밀번호 검증 · MFA</text>
+      <text x="330" y="180" textAnchor="middle" style={label(s(2), C.ink)}>인증 성공 → 토큰 발급</text>
 
-      <rect x="250" y="206" width="190" height="60" rx="10" style={box(s(4), C.blueSoft, C.blue)} />
-      <text x="345" y="230" textAnchor="middle" style={label(s(4), C.blue)}>연합 로그인 (Federation)</text>
-      <text x="345" y="250" textAnchor="middle" style={label(s(4), C.ink, 11)}>Google · Facebook · SAML · OIDC</text>
+      <rect x="230" y="228" width="200" height="56" rx="10" style={box(s(4), C.blueSoft, C.blue)} />
+      <text x="330" y="251" textAnchor="middle" style={label(s(4), C.blue)}>연합 로그인 (Federation)</text>
+      <text x="330" y="270" textAnchor="middle" style={label(s(4), C.ink, 11)}>Google · Facebook · SAML · OIDC</text>
 
-      <rect x="498" y="76" width="172" height="84" rx="10" style={box(s(2), C.tealSoft, C.teal)} />
-      <text x="584" y="104" textAnchor="middle" style={label(s(2), C.teal, 13)}>사용자 토큰 발급</text>
-      <text x="584" y="124" textAnchor="middle" style={label(s(2), C.ink)}>scope · grant에 따라 구성</text>
-      <text x="584" y="144" textAnchor="middle" style={label(s(3), C.ink)}>→ API Gateway 에 제시</text>
+      <rect x="520" y="100" width="160" height="84" rx="10" style={box(s(3), C.tealSoft, C.teal)} />
+      <text x="600" y="128" textAnchor="middle" style={label(s(3), C.teal, 13)}>API Gateway</text>
+      <text x="600" y="148" textAnchor="middle" style={label(s(3), C.ink)}>토큰 검증 (§07)</text>
+      <text x="600" y="168" textAnchor="middle" style={label(s(3), C.ink)}>통과하면 백엔드 호출</text>
 
-      <path d="M100,112 L245,104" style={line(s(0), C.amber)} />
-      <text x="126" y="92" style={lineText(s(0), C.amber)}>① 로그인 (ID·비밀번호)</text>
-      <path d="M444,112 L493,114" style={line(s(2), C.teal)} />
-      <text x="436" y="98" style={lineText(s(2), C.teal)}>③ JWT</text>
-      <path d="M345,202 L345,176" style={line(s(4), C.blue)} />
-      <text x="358" y="194" style={lineText(s(4), C.blue)}>소셜·기업 계정으로도 같은 자리</text>
+      <path d="M98,138 L225,130" style={line(s(0), C.amber)} />
+      <text x="106" y="120" style={lineText(s(0), C.amber)}>① 로그인 요청</text>
+      <path d="M226,166 L100,164" style={line(s(2), C.teal)} />
+      <text x="112" y="184" style={lineText(s(2), C.teal)}>③ 토큰 3종</text>
+      <path d="M70,122 L70,44 L600,44 L600,95" style={line(s(3), C.teal)} />
+      <text x="190" y="34" style={lineText(s(3), C.teal)}>④ 토큰을 Authorization 헤더에 실어 제시</text>
+      <path d="M330,224 L330,199" style={line(s(4), C.blue)} />
+      <text x="342" y="216" style={lineText(s(4), C.blue)}>소셜·기업 계정도 같은 자리</text>
     </SvgFrame>
   );
 }
@@ -233,11 +238,11 @@ export function CupLoginFlow() {
     <StepFlow
       label="CUP 로그인 흐름"
       steps={[
-        "사용자가 앱에서 ID·비밀번호로 User Pool에 로그인을 요청한다.",
-        "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA가 여기서 붙는다. 이메일·전화 확인은 로그인이 아니라 가입 직후에 끝내는 절차라, 확인이 안 된 사용자는 여기서 거부된다.",
-        "인증 성공 → 요청한 scope와 grant에 맞는 토큰을 발급한다. openid가 있어야 ID 토큰이 나오고, Implicit Grant에는 Refresh 토큰이 없다. ID·Access는 JWT이고, Refresh는 앱이 열어 볼 수 없는 불투명 문자열이다.",
-        "앱은 이 토큰을 Authorization 헤더에 실어 API Gateway에 제시해 백엔드에 접근한다. ALB는 토큰을 받는 게 아니라 로그인 자체를 대신한다 — §13.",
-        "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하는 쪽은 똑같이 User Pool이다.",
+        "사용자가 앱에 ID·비밀번호를 입력하면, 앱이 자기 앱 클라이언트 ID를 붙여 User Pool에 로그인을 요청한다. 요청 방식(인증 흐름)은 앱 클라이언트가 허용한 것만 쓸 수 있다 — 아래 표.",
+        "User Pool이 자격 증명을 검증한다 — 설정에 따라 MFA 챌린지가 여기서 붙고, 챌린지까지 통과해야 다음 단계로 간다.",
+        "인증 성공 → User Pool이 토큰 세 개(ID·Access·Refresh)를 사용자(앱)에게 돌려준다. ID·Access는 JWT이고, Refresh는 앱이 열어 볼 수 없는 암호화된 문자열이다. Hosted UI(OAuth) 경로는 Grant·scope에 따라 구성이 달라진다 → §08.",
+        "앱이 받은 토큰을 Authorization 헤더에 실어 API Gateway에 제시한다. API Gateway가 토큰을 검증하고 통과한 요청만 백엔드로 넘긴다 (§07). ALB는 토큰을 받는 게 아니라 로그인 자체를 대신한다 — §13.",
+        "직접 가입 대신 Google·Facebook·SAML 같은 연합 로그인을 써도 처리하고 토큰을 내주는 쪽은 똑같이 User Pool이다. 연합 로그인은 SDK 로그인 API가 아니라 Hosted UI(OAuth) 경로로 들어온다 (§08).",
       ]}
       render={cupFlowSvg}
     />

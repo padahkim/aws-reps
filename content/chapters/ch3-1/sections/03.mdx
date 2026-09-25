@@ -1,4 +1,4 @@
-import { ExamLi, ExamPoint, Note } from "../../ui";
+import { Code, ExamLi, ExamPoint, Note } from "../../ui";
 import { Term } from "../../interactive";
 
 <b>User Pool</b>은 한마디로 <b>서버리스 사용자 데이터베이스 + 로그인 기능</b>입니다. 사용자 테이블을 직접 만들고 비밀번호를 해시해 저장하고 재설정 메일을 보내는 코드를 전부 대신합니다.
@@ -7,7 +7,7 @@ import { Term } from "../../interactive";
 - <b>이메일·전화번호 확인(verification)</b> — 가입 시 확인 코드 발송이 내장돼 있다
 - <b><Term id="mfa">MFA</Term></b> — 다요소 인증 지원
 - <b>연합 로그인(Federation)</b> — Google·Facebook·<Term id="saml">SAML</Term>·<Term id="oidc">OIDC</Term> 계정으로도 로그인시킬 수 있다
-- <b>유출된 자격 증명 탐지</b> — 입력한 비밀번호가 외부 유출 목록에 있는지 검사하고, 설정에 따라 로그인을 막거나 기록만 남긴다. 아래 Note의 <b>Plus 플랜</b> 기능이고, 로그인 때는 비밀번호를 평문으로 받는 흐름만 검사한다 — 비밀번호 대신 증명값만 보내는 SRP 로그인(§09)은 검사하지 않는다
+- <b>유출된 자격 증명 탐지</b> — 입력한 비밀번호가 외부 유출 목록에 있는지 검사하고, 설정에 따라 로그인을 막거나 기록만 남긴다. 아래 Note의 <b>Plus 플랜</b> 기능이고, 로그인 때는 비밀번호를 평문으로 받는 흐름(§04의 <Code>USER_PASSWORD_AUTH</Code> 계열)만 검사한다 — 비밀번호 대신 증명값만 보내는 SRP 로그인(§04)은 검사하지 않는다
 - 로그인에 성공하면 <b><Term id="jwt">JWT</Term> 토큰</b>을 돌려준다
 
 <Note>네 번째 항목이 §01에서 예고한 혼동 지점입니다. <b>연합 로그인은 User Pool 자체 기능</b>입니다 — Identity Pool이 있어야 소셜 로그인이 되는 게 아닙니다. 구글 계정으로 로그인시키고 끝이면 User Pool 하나로 충분하고, 그 사용자에게 S3를 직접 만지게 해야 할 때 비로소 Identity Pool이 필요합니다.</Note>
@@ -16,7 +16,17 @@ import { Term } from "../../interactive";
 
 User Pool이 붙는 자리는 크게 둘입니다 — <b>API Gateway</b>(권한 부여자가 토큰을 검증, §07)와 <b><Term id="alb">ALB</Term></b>(리스너가 인증을 대신 수행, §13)입니다.
 
+User Pool 하나에는 앱이 여럿 붙을 수 있습니다 — 웹 앱, 모바일 앱, 서버 쪽 앱. User Pool은 앱마다 <b>앱 클라이언트(app client)</b>를 하나씩 등록받고, 앱은 로그인 요청마다 그 <b>클라이언트 ID</b>로 자신을 밝힙니다. 앱 클라이언트는 “이 앱에 무엇을 허락하는가”를 담는 <b>설정 단위</b>이고, 담기는 설정은 다음과 같습니다.
+
+- <b>클라이언트 ID와 client secret</b> — ID는 언제나 있고, secret(앱만 아는 고정 비밀 문자열)은 만들지 말지 고른다
+- <b>허용 인증 흐름</b> — 이 앱이 쓸 수 있는 로그인 방식 (§04)
+- <b>OAuth Grant·scope·콜백 URL</b> — Hosted UI로 로그인할 때 토큰을 받는 방식, 요청할 수 있는 권한 범위, 로그인 뒤 돌아올 주소 (§08)
+- <b>토큰 수명</b> — §05의 ID·Access·Refresh 유효기간도 앱 클라이언트마다 따로 정한다
+
+secret 유무로 앱 클라이언트가 둘로 갈립니다. 브라우저·모바일 앱처럼 사용자 기기에서 도는 앱은 코드를 누구나 열어 볼 수 있어 secret을 숨길 곳이 없으므로 secret 없는 <b>public client</b>로 두고, 백엔드 서버처럼 secret을 안전하게 보관할 수 있는 앱은 secret을 둔 <b>confidential client</b>로 둡니다. public client가 Hosted UI로 로그인할 때는 secret 대신 <b>PKCE</b>로 보호합니다 (§08). 앱이 로그인을 시작할 때 일회용 비밀 값 <Code>code_verifier</Code>를 만들어, 인가 요청에는 그 해시(SHA-256)인 <Code>code_challenge</Code>만 보내고 원본 <Code>code_verifier</Code>는 코드를 토큰으로 교환할 때 처음 보냅니다. 중간에 코드를 가로챈 쪽은 원본 값을 모르니 교환할 수 없습니다.
+
 <ExamPoint>
   <ExamLi>“사용자 DB를 직접 운영하지 않고 회원가입·로그인·MFA를 구현” → <b>User Pool</b>.</ExamLi>
   <ExamLi>“로그인 후 받은 토큰”이라는 표현이 나오면 <b>JWT</b>를 떠올린다 — 앱이 들고 다니는 ID·Access 토큰이 JWT다.</ExamLi>
+  <ExamLi>토큰 수명·허용 인증 흐름·콜백 URL은 <b>앱 클라이언트 단위</b> 설정이다 — User Pool 전체에 한 번 정하는 값이 아니다.</ExamLi>
 </ExamPoint>
