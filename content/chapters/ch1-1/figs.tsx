@@ -194,7 +194,7 @@ export function StorageClassDecisionTree() {
                 padding: "10px 12px",
                 borderRadius: 10,
                 border: `1.5px solid ${isCurrent ? C.amber : C.line}`,
-                background: "#fff",
+                background: C.card,
               }}
             >
               {/* 번호는 표시 순서로 매긴다 — 분기마다 질문 구성이 달라 label 에 박으면 어긋난다 */}

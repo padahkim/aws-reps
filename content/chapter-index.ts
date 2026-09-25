@@ -17,6 +17,7 @@ import { chapterMeta as ch01Meta, sections as ch01Sections } from "./chapters/ch
 import { chapterMeta as ch02Meta, sections as ch02Sections } from "./chapters/ch0-2/meta.ts";
 import { chapterMeta as ch11Meta, sections as ch11Sections } from "./chapters/ch1-1/meta.ts";
 import { chapterMeta as ch12Meta, sections as ch12Sections } from "./chapters/ch1-2/meta.ts";
+import { chapterMeta as ch31Meta, sections as ch31Sections } from "./chapters/ch3-1/meta.ts";
 
 /** 상호 참조 시트가 쓰는 챕터 한 건. sections 순서 = 섹션 페이지 URL 번호(1-based) 순서. */
 export interface ChapterPreview {
@@ -47,6 +48,7 @@ export const chapterIndex: ChapterPreview[] = [
   preview(ch02Meta, ch02Sections),
   preview(ch11Meta, ch11Sections),
   preview(ch12Meta, ch12Sections),
+  preview(ch31Meta, ch31Sections),
 ];
 
 /** 챕터 단건 조회 — 없는 id 는 undefined (검증기가 커밋 전에 잡는다). */

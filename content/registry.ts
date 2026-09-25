@@ -33,6 +33,7 @@ import { chapterMeta as ch01Meta, quiz as ch01Quiz, sections as ch01Sections, se
 import { chapterMeta as ch02Meta, quiz as ch02Quiz, sections as ch02Sections, session as ch02Session, selfQuiz as ch02SelfQuiz } from "./chapters/ch0-2/meta.ts";
 import { chapterMeta as ch11Meta, quiz as ch11Quiz, sections as ch11Sections, selfQuiz as ch11SelfQuiz, session as ch11Session } from "./chapters/ch1-1/meta.ts";
 import { chapterMeta as ch12Meta, quiz as ch12Quiz, sections as ch12Sections, selfQuiz as ch12SelfQuiz, session as ch12Session } from "./chapters/ch1-2/meta.ts";
+import { chapterMeta as ch31Meta, quiz as ch31Quiz, sections as ch31Sections, selfQuiz as ch31SelfQuiz, session as ch31Session } from "./chapters/ch3-1/meta.ts";
 
 export const registry: ChapterEntry[] = [
   {
@@ -54,5 +55,12 @@ export const registry: ChapterEntry[] = [
     data: { chapterMeta: ch12Meta, quiz: ch12Quiz, sections: ch12Sections, session: ch12Session, selfQuiz: ch12SelfQuiz },
     loadBody: () => import("./chapters/ch1-2/body"),
     loadIntro: () => import("./chapters/ch1-2/intro.mdx"),
+  },
+  // ch3-1 은 커리큘럼 3단계라 학습 순서상 여기가 맞다 — 공개 시점만 #272 로 앞당겨졌을 뿐
+  // 기존 4챕터(0단계·1단계) 뒤라는 순서는 그대로다. 사이의 ch1-3~ch2-5 는 #29 에서 채운다.
+  {
+    data: { chapterMeta: ch31Meta, quiz: ch31Quiz, sections: ch31Sections, session: ch31Session, selfQuiz: ch31SelfQuiz },
+    loadBody: () => import("./chapters/ch3-1/body"),
+    loadIntro: () => import("./chapters/ch3-1/intro.mdx"),
   },
 ];

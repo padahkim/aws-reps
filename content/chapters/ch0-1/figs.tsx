@@ -15,7 +15,7 @@ import { chipBtn, SimFrame, Switch } from "../interactive";
 export function GlobalInfraSvg() {
   const az = (x: number, code: string, name: string) => (
     <>
-      <rect x={x} y={130} width={120} height={230} rx={10} fill="#FFFFFF" stroke={C.teal} strokeWidth={2} />
+      <rect x={x} y={130} width={120} height={230} rx={10} fill={C.card} stroke={C.teal} strokeWidth={2} />
       <text x={x + 60} y={158} fontSize={13} fontWeight={900} fill={C.teal} textAnchor="middle">
         {name}
       </text>
@@ -97,7 +97,7 @@ export function GlobalInfraSvg() {
       </text>
       {[540, 602, 664].map((x) => (
         <g key={x}>
-          <rect x={x} y={126} width={52} height={60} rx={8} fill="#FFF" stroke={C.teal} strokeWidth={1.5} />
+          <rect x={x} y={126} width={52} height={60} rx={8} fill={C.card} stroke={C.teal} strokeWidth={1.5} />
           <text x={x + 26} y={160} fontSize={11} textAnchor="middle" fill={C.teal}>
             AZ
           </text>
@@ -190,7 +190,7 @@ export function AzFailureSimulator() {
             border: `1.5px solid ${azADown ? C.red : C.line}`,
             borderRadius: 10,
             padding: "10px 12px",
-            background: azADown ? C.redSoft : "#fff",
+            background: azADown ? C.redSoft : C.card,
             transition: "background 0.2s, border-color 0.2s",
           }}
         >
@@ -211,7 +211,7 @@ export function AzFailureSimulator() {
                 gap: 8,
                 padding: "6px 8px",
                 borderRadius: 6,
-                background: azADown ? "rgba(255,255,255,0.7)" : C.blueSoft,
+                background: azADown ? "color-mix(in srgb, var(--card-bg) 70%, transparent)" : C.blueSoft,
                 border: `1px solid ${azADown ? C.red : C.line}`,
               }}
             >
@@ -231,7 +231,7 @@ export function AzFailureSimulator() {
                 gap: 8,
                 padding: "6px 8px",
                 borderRadius: 6,
-                background: azADown ? "rgba(255,255,255,0.7)" : C.amberSoft,
+                background: azADown ? "color-mix(in srgb, var(--card-bg) 70%, transparent)" : C.amberSoft,
                 border: `1px solid ${azADown ? C.red : C.line}`,
               }}
             >
@@ -252,7 +252,7 @@ export function AzFailureSimulator() {
             border: `1.5px solid ${multiAz ? C.teal : C.line}`,
             borderRadius: 10,
             padding: "10px 12px",
-            background: multiAz ? "#fff" : "#FAFAFA",
+            background: multiAz ? C.card : "color-mix(in srgb, var(--border) 20%, transparent)",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -430,7 +430,7 @@ export function ApiConvergeSvg() {
         HTTPS 요청
       </text>
 
-      <rect x={150} y={312} width={460} height={96} rx={14} fill={C.ink} />
+      <rect x={150} y={312} width={460} height={96} rx={14} fill="var(--table-head-bg, #171E26)" stroke={C.line} strokeWidth={1} />
       <text x={380} y={344} fontSize={15} fontWeight={900} fill="#FFFFFF" textAnchor="middle">
         동일한 AWS API 엔드포인트
       </text>
@@ -549,7 +549,7 @@ export function ManagedSpectrumSvg() {
         — 안 쓰면 0원
       </text>
 
-      <rect x={50} y={344} width={660} height={66} rx={12} fill={C.ink} />
+      <rect x={50} y={344} width={660} height={66} rx={12} fill="var(--table-head-bg, #171E26)" stroke={C.line} strokeWidth={1} />
       <text x={380} y={372} fontSize={13} fontWeight={900} fill="#FFFFFF" textAnchor="middle">
         종량제 3대 과금 축
       </text>
@@ -677,7 +677,7 @@ export function CredentialChainResolver() {
                     padding: "8px 10px",
                     borderRadius: 9,
                     border: `1.5px solid ${isWinner ? C.teal : C.line}`,
-                    background: isWinner ? C.tealSoft : "#fff",
+                    background: isWinner ? C.tealSoft : C.card,
                     opacity: c.available ? 1 : 0.5,
                   }}
                 >
@@ -831,7 +831,7 @@ export function BlindSpotSvg() {
   return (
     <svg viewBox="0 0 760 390" xmlns="http://www.w3.org/2000/svg" fontFamily={SANS} style={{ width: "100%", height: "auto", display: "block" }}>
       {/* 바깥: 시스템 전체 */}
-      <rect x={20} y={20} width={720} height={310} rx={16} fill="#FFFFFF" stroke={C.line} strokeWidth={2} strokeDasharray="7 5" />
+      <rect x={20} y={20} width={720} height={310} rx={16} fill={C.card} stroke={C.line} strokeWidth={2} strokeDasharray="7 5" />
       <text x={44} y={50} fontSize={14} fontWeight={900} fill={C.ink}>
         🗺 시스템 전체 — 사람이 그려야 하는 그림
       </text>
@@ -847,7 +847,7 @@ export function BlindSpotSvg() {
         { x: 566, label: "로그" },
       ].map((b) => (
         <g key={b.x}>
-          <rect x={b.x} y={80} width={b.label.length > 4 ? 130 : 100} height={34} rx={8} fill="#FFFFFF" stroke={C.blue} strokeWidth={1.5} />
+          <rect x={b.x} y={80} width={b.label.length > 4 ? 130 : 100} height={34} rx={8} fill={C.card} stroke={C.blue} strokeWidth={1.5} />
           <text x={b.x + (b.label.length > 4 ? 65 : 50)} y={102} fontSize={11.5} fill={C.blue} textAnchor="middle" fontFamily={MONO}>
             {b.label}
           </text>
@@ -1079,7 +1079,7 @@ export function AiBlindSpotLab() {
             border: `1.5px solid ${C.line}`,
             borderRadius: 10,
             padding: "12px 14px",
-            background: "#FFFFFF",
+            background: C.card,
           }}
         >
           <div style={{ fontSize: "0.82rem", fontWeight: 700, color: C.inkSoft, marginBottom: 4 }}>

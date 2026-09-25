@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ThemeSwitcher } from "./theme-switcher";
 
 /**
  * 전역 앱바 (#247 — 부모 에픽 #246): 모든 화면에 **뒤로 + 홈**.
@@ -59,9 +60,7 @@ export function AppBar() {
           안 그러면 넓은 화면에서 뒤로·홈만 뷰포트 양끝으로 날아가 본문과 어긋난다 */}
       <div className="app-bar-inner">
         {isHome ? (
-          // 홈에서는 돌아갈 앱 내 화면이 없다. 자리는 비우되 **접지는 않는다** —
-          // 바 높이가 라우트마다 달라지면 홈↔챕터 이동마다 본문이 위아래로 튄다.
-          <span />
+          <span className="app-bar-brand">DVA 학습</span>
         ) : (
           <button type="button" className="app-bar-btn" onClick={back}>
             <Chevron />
@@ -69,13 +68,14 @@ export function AppBar() {
           </button>
         )}
 
-        {isHome ? (
-          <span className="app-bar-brand">DVA 학습</span>
-        ) : (
-          <Link className="app-bar-btn" href="/">
-            <House />홈
-          </Link>
-        )}
+        <div className="app-bar-actions">
+          {!isHome && (
+            <Link className="app-bar-btn" href="/">
+              <House />홈
+            </Link>
+          )}
+          <ThemeSwitcher />
+        </div>
       </div>
     </nav>
   );

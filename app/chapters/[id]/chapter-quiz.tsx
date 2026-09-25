@@ -260,7 +260,7 @@ export function QuizItem({
               border: "none",
               cursor: selected.length === 0 ? "default" : "pointer",
               background: selected.length === 0 ? "var(--border)" : "var(--accent)",
-              color: selected.length === 0 ? "var(--muted)" : "#fff",
+              color: selected.length === 0 ? "var(--muted)" : "var(--accent-fg, #fff)",
             }}
           >
             채점하기
@@ -328,7 +328,7 @@ export function QuizItem({
                   borderRadius: 99,
                   border: "none",
                   background: "var(--accent)",
-                  color: "#fff",
+                  color: "var(--accent-fg, #fff)",
                   cursor: "pointer",
                 }}
               >

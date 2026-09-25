@@ -33,7 +33,7 @@ export function SimFrame({ title, icon = "🎛", children }: { title: string; ic
     >
       <div
         style={{
-          background: C.ink,
+          background: "var(--table-head-bg, " + C.ink + ")",
           padding: "10px 16px",
           fontFamily: MONO,
           color: "#DCE6F2",
@@ -78,7 +78,7 @@ export const outlineBtn = (accent: string, soft: string) =>
     "--btn-bg": C.card,
     "--btn-fg": accent,
     "--btn-hover-bg": soft,
-    "--btn-hover-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+    "--btn-hover-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
     "--btn-ring": accent,
     borderColor: accent,
   }) as CSSProperties;
@@ -93,7 +93,7 @@ export const chipBtn = (active: boolean, accent: string, soft: string): CSSPrope
   active
     ? ({
         "--btn-bg": soft,
-        "--btn-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
         "--btn-hover-bg": soft,
         "--btn-ring": accent,
         borderColor: accent,
@@ -103,7 +103,7 @@ export const chipBtn = (active: boolean, accent: string, soft: string): CSSPrope
         "--btn-bg": C.card,
         "--btn-fg": C.inkSoft,
         "--btn-hover-bg": soft,
-        "--btn-hover-fg": `color-mix(in srgb, ${accent} 85%, #000)`,
+        "--btn-hover-fg": `var(--btn-hover-text, color-mix(in srgb, ${accent} 85%, #000))`,
         "--btn-ring": accent,
         borderColor: C.line,
         fontWeight: 400,
@@ -187,17 +187,16 @@ export function Switch({
  * 생략하면 용어집 표기(term)로 렌더된다.
  *
  * 팝오버 내부는 전부 span 이다 — 트리거가 MDX 문단(p) 안에 놓이므로 div/p 를 쓰면
- * HTML 중첩 위반으로 hydration 이 흔들린다. 카드 색은 배경·글자 쌍 고정(규약 색 박스
- * 규정 — C.card/C.ink), 트리거 자체는 본문 텍스트라 앱 테마에 순응(.term-trigger).
+ * HTML 중첩 위반으로 hydration 이 흔들린다. 카드 배경과 테두리는 다크 모드에 순응하고
+ * (.popover-bg, .popover-border), 트리거 자체는 본문 텍스트라 앱 테마에 순응(.term-trigger).
  *
- * 배치 제약 (PR #213 Codex 지적): 본문 프로즈 전용이다 — Table 셀처럼 overflow 를 가진
- * 조상 안에서는 absolute 팝오버가 잘린다. 포털로 탈출하는 건 "정밀 포지셔닝 없음" 전제를
- * 깨므로 하지 않는다 — 표 안 용어는 Term 없이 두고, 같은 용어의 프로즈 등장 지점에 건다
- * (#194 전면 적용 시 이 규칙을 따른다).
+ * 배치 (PR #274, #283): Table 셀처럼 overflow 를 가진 조상 안에서도 잘리지 않도록
+ * createPortal(document.body)과 position: fixed 를 사용한다 (#274). 본문 컬럼(main) 기준
+ * 좌우 여백을 클램프하고, 뷰포트 아래 여유가 부족하면 자동으로 위로 뒤집는다.
  */
 /** 팝오버·힌트 카드를 아래로 펼치기에 충분하다고 보는 세로 여유(px) — 못 미치면 위로 뒤집는다. */
 const CARD_ROOM = 180;
-/** 양쪽 다 좁을 때 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
+/** 양쪽 다 좁을 때 약어 힌트 카드에 보장하는 최소 높이(px) — 이보다 좁으면 카드가 스스로 스크롤된다. */
 const MIN_CARD = 96;
 
 export function Term({ id, children }: { id: string; children?: ReactNode }) {
@@ -365,11 +364,11 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
               maxHeight: pos.room,
               overflowY: "auto",
               boxSizing: "border-box",
-              background: C.card,
+              background: `var(--popover-bg, ${C.card})`,
               color: C.ink,
-              border: `1px solid ${C.line}`,
+              border: `1px solid var(--popover-border, ${C.line})`,
               borderRadius: 10,
-              boxShadow: "0 6px 20px rgba(23, 30, 38, 0.16)",
+              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.24)",
               padding: "10px 12px",
               // 트리거가 b/굵은 표 셀 안에 있어도 팝오버는 본문 톤을 유지한다
               fontSize: "0.82rem",

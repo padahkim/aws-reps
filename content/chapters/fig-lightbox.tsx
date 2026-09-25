@@ -422,7 +422,7 @@ export function FigZoom({
               width: vv ? vv.width : "100%",
               height: vv ? vv.height : "100%",
               zIndex: 100, // Term 팝오버(10)·기존 z-index 위 — 전면 모달
-              background: tokens.card, // 도식은 흰 카드 전제로 그려졌다 — 다크 테마에서도 흰 캔버스 고정
+              background: tokens.card, // 서피스 1단계(#282) — 다크 모드 시 다크 캔버스에 최적화된 서피스로 렌더링
               touchAction: "none", // 네이티브 스크롤·더블탭 줌을 끊고 Pointer Events 로만 다룬다
               overscrollBehavior: "contain",
               userSelect: "none",

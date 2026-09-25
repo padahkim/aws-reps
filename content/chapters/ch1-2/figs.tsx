@@ -111,7 +111,7 @@ function FlowBox({
     <g>
       <rect
         x={x} y={y} width={w} height={h} rx={8}
-        fill={`${color}14`} stroke={color} strokeWidth={1.5}
+        fill={color} fillOpacity={0.12} stroke={color} strokeWidth={1.5}
         strokeDasharray={dashed ? "5 4" : "none"}
       />
       <text
