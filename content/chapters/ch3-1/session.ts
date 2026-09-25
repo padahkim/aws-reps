@@ -173,14 +173,14 @@ export const session: SessionData = {
     {
       id: "c13",
       section: "11",
-      q: "Identity Pool이 공급자 증명을 받고 나서 임시 자격 증명이 사용자 손에 들어가기까지의 단계를 말해 보세요.",
-      a: "① 사용자가 로그인 소스(User Pool·소셜·OIDC·SAML 등)에 로그인해 공급자 증명(토큰)을 받는다. ② 그 증명을 Identity Pool에 넘기고, Identity Pool이 증명이 진짜인지 검증한다. ③ 검증되면 Identity Pool이 STS를 호출해 IAM 역할 기반 임시 자격 증명으로 바꾼다. ④ 사용자는 그 자격 증명으로 S3·DynamoDB를 직접 호출한다.\nIdentity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
+      q: "앱이 사용자를 로그인시키는 데서 시작해 S3를 직접 호출하기까지, 단계마다 누가 누구를 부르는지 말해 보세요.",
+      a: "① 앱이 사용자를 로그인 소스(User Pool·소셜·OIDC·SAML 등)에 로그인시켜 공급자 증명(토큰)을 받는다. ② 앱이 그 증명을 Identity Pool에 제출하고, Identity Pool이 증명이 진짜인지 검증한 뒤 줄 역할을 고른다. ③ (enhanced 흐름에서는) Identity Pool이 앱 대신 STS의 AssumeRoleWithWebIdentity를 호출해 임시 자격 증명을 받는다 — 앱에는 보이지 않는 AWS 내부 구간이다. ④ Identity Pool이 그 자격 증명을 앱에 돌려준다. ⑤ 앱이 그 자격 증명으로 요청에 서명해 S3·DynamoDB를 직접 호출한다.\nIdP·Identity Pool·S3를 부르는 쪽은 전부 앱이고, 서비스끼리 직접 이어지는 구간은 ③ 하나뿐이다. Identity Pool은 사용자를 저장하지 않는다 — 교환만 한다.",
     },
     {
       id: "c14",
       section: "11",
       q: "애플리케이션 사용자가 어떻게 IAM 역할을 맡을 수 있는지, 신뢰 정책으로 설명해 보세요.",
-      a: "IAM 역할의 신뢰 정책 Principal에 cognito-identity.amazonaws.com을 적어 두면 “Cognito Identity가 검증해 데려온 사용자라면 이 역할을 맡아도 좋다”가 된다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로다. 단 Principal만으로는 저장이 안 되고, Condition에 어느 Identity Pool인지(aud)를 반드시 함께 적고, 인증 사용자용 역할에는 amr=authenticated, 게스트용에는 unauthenticated 조건을 걸어 두 역할을 가른다. 실제 임시 자격 증명 발급은 ch0-2 §07의 STS가 한다. 역할은 인증된 사용자용과 게스트용을 각각 지정하고, 규칙(Rules)으로 속성에 따라 더 세분할 수 있다.",
+      a: "IAM 역할의 신뢰 정책이 허락하기 때문이다. Principal.Federated에 cognito-identity.amazonaws.com을, Action에 sts:AssumeRoleWithWebIdentity를 적어 두면 “Cognito Identity가 검증해 데려온 사용자라면 이 API로 이 역할을 맡아도 좋다”가 된다 — ch0-2 §04에서 본 Principal 필드의 쓰임 그대로이고, 그 API는 ch0-2 §07에서 웹/모바일 로그인 사용자용으로 배운 것이다. 단 Principal만으로는 저장이 안 되고, Condition에 어느 Identity Pool인지(aud)를 반드시 함께 적고, 인증 사용자용 역할에는 amr=authenticated, 게스트용에는 unauthenticated 조건을 걸어 두 역할을 가른다.\nenhanced 흐름에서 이 API를 부르는 쪽은 앱이 아니라 Identity Pool이고, 실제 발급은 STS가 한다. 역할은 인증된 사용자용과 게스트용 기본 역할에 더해, User Pool 그룹마다 붙인 역할을 토큰에서 골라 쓰게 할 수도 있다.",
       why: {
         q: "Identity Pool이 직접 자격 증명을 만들지 않고 STS를 거치는 구조가 왜 자연스러운가요?",
         a: "임시 자격 증명 발급은 이미 STS의 일이기 때문이다. IAM 사용자가 역할을 맡을 때도, 회사 IdP로 페더레이션할 때도 발급자는 STS 하나다 — Cognito는 “이 애플리케이션 사용자가 진짜인가”만 판정하고 발급은 기존 통로에 맡긴다. 그래서 감사·만료 같은 성질이 다른 경로와 똑같이 적용된다.",
@@ -228,29 +228,41 @@ export const session: SessionData = {
       id: "c19",
       section: "14",
       q: "두 풀을 이어 쓰는 가장 완전한 형태를 그리고, 그것이 항상 필요한 것은 아닌 이유도 말해 보세요.",
-      a: "① User Pool로 로그인시켜 ID 토큰을 받고 ② 그 ID 토큰을 Identity Pool의 Logins 맵에 넣어 STS 임시 AWS 자격 증명으로 바꾼 뒤 ③ S3·DynamoDB에 직접 접근한다 — “인증은 CUP, 인가는 CIP”다. Access·Refresh 토큰은 이 교환에 대신 쓰지 않는다.\n다만 백엔드 API만 보호하면 되는 앱은 User Pool 하나로 끝난다(API Gateway 조합). 사용자가 AWS 리소스를 직접 만져야 할 때 비로소 Identity Pool이 붙으므로, “둘 다 써야 한다”가 항상 정답인 것은 아니다.",
+      a: "① 앱이 User Pool로 로그인해 ID 토큰을 받고 ② 그 ID 토큰을 Identity Pool의 Logins 맵에 넣어 제출하면 임시 AWS 자격 증명이 앱으로 돌아오며(enhanced 흐름에서는 STS 호출을 Identity Pool이 뒤에서 한다) ③ 앱이 그 자격 증명으로 S3·DynamoDB를 직접 호출한다 — “인증은 CUP, 인가는 CIP”다. Access·Refresh 토큰은 이 교환에 대신 쓰지 않는다.\n다만 백엔드 API만 보호하면 되는 앱은 User Pool 하나로 끝난다(API Gateway 조합). 사용자가 AWS 리소스를 직접 만져야 할 때 비로소 Identity Pool이 붙으므로, “둘 다 써야 한다”가 항상 정답인 것은 아니다.",
     },
   ],
 
   /**
-   * 도식 재현 — CIP 자격 증명 발급 경로. 이 챕터에서 선형 체인이 정확히 들어맞는 흐름은
-   * 이것 하나다 (CUP 로그인은 연합 로그인 가지가 갈라지고, ALB 흐름은 리다이렉트로 되돌아온다).
+   * 도식 재현 — CIP 자격 증명 발급 경로 (§11 CipCredentialFlow 와 같은 ①~⑤, enhanced 흐름 기준).
+   * 이 흐름은 앱을 가운데 둔 왕복이라 호출 관계 그대로는 선형 체인에 안 들어간다. 그래서
+   * 체인을 “증명·자격 증명이 넘어가는 순서”로 읽는다 — edges[i] 는 nodes[i] 에서 nodes[i+1] 로
+   * 무엇이 넘어가는지이고, 렌더가 인접 쌍을 전부 화살표로 그리므로 되돌아오는 길도 실제 경로대로
+   * STS → Identity Pool → 앱으로 적었다. 그래서 앱과 Identity Pool 이 두 번씩 나온다 (#292, PR #298
+   * Codex 1라운드). 두 번째 등장의 role 은 첫 등장과 구분되게 쓴다. STS → Identity Pool 은 §11
+   * 그림처럼 번호 없이 “자격 증명”이다.
+   * (CUP 로그인은 연합 로그인 가지가 갈라지고, ALB 흐름은 리다이렉트로 되돌아와 체인이 안 맞는다.)
    */
   diagram: {
-    prompt: "외부 사용자가 S3를 직접 호출하기까지 토큰과 자격 증명이 거치는 길을 순서대로 떠올려 보세요.",
+    prompt: "앱이 S3를 직접 호출하기까지 증명과 자격 증명이 넘어가는 순서대로 떠올려 보세요. 앱과 Identity Pool은 각각 두 번 나옵니다.",
     nodes: [
-      { role: "사용자를 인증하고 증명을 내주는 곳", name: "User Pool (또는 외부 IdP)" },
-      { role: "받은 토큰이 진짜인지 검증하고 교환을 주선하는 곳", name: "Identity Pool" },
-      { role: "IAM 역할을 맡아 임시 자격 증명을 실제로 발급하는 서비스", name: "STS" },
-      { role: "임시 자격 증명으로 직접 호출되는 대상", name: "S3 · DynamoDB 등 AWS 리소스" },
+      { role: "사용자를 로그인시키고 증명(토큰)을 내주는 곳", name: "User Pool (또는 외부 IdP)" },
+      { role: "받은 증명을 쥐고 교환을 요청하는 쪽", name: "앱 (웹·모바일)" },
+      { role: "증명을 검증하고 역할을 골라 앱 대신 교환하는 곳", name: "Identity Pool" },
+      { role: "IAM 역할을 맡아 임시 자격 증명을 발급하는 서비스", name: "STS" },
+      { role: "STS에서 받은 자격 증명을 앱에 돌려주는 곳", name: "Identity Pool" },
+      { role: "돌려받은 자격 증명으로 요청에 서명하는 쪽", name: "앱 (웹·모바일)" },
+      { role: "앱이 임시 자격 증명으로 직접 호출하는 대상", name: "S3 · DynamoDB 등 AWS 리소스" },
     ],
     // 라벨·이름을 짧게 유지한다 — 이 리포에서 diagram 을 쓰는 첫 챕터라 렌더 폭이 실측된 적이
     // 없었는데, 긴 문구는 노드 상자와 화살표 라벨 칸을 넘겨 잘린다 (#272 프리뷰 실측).
     // 눈대중 상한: 노드 이름 24자, 엣지 라벨 15자.
     edges: [
-      "① 인증 → 공급자 증명",
-      "② 증명 전달 → 유효성 검증",
-      "③ 역할을 맡아 자격 증명 발급",
+      "① 로그인 → 증명 수령",
+      "② 증명 제출",
+      "③ 역할 수임",
+      "자격 증명",
+      "④ 자격 증명",
+      "⑤ 서명해 직접 호출",
     ],
   },
 

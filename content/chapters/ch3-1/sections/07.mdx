@@ -25,7 +25,7 @@ API Gateway는 이 토큰을 <b>Cognito 권한 부여자(Authorizer)</b>로 검�
   ]}
 />
 
-<Note>권한 부여자는 API 유형에 따라 이름이 다릅니다 — REST API는 <b>Cognito 사용자 풀 권한 부여자</b>, HTTP API는 <b>JWT 권한 부여자</b>가 내장돼 있습니다. 더 복잡한 판단(그룹·속성별 분기)이 필요하면 <b>Lambda 권한 부여자</b>로 직접 짭니다.</Note>
+<Note>권한 부여자는 API 유형에 따라 이름이 다릅니다 — REST API는 <b>Cognito 사용자 풀 권한 부여자</b>, HTTP API는 <b>JWT 권한 부여자</b>가 내장돼 있습니다. 더 복잡한 판단(§11의 User Pool 그룹·속성별 분기)이 필요하면 <b>Lambda 권한 부여자</b>로 직접 짭니다.</Note>
 
 <ExamPoint>
   <ExamLi>토큰은 <b><Code>Authorization</Code> 헤더</b>로 전달된다 — 쿼리 문자열이나 바디가 아니다.</ExamLi>
