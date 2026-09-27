@@ -418,34 +418,54 @@ export function CipCredentialFlow() {
 
 function albFlowSvg(step: number) {
   const s = (n: number) => step >= n;
+  // 공식 인증 흐름(ELB 가이드 "Authentication flow")을 여섯 단계로 묶었다 (#291) — ③ 의 code 는
+  // 브라우저를 거쳐 ALB 콜백에 닿고, ④ 코드 교환과 ⑤ UserInfo 조회는 ALB 가 직접 나가는
+  // 서버 쪽 호출이다. 본문의 IPv4 아웃바운드 WarnBox 가 바로 이 두 화살표를 전제로 한다.
+  // ⑥ 은 쿠키를 들려 원래 주소로 되돌린 뒤의 전달이라, 사용자 쪽 리다이렉트는 캡션에만 적는다.
   return (
-    <SvgFrame vb="0 0 700 300" aria="ALB가 HTTPS 리스너에서 인증을 처리하고 인증된 요청만 백엔드로 보낸다">
-      <circle cx="60" cy="140" r="26" style={box(true, C.blueSoft, C.blue)} />
-      <text x="60" y="146" textAnchor="middle" fontSize="18">👤</text>
-      <text x="60" y="186" textAnchor="middle" style={label(true, C.ink)}>사용자</text>
+    <SvgFrame vb="0 0 700 350" aria="ALB가 미인증 사용자를 User Pool 로그인 페이지로 보내고, 돌아온 인가 코드를 Token 엔드포인트에서 교환하고 UserInfo 엔드포인트에서 클레임을 조회한 뒤, 서명한 x-amzn-oidc-data 헤더에 클레임을 실어 백엔드로 전달한다">
+      <circle cx="60" cy="106" r="26" style={box(true, C.blueSoft, C.blue)} />
+      <text x="60" y="112" textAnchor="middle" fontSize="18">👤</text>
+      <text x="60" y="152" textAnchor="middle" style={label(true, C.ink)}>사용자 (브라우저)</text>
 
-      <rect x="196" y="76" width="188" height="124" rx="10" style={box(s(0), C.amberSoft, C.amber)} />
-      <text x="290" y="104" textAnchor="middle" style={label(s(0), C.amberText, 13)}>ALB</text>
-      <text x="290" y="124" textAnchor="middle" style={label(s(0), C.ink)}>HTTPS 리스너 (필수)</text>
-      <text x="290" y="150" textAnchor="middle" style={label(s(1), C.ink)}>규칙: authenticate-cognito</text>
-      <text x="290" y="170" textAnchor="middle" style={label(s(1), C.ink)}>또는 authenticate-oidc</text>
+      <rect x="226" y="52" width="214" height="110" rx="10" style={box(s(0), C.amberSoft, C.amber)} />
+      <text x="333" y="78" textAnchor="middle" style={label(s(0), C.amberText, 13)}>ALB</text>
+      <text x="333" y="98" textAnchor="middle" style={label(s(0), C.ink)}>HTTPS 리스너 (필수)</text>
+      <text x="333" y="120" textAnchor="middle" style={label(s(0), C.ink)}>authenticate-cognito 규칙</text>
+      <text x="333" y="142" textAnchor="middle" style={label(s(0), C.ink)}>세션 쿠키 확인 · 발급</text>
 
-      <rect x="204" y="236" width="188" height="54" rx="10" style={box(s(2), C.blueSoft, C.blue)} />
-      <text x="298" y="258" textAnchor="middle" style={label(s(2), C.blue)}>Cognito User Pool</text>
-      <text x="298" y="278" textAnchor="middle" style={label(s(2), C.ink, 11)}>(또는 OIDC IdP)</text>
+      <rect x="510" y="52" width="180" height="110" rx="10" style={box(s(5), C.tealSoft, C.teal)} />
+      <text x="600" y="78" textAnchor="middle" style={label(s(5), C.teal, 13)}>백엔드 (타깃 그룹)</text>
+      <text x="600" y="100" textAnchor="middle" fontFamily={MONO} style={label(s(5), C.ink, 11)}>x-amzn-oidc-data</text>
+      <text x="600" y="122" textAnchor="middle" style={label(s(5), C.ink, 11)}>로그인 코드 없음</text>
+      <text x="600" y="142" textAnchor="middle" style={label(s(5), C.ink, 11)}>인가 전 서명 · signer 검증</text>
 
-      <rect x="498" y="96" width="174" height="84" rx="10" style={box(s(3), C.tealSoft, C.teal)} />
-      <text x="585" y="126" textAnchor="middle" style={label(s(3), C.teal, 13)}>백엔드 (타깃 그룹)</text>
-      <text x="585" y="146" textAnchor="middle" style={label(s(3), C.ink)}>인증 코드 없이</text>
-      <text x="585" y="164" textAnchor="middle" style={label(s(3), C.ink)}>비즈니스 로직만</text>
+      <rect x="24" y="222" width="436" height="116" rx="10" style={box(s(1), C.blueSoft, C.blue)} />
+      <rect x="40" y="234" width="150" height="64" rx="8" style={box(s(1), C.card, C.blue)} />
+      <text x="115" y="260" textAnchor="middle" style={label(s(1), C.blue)}>로그인 페이지</text>
+      <text x="115" y="280" textAnchor="middle" style={label(s(1), C.ink, 11)}>(Hosted UI)</text>
+      <rect x="222" y="234" width="104" height="64" rx="8" style={box(s(3), C.card, C.blue)} />
+      <text x="274" y="260" textAnchor="middle" style={label(s(3), C.blue)}>Token</text>
+      <text x="274" y="280" textAnchor="middle" style={label(s(3), C.ink, 11)}>엔드포인트</text>
+      <rect x="340" y="234" width="104" height="64" rx="8" style={box(s(4), C.card, C.blue)} />
+      <text x="392" y="260" textAnchor="middle" style={label(s(4), C.blue)}>UserInfo</text>
+      <text x="392" y="280" textAnchor="middle" style={label(s(4), C.ink, 11)}>엔드포인트</text>
+      <text x="242" y="322" textAnchor="middle" style={label(s(1), C.blue, 13)}>Cognito User Pool</text>
 
-      <path d="M90,136 L191,134" style={line(s(0), C.amber)} />
-      <text x="98" y="122" style={lineText(s(0), C.amber)}>① HTTPS 요청</text>
-      <path d="M282,204 L292,232" style={line(s(2), C.blue)} />
-      <text x="120" y="228" style={lineText(s(2), C.blue)}>② 미인증이면 로그인으로</text>
-      <path d="M320,234 L308,206" style={line(s(2), C.blue)} />
-      <path d="M388,138 L493,138" style={line(s(3), C.teal)} />
-      <text x="396" y="126" style={lineText(s(3), C.teal)}>③ 인증된 요청만 전달</text>
+      <path d="M88,106 L221,106" style={line(s(0), C.amber)} />
+      <text x="98" y="94" style={lineText(s(0), C.amber)}>① HTTPS 요청</text>
+      <path d="M60,160 L60,229" style={line(s(1), C.blue)} />
+      <text x="68" y="196" style={lineText(s(1), C.blue)}>② 로그인 페이지로</text>
+      <path d="M176,234 L250,167" style={line(s(2), C.blue)} />
+      <text x="170" y="214" textAnchor="end" style={lineText(s(2), C.blue)}>③ code → ALB</text>
+      <path d="M268,167 L268,229" style={line(s(3), C.amber)} />
+      <path d="M284,229 L284,167" style={line(s(3), C.amber)} />
+      <text x="292" y="202" style={lineText(s(3), C.amber)}>④ code ↔ 토큰</text>
+      <path d="M386,167 L386,229" style={line(s(4), C.amber)} />
+      <path d="M402,229 L402,167" style={line(s(4), C.amber)} />
+      <text x="410" y="202" style={lineText(s(4), C.amber)}>⑤ 클레임 조회</text>
+      <path d="M444,106 L505,106" style={line(s(5), C.teal)} />
+      <text x="450" y="94" style={lineText(s(5), C.teal)}>⑥ 전달</text>
     </SvgFrame>
   );
 }
@@ -455,10 +475,12 @@ export function AlbAuthFlow() {
     <StepFlow
       label="ALB 인증 흐름 (Cognito 방식)"
       steps={[
-        "사용자가 ALB의 HTTPS 리스너로 요청을 보낸다. (HTTP 리스너에는 인증 규칙을 걸 수 없다)",
-        "리스너 규칙의 authenticate-cognito 액션이 이 요청이 인증된 것인지 확인한다.",
-        "미인증이면 Cognito Hosted UI로 리다이렉트해 로그인시키고, 세션 쿠키를 발급한다.",
-        "인증이 끝난 요청만 타깃 그룹(백엔드)으로 전달된다 — 백엔드에는 인증 코드가 없다.",
+        "사용자가 ALB의 HTTPS 리스너로 요청을 보낸다. authenticate-cognito 규칙이 걸린 요청이면 ALB가 먼저 세션 쿠키가 있는지 본다. (HTTP 리스너에는 인증 규칙을 걸 수 없다)",
+        "쿠키가 없으면(미인증) ALB가 사용자를 User Pool의 로그인 페이지(Hosted UI, §08)로 리다이렉트하고, 사용자는 거기서 로그인한다.",
+        "로그인이 끝나면 User Pool이 인가 코드(code)를 붙여 사용자를 ALB의 콜백 주소 /oauth2/idpresponse로 돌려보낸다 — 코드는 브라우저를 거쳐 ALB에 닿는다.",
+        "ALB가 그 코드를 User Pool의 Token 엔드포인트에 제시해 토큰(ID·Access)으로 교환한다. §08에서 앱이 하던 교환을 ALB가 서버 쪽에서 대신하는 것이다.",
+        "ALB가 받은 Access 토큰으로 UserInfo 엔드포인트를 불러 사용자 클레임(sub·email 등)을 얻는다.",
+        "ALB가 세션 쿠키를 발급해 사용자를 원래 주소로 돌려보내고, 그 요청을 타깃으로 넘기면서 클레임을 ALB가 서명한 x-amzn-oidc-data 헤더에 실어 준다. 백엔드에는 로그인 플로우 코드가 없다 — 다만 이 클레임으로 인가하려면 서명과 signer 확인은 백엔드 몫이다. 이후 요청은 쿠키가 유효한 동안 이 단계로 바로 온다.",
       ]}
       render={albFlowSvg}
     />
