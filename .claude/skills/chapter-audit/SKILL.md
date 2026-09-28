@@ -60,7 +60,7 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    ```
 2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 스캔 대상이다 (정본은 그쪽 — 여기 복제하지 않는다). 대상 루트에 실제로 있는 파일만 줄 수와 함께 적는다. `drills.ts`는 퀴즈 페이지에 렌더되므로 사실·일관성 대조에 포함하되, 교정 위치는 `content/drills-src/` 원본이라고 적는다.
 3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
-4. **무결성 기준점**: `git status --porcelain > _workspace/chapter-audit/<id>/00_git_before.txt`. 5단계에서 대조한다 — 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다.
+4. **무결성 기준점**: `git status --porcelain -- content docs > _workspace/chapter-audit/<id>/00_git_before.txt`. 5단계에서 대조한다 — 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다. 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다).
 5. `00_scope.md`를 쓴다:
    ```markdown
    # chapter-audit scope — <id>
@@ -115,7 +115,12 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 ## 5단계: 보고 → 멈춤
 
-1. **무결성 대조**: `git status --porcelain`을 `00_git_before.txt`와 비교한다. 다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
+1. **무결성 대조**: `git status --porcelain -- content docs`를 `00_git_before.txt`와 비교한다. **스냅샷 모드면 스냅샷도 대조한다** — 대상이 리포 밖이라 `git status`에 안 잡힌다. 같은 커밋을 새로 풀어 비교한다:
+   ```bash
+   FRESH=$(mktemp -d) && git archive "$SHA" content/chapters content/glossary.ts docs/VERIFIED_FACTS.md | tar -x -C "$FRESH" \
+     && diff -r "$FRESH/content" "$SNAP/content" && diff -r "$FRESH/docs" "$SNAP/docs"   # 스냅샷에 더 넣은 파일(레거시 원본 등)은 Only in 으로 나온다 — 그건 정상
+   ```
+   다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
 2. `04_report.md`를 쓰고 채팅에는 표로 요약한다.
    - **요약 줄**: 축별 지적 수 → 병합 후 N → confirmed / uncertain / refuted / 미검증. 누락(못 읽은 파일·문서 조회 실패·실패한 에이전트).
    - **묶음 제안** — 이 리포의 선례를 따른다:
