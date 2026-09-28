@@ -68,3 +68,4 @@ AWS DVA-C02 학습 사이트. 백지에서 시작하는 독립 프로젝트다.
 | 날짜 | 변경 내용 | 대상 | 사유 |
 | --- | --- | --- | --- |
 | 2026-09-28 | Harness v2로 처음 구성 — 에이전트 4종 + 오케스트레이터 | `.claude/agents/`·`.claude/skills/chapter-audit/` | #300 — ch3-1 종합 검수(#288~#292) 수작업의 반복 |
+| 2026-09-28 | learner-auditor sonnet→opus, finding-verifier 판단형 지적은 uncertain으로, 무결성 대조 범위 조정 | `learner-auditor`·`finding-verifier`·`chapter-audit` | #300 회귀 테스트 — learner 5건·검증자가 정답 3건 기각 |
