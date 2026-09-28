@@ -57,3 +57,14 @@ AWS DVA-C02 학습 사이트. 백지에서 시작하는 독립 프로젝트다.
 ## Harness
 
 - `.claude/settings.json`(커밋됨)이 PreToolUse 훅 `scripts/git_guard.py`를 등록한다 — gh CLI(위 조건 미충족 시)와 파괴적 명령(rm -rf, git push --force, git reset --hard 등)을 차단한다.
+
+## 하네스: 챕터 종합 검수
+
+**목표:** 챕터 하나를 사실·내부 일관성·학습자 경로 3축으로 병렬 검수하고, 적대적 검증을 통과한 결함만 교정 이슈 후보로 묶는다 (언어 품질 축은 `/chapter-review`).
+
+**호출 조건:** 챕터의 정확성·모순·구성을 검수하는 요청("챕터 종합 검수", "공식 문서랑 대조", "이 챕터 모순 찾아줘")이면 `chapter-audit` 스킬을 쓴다. 에이전트 정의는 `.claude/agents/` (Claude 전용 — Codex·Antigravity에서는 보이지 않는다). 단순 사실 질문에는 직접 답해도 된다.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+| --- | --- | --- | --- |
+| 2026-09-28 | Harness v2로 처음 구성 — 에이전트 4종 + 오케스트레이터 | `.claude/agents/`·`.claude/skills/chapter-audit/` | #300 — ch3-1 종합 검수(#288~#292) 수작업의 반복 |
