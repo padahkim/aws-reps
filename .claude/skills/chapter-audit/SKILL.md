@@ -11,6 +11,8 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 
 **언어 품질은 이 스킬의 축이 아니다** — `/chapter-review`가 맡는다. 두 축을 섞으면 어느 쪽도 끝까지 보지 못한다(chapter-review와 같은 원칙). 보고서 끝에서 안내만 한다.
 
+**변환 원본 대비 내용 누락도 이 스킬의 축이 아니다.** 스코프의 레거시 원본은 사실·일관성 판단의 참고 자료일 뿐 대조 대상이 아니다 — 원본의 한 절이 빠져도 챕터가 스스로 일관되면 이 스킬은 통과시킨다. 담당은 #302에서 정한다 (PR #301 Codex 지적).
+
 ## 실행 모드: 서브에이전트 위임 (팬아웃/팬인 + 적대적 검증)
 
 | 단계 | 실행 | 이유 |
@@ -45,10 +47,11 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 작업 디렉터리는 `_workspace/chapter-audit/<id>/` (리포 루트 기준, `.gitignore` 대상).
 
 - `00_scope.md`가 **없다** → 처음부터.
-- 있고 **대상 커밋이 지금과 같다**:
-  - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적은 제목에 `[폐기 — <축> vN]`을 붙여 두고, 새 지적은 마지막 번호 다음부터 이어 붙인다. 4단계는 새 번호만 검증한다 (이전에 refuted된 다른 축 지적을 새 원칙으로 다시 보려면 같은 배치에 넣는다). 이유: 판정 파일이 A번호로 묶여 있어서, 번호를 다시 매기면 이전 판정이 엉뚱한 지적에 붙는다 (PR #301 Codex 지적 — 2026-09-28 회귀 테스트는 이 방식으로 돌았다).
+- 있으면 먼저 **대상이 그대로인지** 본다 — 대상 커밋이 같고, 1단계 명령으로 해시 목록을 다시 떠서 `00_hashes_repo.txt`(스냅샷 모드면 `00_hashes_snapshot.txt`)와 비교했을 때 **대상 챕터 디렉터리와 원장 줄**(`content/chapters/<id>/`·`docs/VERIFIED_FACTS.md`)이 같아야 "그대로"다. 커밋만 보면 안 된다 — 보고서 뒤에 커밋 없이 챕터를 고쳤으면 커밋은 같은데 보고서는 낡았다 (PR #301 Codex 지적). 다른 챕터 줄은 비교에서 뺀다 — 무관한 편집이 거짓 "낡음"을 만들지 않게.
+- 있고 **대상이 그대로다**:
+  - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적에서 **그 축의 원 ID만 지운다**. 다른 축 출처가 남은 A는 그대로 살아 있고(판정도 유효), 출처가 하나도 남지 않은 A만 제목에 `[폐기 — <축> vN]`을 붙인다 — 병합된 지적을 통째로 버리면 다른 축이 독립으로 찾은 근거까지 사라진다 (PR #301 Codex 지적). 새 지적이 살아 있는 A와 같은 결함이면 그 A에 원 ID를 더하고(재검증 불필요), 아니면 마지막 번호 다음부터 이어 붙인다. 4단계는 새 번호만 검증한다 (이전에 refuted된 다른 축 지적을 새 원칙으로 다시 보려면 같은 배치에 넣는다). 이유: 판정 파일이 A번호로 묶여 있어서, 번호를 다시 매기면 이전 판정이 엉뚱한 지적에 붙는다 (PR #301 Codex 지적 — 2026-09-28 회귀 테스트는 이 방식으로 돌았다).
   - "이슈 만들어·N번 등록" → `04_report.md`를 읽고 6단계로.
-- 있고 **대상 커밋이 다르다**(챕터가 바뀌었다) 또는 새 입력 → 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
+- 있고 **대상이 바뀌었다**(커밋이 다르거나, 커밋은 같아도 대상 해시가 다르다) 또는 새 입력 → "N번 등록" 요청이었어도 낡은 보고서로 등록하지 않는다 — 바뀌었다는 사실과 재검수 필요를 보고한다. 재검수하면 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
 
 ## 1단계: 스코프 확정 (메인)
 
@@ -58,13 +61,15 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    mkdir -p "$SNAP" && git archive "$SHA" content/chapters content/glossary.ts docs/VERIFIED_FACTS.md \
      | tar -x -C "$SNAP"
    ```
-2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 스캔 대상이다 (정본은 그쪽 — 여기 복제하지 않는다). 대상 루트에 실제로 있는 파일만 줄 수와 함께 적는다. `drills.ts`는 퀴즈 페이지에 렌더되므로 사실·일관성 대조에 포함하되, 교정 위치는 `content/drills-src/` 원본이라고 적는다.
-3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
+2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 스캔 대상이다 (정본은 그쪽 — 여기 복제하지 않는다). 대상 루트에 실제로 있는 파일만 줄 수와 함께 적는다. **챕터 퀴즈는 `drills.ts` 전량이 아니라 `meta.ts`가 내보내는 `quiz` 선별분만** 학습자에게 렌더된다 (예: ch0-2는 `CHAPTER_SCOPE`로 일부만 고른다). `meta.ts`의 `quiz` 정의를 읽어 **선별된 slug 목록**(전량 re-export면 "전량")을 스코프에 적고, 그 문항만 대조 대상으로 삼는다 — 선별 밖 문항은 학습자가 보지 않는다. 교정 위치는 `content/drills-src/` 원본이라고 적는다.
+3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 용어집 `<root>/content/glossary.ts`(본문 `<Term>` 팝오버가 여기 `short`를 띄운다 — L1 판정에 필요하다), 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
 4. **무결성 기준점 — 파일 해시 목록**: 5단계에서 대조한다. 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다.
    ```bash
-   W=_workspace/chapter-audit/<id>
+   W=_workspace/chapter-audit/<id>; mkdir -p "$W"   # 새 체크아웃에는 이 디렉터리가 없다 (.gitignore 대상)
    find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 > "$W/00_hashes_repo.txt"                   # 리포 루트에서
-   [ -n "$SNAP" ] && (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) > "$W/00_hashes_snapshot.txt"  # 스냅샷 모드만
+   if [ -n "$SNAP" ]; then                                                                                     # 스냅샷 모드만
+     (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) > "$W/00_hashes_snapshot.txt"
+   fi   # `[ -n "$SNAP" ] && …` 한 줄로 쓰면 기본 모드에서 블록 전체가 종료 코드 1로 끝난다
    ```
    - **왜 `git status`가 아니라 해시인가**: `git status --porcelain`은 상태 코드만 본다. 검수 시작 전에 이미 수정 중이던 파일(` M path`)을 검수자가 더 고쳐도 코드는 그대로라 대조를 통과한다 (PR #301 Codex 지적). 해시는 추적·미추적·수정 중 파일을 가리지 않고 **내용**을 본다. 스냅샷은 리포 밖이라 `git status`에 아예 안 잡히는데, 같은 해시 목록으로 한 번에 덮는다.
    - 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다). 그러니 **메인도 검수 중에는 `content`·`docs`를 고치지 않는다**.
@@ -75,7 +80,8 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    - 대상 커밋: <sha>
    - 규모: 기본 | 철저히
    - 스캔 파일: `<root>/content/chapters/<id>/sections/01.mdx`(34) · …
-   - 참고: VERIFIED_FACTS=<경로> · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
+   - 참고: VERIFIED_FACTS=<경로> · 용어집=<root>/content/glossary.ts · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
+   - 챕터 퀴즈 선별: <slug 목록 | 전량 | 없음>   (마지막 섹션 페이지의 퀴즈·세션 도식·교차 복습도 스캔 대상이다)
    - 출력 디렉터리: <리포>/_workspace/chapter-audit/<id>/
    - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
    ```
@@ -113,6 +119,7 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 스코프: <리포>/_workspace/chapter-audit/<id>/00_scope.md
 입력: <리포>/_workspace/chapter-audit/<id>/02_merged_findings.md 의 A13~A24
 출력: <리포>/_workspace/chapter-audit/<id>/03_finding-verifier_b2_verdicts.md
+      (철저히: 같은 배치의 두 호출에 각각 …_b2_v1_verdicts.md · …_b2_v2_verdicts.md — 한 경로를 공유시키지 않는다)
 형식: <리포>/.claude/skills/chapter-audit/references/finding-format.md "판정 형식"
 ```
 
@@ -120,14 +127,14 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 - `confirmed` → 보고서 본표.
 - `uncertain` → 보고서 "판단 필요" 표 (판정 조건과 함께).
 - `refuted` → 보고서 끝에 **건수와 한 줄 사유를 공개**한다. 제외 수를 숨기면 사용자는 "찾은 게 이것뿐"으로 오해한다.
-- 판정 파일에 빠진 ID → "미검증"으로 따로 표기 (본표에 넣지 않는다).
+- 판정 파일에 빠진 ID, 또는 `unverified`(형식 결함으로 판정 불가) → "미검증"으로 따로 표기 (본표에 넣지 않는다). 미검증은 기각이 아니다 — 보고서에 건수를 적고, 해당 축을 다시 돌릴지 사용자에게 묻는다.
 
 ## 5단계: 보고 → 멈춤
 
 1. **무결성 대조**: 1단계와 같은 명령으로 해시 목록을 다시 떠서 비교한다. 두 비교는 **서로 독립으로 둘 다** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 첫 비교가 차이를 내는 순간 두 번째가 실행되지 않는다 — PR #301 Codex 지적).
    ```bash
    find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 | diff "$W/00_hashes_repo.txt" - ; R1=$?
-   R2=0; [ -n "$SNAP" ] && { (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) | diff "$W/00_hashes_snapshot.txt" - ; R2=$?; }
+   R2=0; if [ -n "$SNAP" ]; then (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) | diff "$W/00_hashes_snapshot.txt" - ; R2=$?; fi
    echo "repo=$R1 snapshot=$R2"   # 둘 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
    ```
    다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
