@@ -46,7 +46,7 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 
 - `00_scope.md`가 **없다** → 처음부터.
 - 있고 **대상 커밋이 지금과 같다**:
-  - "○○ 축만 다시" → 그 축만 2단계부터. 3단계는 새 파일로 다시 병합하고, 4단계는 **바뀐 지적만** 검증한다.
+  - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적은 제목에 `[폐기 — <축> vN]`을 붙여 두고, 새 지적은 마지막 번호 다음부터 이어 붙인다. 4단계는 새 번호만 검증한다 (이전에 refuted된 다른 축 지적을 새 원칙으로 다시 보려면 같은 배치에 넣는다). 이유: 판정 파일이 A번호로 묶여 있어서, 번호를 다시 매기면 이전 판정이 엉뚱한 지적에 붙는다 (PR #301 Codex 지적 — 2026-09-28 회귀 테스트는 이 방식으로 돌았다).
   - "이슈 만들어·N번 등록" → `04_report.md`를 읽고 6단계로.
 - 있고 **대상 커밋이 다르다**(챕터가 바뀌었다) 또는 새 입력 → 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
 
@@ -60,7 +60,14 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    ```
 2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 스캔 대상이다 (정본은 그쪽 — 여기 복제하지 않는다). 대상 루트에 실제로 있는 파일만 줄 수와 함께 적는다. `drills.ts`는 퀴즈 페이지에 렌더되므로 사실·일관성 대조에 포함하되, 교정 위치는 `content/drills-src/` 원본이라고 적는다.
 3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
-4. **무결성 기준점**: `git status --porcelain -- content docs > _workspace/chapter-audit/<id>/00_git_before.txt`. 5단계에서 대조한다 — 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다. 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다).
+4. **무결성 기준점 — 파일 해시 목록**: 5단계에서 대조한다. 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다.
+   ```bash
+   W=_workspace/chapter-audit/<id>
+   find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 > "$W/00_hashes_repo.txt"                   # 리포 루트에서
+   [ -n "$SNAP" ] && (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) > "$W/00_hashes_snapshot.txt"  # 스냅샷 모드만
+   ```
+   - **왜 `git status`가 아니라 해시인가**: `git status --porcelain`은 상태 코드만 본다. 검수 시작 전에 이미 수정 중이던 파일(` M path`)을 검수자가 더 고쳐도 코드는 그대로라 대조를 통과한다 (PR #301 Codex 지적). 해시는 추적·미추적·수정 중 파일을 가리지 않고 **내용**을 본다. 스냅샷은 리포 밖이라 `git status`에 아예 안 잡히는데, 같은 해시 목록으로 한 번에 덮는다.
+   - 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다). 그러니 **메인도 검수 중에는 `content`·`docs`를 고치지 않는다**.
 5. `00_scope.md`를 쓴다:
    ```markdown
    # chapter-audit scope — <id>
@@ -98,6 +105,8 @@ chapter-audit 2단계 — <축> 검수.
 
 **실행 모드: 서브에이전트 위임.** 배치마다 `finding-verifier` 1명, 한 메시지에서 병렬.
 규모가 `철저히`면 배치마다 2명을 독립 실행하고 **둘 다 confirmed**인 것만 통과시킨다 (과반 규칙 — 2명의 과반은 2명).
+- 출력 파일을 검수자별로 **나눈다** — `03_finding-verifier_<batch>_v1_verdicts.md`·`…_v2_verdicts.md`. 같은 경로를 주면 한쪽이 다른 쪽을 덮어써서 "둘 다" 규칙을 강제할 수 없다 (PR #301 Codex 지적).
+- 합산은 메인이 한다: 둘 다 `confirmed` → confirmed · 둘 다 `refuted` → refuted · 한쪽 `confirmed`·다른 쪽 `refuted` → **uncertain**(판정 조건 "검증자 불일치 — 두 사유 한 줄씩") · 한쪽이라도 `uncertain` → uncertain. 불일치를 한쪽으로 몰지 않는 이유는 판단형 지적 원칙과 같다 — 갈린 판단은 사용자에게 넘긴다.
 
 ```text
 chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
@@ -115,10 +124,11 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 ## 5단계: 보고 → 멈춤
 
-1. **무결성 대조**: `git status --porcelain -- content docs`를 `00_git_before.txt`와 비교한다. **스냅샷 모드면 스냅샷도 대조한다** — 대상이 리포 밖이라 `git status`에 안 잡힌다. 같은 커밋을 새로 풀어 비교한다:
+1. **무결성 대조**: 1단계와 같은 명령으로 해시 목록을 다시 떠서 비교한다. 두 비교는 **서로 독립으로 둘 다** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 첫 비교가 차이를 내는 순간 두 번째가 실행되지 않는다 — PR #301 Codex 지적).
    ```bash
-   FRESH=$(mktemp -d) && git archive "$SHA" content/chapters content/glossary.ts docs/VERIFIED_FACTS.md | tar -x -C "$FRESH" \
-     && diff -r "$FRESH/content" "$SNAP/content" && diff -r "$FRESH/docs" "$SNAP/docs"   # 스냅샷에 더 넣은 파일(레거시 원본 등)은 Only in 으로 나온다 — 그건 정상
+   find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 | diff "$W/00_hashes_repo.txt" - ; R1=$?
+   R2=0; [ -n "$SNAP" ] && { (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) | diff "$W/00_hashes_snapshot.txt" - ; R2=$?; }
+   echo "repo=$R1 snapshot=$R2"   # 둘 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
    ```
    다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
 2. `04_report.md`를 쓰고 채팅에는 표로 요약한다.
@@ -147,7 +157,7 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 | 파일 | 쓰는 쪽 | 읽는 쪽 |
 |---|---|---|
-| `00_scope.md` · `00_git_before.txt` | 메인 (1단계) | 모든 에이전트 · 메인 (5단계) |
+| `00_scope.md` · `00_hashes_repo.txt` · `00_hashes_snapshot.txt`(스냅샷 모드) | 메인 (1단계) | 모든 에이전트 · 메인 (5단계) |
 | `01_<agent>_findings.md` ×3 | 각 auditor (2단계) | 메인 (3단계) |
 | `02_merged_findings.md` | 메인 (3단계) | finding-verifier (4단계) |
 | `03_finding-verifier_<batch>_verdicts.md` | 각 verifier (4단계) | 메인 (5단계) |
