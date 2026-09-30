@@ -15,7 +15,7 @@ description: 챕터 하나의 언어 품질(번역투·용어 일관성)을 1회
 ## 입력·범위
 
 - **입력**: 챕터 id 하나 (`ch0-1`·`ch1-2` 등). 없이 호출되면 어느 챕터인지 먼저 묻는다.
-- **스캔 대상 = 그 챕터의 학습자 노출 한국어 텍스트 전부**. `content/chapters/<id>/` 아래:
+- **스캔 대상 = 그 챕터의 학습자 노출 한국어 텍스트 전부**. 아래 목록은 후보 자산 종류이고, 실제 집합은 `content/registry.ts`의 대상 entry(`loadBody`·`data`·optional `loadIntro`)에서 시작해 `body.tsx`와 MDX import를 따라간 **렌더 그래프**로 확정한다. 파일이 존재해도 그래프에서 도달하지 않으면 학습자 노출이 아니므로 제외한다. 특히 `intro.mdx`는 `loadIntro`가 있을 때만, `outro.mdx`는 body가 실제로 import·렌더할 때만 포함한다. `figs.tsx`도 렌더되는 MDX가 import한 심볼만 읽는다.
   - `intro.mdx`·`outro.mdx`·`sections/*.mdx` — 본문 산문
   - `body.tsx`·`figs.tsx` — JSX 안의 한국어 문자열(문단·그림 캡션·라벨)
   - `drills.ts` — 퀴즈 문항·선택지·해설(`title`·`question`·`explanation` 등)
