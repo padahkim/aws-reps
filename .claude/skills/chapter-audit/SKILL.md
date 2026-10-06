@@ -47,30 +47,47 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 작업 디렉터리는 `_workspace/chapter-audit/<id>/` (리포 루트 기준, `.gitignore` 대상).
 
 - `00_scope.md`·`00_inputs.txt`·`00_input_hashes.txt` 중 하나라도 **없다** → 처음부터. 이전 버전 산출물은 새 의존성 목록이 없어서 안전하게 재사용할 수 없다.
-- 있으면 먼저 **판정 입력이 그대로인지** 본다 — 대상 커밋이 같고, 저장한 `00_inputs.txt`의 각 파일을 다시 해시해 `00_input_hashes.txt`와 비교했을 때 같아야 "그대로"다. 입력 목록에는 대상의 실제 렌더 자산뿐 아니라 `content/registry.ts`, 화면의 순서·선별을 정하는 app/lib 렌더러 소스, 용어집, `VERIFIED_FACTS`, Audience 절을 담은 `CLAUDE.md`, 레거시 원본(썼다면), **registry에서 대상보다 앞선 챕터의 실제 렌더 자산**을 넣는다. 앞 챕터와 용어집은 L1의 "이미 배움/팝오버로 정의됨" 판정을, 렌더러는 intro·preview·카드·마무리의 노출 여부와 순서를 바꾸므로 빠뜨리면 안 된다. 커밋만 보면 안 된다 — 보고서 뒤에 커밋 없이 입력을 고쳤으면 커밋은 같은데 보고서는 낡았다 (PR #301 Codex 지적). 반대로 판정에 쓰지 않은 다른 챕터·파일은 입력 목록에 넣지 않는다 — 무관한 편집이 거짓 "낡음"을 만들지 않게.
+- 있으면 먼저 **요청 대상이 같은지** 본다. 이번 호출의 root를 `cd <root> && pwd -P`로 정규화하고 mode를 `repo`(기본) 또는 `snapshot`(`--root`)으로 정한 뒤, `00_scope.md`의 `대상 루트`·`대상 모드`와 정확히 비교한다. 하나라도 다르면 이전 절대경로를 다시 해시하지 말고 곧바로 "대상이 바뀌었다"로 처리한다 — 같은 챕터·커밋이어도 worktree와 snapshot, 또는 서로 다른 snapshot은 같은 입력이 아니다 (PR #303 Codex 지적).
+- root/mode가 같을 때만 **판정 입력이 그대로인지** 본다 — 대상 커밋이 같고, 저장한 `00_inputs.txt`의 각 파일을 다시 해시해 `00_input_hashes.txt`와 비교했을 때 같아야 "그대로"다. 입력 목록에는 대상의 실제 렌더 자산뿐 아니라 `content/registry.ts`, 화면의 순서·선별을 정하는 app/lib 렌더러 소스, 용어집, `VERIFIED_FACTS`, Audience 절을 담은 `CLAUDE.md`, 레거시 원본(썼다면), **registry에서 대상보다 앞선 챕터의 실제 렌더 자산**을 넣는다. 앞 챕터와 용어집은 L1의 "이미 배움/팝오버로 정의됨" 판정을, 렌더러는 intro·preview·카드·마무리의 노출 여부와 순서를 바꾸므로 빠뜨리면 안 된다. 커밋만 보면 안 된다 — 보고서 뒤에 커밋 없이 입력을 고쳤으면 커밋은 같은데 보고서는 낡았다 (PR #301 Codex 지적). 반대로 판정에 쓰지 않은 다른 챕터·파일은 입력 목록에 넣지 않는다 — 무관한 편집이 거짓 "낡음"을 만들지 않게.
 - 있고 **대상이 그대로다**:
   - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적에서 **그 축의 원 ID만 지운다**. 다른 축 출처가 남은 A는 살아 있고, 출처가 하나도 남지 않은 A는 제목에 `[폐기 — <축> vN]`과 `상태: tombstone`을 붙여 번호·이력만 보존한다. tombstone의 예전 본문은 **검증·판정 집계·보고에서 모두 제외**한다 — 재실행이 버린 지적을 verifier가 되살리면 안 된다. 새 지적이 기존 live A와 같은 결함이면 그 A에 원 ID를 더한다. tombstone과 같은 결함이면 그 A의 tombstone을 제거해 되살리고 원 ID를 붙인다. 어느 쪽도 아니면 마지막 번호 다음부터 이어 붙인다. **판정은 내용에 묶이지 A번호에 묶이지 않는다.** 살아 있는 A의 축/원 ID·위치·인용·문제·교정 방향·규모 중 하나라도 달라졌거나, tombstone/refuted 상태에서 되살아났거나, 새 A라면 그 A가 든 **배치 전체의 live A**를 4단계에서 다시 검증한다. 이전 판정 파일은 `.v<N>.md`로 남기고 새 판정으로 교체한다. 완전히 같은 live A만 기존 판정을 유지한다. 새 출처를 붙였다는 이유만으로 예전 refuted 판정을 물려주거나, 새 위치·교정 범위를 검증 없이 confirmed로 내보내면 안 된다 (PR #301·#303 Codex 지적).
   - "이슈 만들어·N번 등록" → `04_report.md`를 읽고 6단계로.
-- 있고 **대상이 바뀌었다**(커밋이 다르거나, 커밋은 같아도 대상 해시가 다르다) 또는 새 입력 → "N번 등록" 요청이었어도 낡은 보고서로 등록하지 않는다 — 바뀌었다는 사실과 재검수 필요를 보고한다. 재검수하면 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
+- 있고 **대상이 바뀌었다**(root·mode·커밋 중 하나가 다르거나, 모두 같아도 대상 해시가 다르다) 또는 새 입력 → "N번 등록" 요청이었어도 낡은 보고서로 등록하지 않는다 — 바뀌었다는 사실과 재검수 필요를 보고한다. 재검수하면 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
 
 ## 1단계: 스코프 확정 (메인)
 
-1. **대상 루트.** 기본은 리포 루트(현행 브랜치). `--root`면 그 디렉터리. 회귀 테스트나 과거 시점 검수용 스냅샷은 이렇게 만든다 (scratchpad 등 리포 밖에):
+1. **대상 루트와 모드.** 기본은 리포 루트(현행 브랜치)와 `repo` mode. `--root`면 그 디렉터리의 정규화된 절대경로와 `snapshot` mode다. 회귀 테스트나 과거 시점 검수용 스냅샷은 이렇게 만든다 (scratchpad 등 리포 밖에):
    ```bash
    SHA=<커밋>; SNAP=<scratchpad>/snap-$SHA
-   mkdir -p "$SNAP" && git archive "$SHA" app/chapters lib content CLAUDE.md docs/VERIFIED_FACTS.md \
+   mkdir -p "$SNAP" && git archive "$SHA" app lib content CLAUDE.md docs/VERIFIED_FACTS.md \
      | tar -x -C "$SNAP"
    ```
+   전체 `app`을 담는 이유: chapter route의 repo-local import closure가 `app/chapters/` 밖의 진행률·접근성 컴포넌트까지 이어진다. snapshot auditor는 현행 리포를 읽을 수 없으므로 closure 일부만 archive하면 노출 경로를 완성할 수 없다 (PR #303 Codex 지적).
 2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 자산 종류를 쓰되, 실제 집합은 **파일 존재가 아니라 렌더 그래프**로 확정한다.
    - 화면 쪽 시작점은 `app/chapters/[id]/page.tsx`와 `app/chapters/[id]/[sec]/page.tsx`다. 두 route와 import helper를 따라 intro, 섹션 header, preview, self-quiz, concept, outro, finale의 노출 여부·순서를 먼저 확정한다. 적어도 `lib/content.ts`·`lib/chapter-routes.ts`와 실제로 쓰는 하위 renderer를 포함한다.
    - 콘텐츠 쪽은 `content/registry.ts`의 대상 entry에서 `loadBody`와 `data`가 가리키는 export를 시작점으로 삼고, `body.tsx`와 렌더되는 MDX의 import를 따라간다. `sections/*.mdx`·`outro.mdx`·`figs.tsx`는 이 그래프에서 실제로 도달하는 파일/심볼만 넣는다.
    - `intro.mdx`는 대상 entry에 `loadIntro`가 있을 때만 넣는다. 파일이 남아 있어도 `loadIntro`가 없으면 화면에 나오지 않으므로 제외한다. 같은 원칙으로 registry/body 그래프에서 도달하지 않는 orphan 자산은 스캔하지 않고 `00_scope.md`의 "비렌더 제외"에 적는다.
    - `session.ts`·`selfquiz.ts`도 registry의 `data` export와 유효한 섹션 매핑을 거쳐 실제 렌더되는 항목만 본다. **챕터 퀴즈는 `drills.ts` 전량이 아니라 `meta.ts`가 내보내는 `quiz` 선별분만** 대상이다 (예: ch0-2는 `CHAPTER_SCOPE`로 일부만 고른다). `meta.ts`의 `quiz` 정의를 읽어 **선별된 slug 목록**(전량 re-export면 "전량")을 적는다. 교정 위치는 `content/drills-src/` 원본이라고 적는다.
    - 각 대상은 줄 수와 함께 적고, 부분 파일이면 렌더되는 export·slug·심볼도 적는다. 이렇게 해야 "디스크에 있음"과 "학습자가 봄"을 혼동하지 않는다 (PR #301 Codex 지적).
-3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 용어집 `<root>/content/glossary.ts`(본문 `<Term>` 팝오버가 여기 `short`를 띄운다 — L1 판정에 필요하다), 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
-4. **재사용 입력 + 무결성 기준점 — 파일 해시 목록**:
-   - 먼저 `00_inputs.txt`에 이번 판정이 의존하는 **로컬 파일 전부**를 절대경로로 한 줄씩 쓴다: 두 chapter route에서 시작한 **renderer import closure**(예: `lib/content.ts`·`lib/chapter-routes.ts`·preview/self-quiz/concept/finale renderer), `content/registry.ts`, 대상의 렌더 자산, glossary, `VERIFIED_FACTS`, `CLAUDE.md`, 사용한 레거시 원본, registry상 앞선 챕터에서 L1/C1 판단에 참고할 렌더 자산, chapter-audit/chapter-review 지침, 에이전트 정의와 `finding-format.md`. 그 목록을 해시한 `00_input_hashes.txt`가 0단계 재사용 판정의 기준이다. 외부 AWS 문서는 보고서의 확인 날짜·URL로 추적한다.
-   - 별도로 리포의 `content`·`docs` 전체와 스냅샷을 해시한다. 이것은 5단계에서 검수자가 콘텐츠를 고치지 않았는지 확인하는 무결성 기준점이다.
+3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 용어집 `<root>/content/glossary.ts`(본문 `<Term>` 팝오버가 여기 `short`를 띄운다 — L1 판정에 필요하다), 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `<root>/CLAUDE.md` Audience 절.
+4. `W=_workspace/chapter-audit/<id>`로 두고 `mkdir -p "$W"` 한 뒤, 다른 산출물보다 먼저 `$W/00_scope.md`를 쓴다:
+   ```markdown
+   # chapter-audit scope — <id>
+   - 대상 루트: <정규화한 절대경로>          (스냅샷이면: 원 커밋 <sha>)
+   - 대상 모드: repo | snapshot
+   - 대상 커밋: <sha>
+   - 규모: 기본 | 철저히
+   - 스캔 파일: `<root>/content/chapters/<id>/sections/01.mdx`(34) · …
+   - 렌더 근거: route/helper import graph=<요약> · registry entry=<위치> · loadIntro=<있음|없음> · body import graph=<요약>
+   - 비렌더 제외: <orphan intro·미선별 quiz·미사용 export | 없음>
+   - 참고: VERIFIED_FACTS=<경로> · 용어집=<root>/content/glossary.ts · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
+   - 챕터 퀴즈 선별: <slug 목록 | 전량 | 없음>   (마지막 섹션 페이지의 퀴즈·세션 도식·교차 복습도 스캔 대상이다)
+   - 출력 디렉터리: <리포>/_workspace/chapter-audit/<id>/
+   - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
+   ```
+5. **재사용 입력 + 무결성 기준점 — 파일 해시 목록**:
+   - `00_inputs.txt`에 이번 판정이 의존하는 **로컬 파일 전부**를 절대경로로 한 줄씩 쓴다: 방금 확정한 `00_scope.md`, 두 chapter route에서 시작한 **renderer import closure**(예: `lib/content.ts`·`lib/chapter-routes.ts`·preview/self-quiz/concept/finale renderer), `content/registry.ts`, 대상의 렌더 자산, glossary, `VERIFIED_FACTS`, `<root>/CLAUDE.md`, 사용한 레거시 원본, registry상 앞선 챕터에서 L1/C1 판단에 참고할 렌더 자산, chapter-audit/chapter-review 지침, 에이전트 정의와 `finding-format.md`. scope를 먼저 만들고 해시하는 이유: 모든 auditor/verifier가 읽는 root·파일·심볼·quiz 선별 자체도 실행 도중 바뀌면 안 된다 (PR #303 Codex 지적). 외부 AWS 문서는 보고서의 확인 날짜·URL로 추적한다.
+   - 그 목록을 해시한 `00_input_hashes.txt`가 0단계 재사용 판정과 5단계 보고 전 대조의 기준이다. 별도로 리포의 `content`·`docs` 전체와 스냅샷을 해시해 검수자가 콘텐츠를 고치지 않았는지도 확인한다.
    ```bash
    W=_workspace/chapter-audit/<id>; mkdir -p "$W"   # 새 체크아웃에는 이 디렉터리가 없다 (.gitignore 대상)
    while IFS= read -r p; do
@@ -83,20 +100,6 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    ```
    - **왜 `git status`가 아니라 해시인가**: `git status --porcelain`은 상태 코드만 본다. 검수 시작 전에 이미 수정 중이던 파일(` M path`)을 검수자가 더 고쳐도 코드는 그대로라 대조를 통과한다 (PR #301 Codex 지적). 해시는 추적·미추적·수정 중 파일을 가리지 않고 **내용**을 본다. 스냅샷은 리포 밖이라 `git status`에 아예 안 잡히는데, 같은 해시 목록으로 한 번에 덮는다.
    - 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다). 그러니 **메인도 검수 중에는 `content`·`docs`를 고치지 않는다**.
-5. `00_scope.md`를 쓴다:
-   ```markdown
-   # chapter-audit scope — <id>
-   - 대상 루트: <절대경로>          (스냅샷이면: 원 커밋 <sha>)
-   - 대상 커밋: <sha>
-   - 규모: 기본 | 철저히
-   - 스캔 파일: `<root>/content/chapters/<id>/sections/01.mdx`(34) · …
-   - 렌더 근거: route/helper import graph=<요약> · registry entry=<위치> · loadIntro=<있음|없음> · body import graph=<요약>
-   - 비렌더 제외: <orphan intro·미선별 quiz·미사용 export | 없음>
-   - 참고: VERIFIED_FACTS=<경로> · 용어집=<root>/content/glossary.ts · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
-   - 챕터 퀴즈 선별: <slug 목록 | 전량 | 없음>   (마지막 섹션 페이지의 퀴즈·세션 도식·교차 복습도 스캔 대상이다)
-   - 출력 디렉터리: <리포>/_workspace/chapter-audit/<id>/
-   - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
-   ```
 
 ## 2단계: 3축 병렬 검수
 
