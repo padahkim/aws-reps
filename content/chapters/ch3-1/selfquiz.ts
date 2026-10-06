@@ -308,13 +308,13 @@ export const selfQuiz: SelfQuizEntry[] = [
     slug: "sq-alb-offload-purpose",
     section: "13",
     q: "“애플리케이션 코드를 고치지 않고 사용자 인증을 추가하라”의 답은?",
-    a: "ALB의 authenticate-cognito 또는 authenticate-oidc 액션이다 — ALB가 인증을 대신 수행해 백엔드에는 인증 코드가 없다.",
+    a: "ALB의 authenticate-cognito 또는 authenticate-oidc 액션이다 — ALB가 로그인 플로우를 대신 수행하므로 백엔드에 로그인 코드를 넣지 않아도 된다. 단, 백엔드가 클레임으로 인가하려면 x-amzn-oidc-data 서명과 signer 확인은 백엔드 몫이다.",
   },
   {
-    slug: "sq-alb-private-egress",
+    slug: "sq-alb-signed-header",
     section: "13",
-    q: "내부 ALB에 인증 설정을 모두 넣었는데 로그인 코드 교환이 실패한다 — 네트워크에서 확인할 것은?",
-    a: "ALB가 IdP의 Token·User Info 엔드포인트로 IPv4 아웃바운드 통신할 수 있는지 확인한다. 보안 그룹·NACL이 허용해야 하고, 퍼블릭 IPv4 출구가 없으면 NAT Gateway 경로가 필요하다.",
+    q: "ALB가 타깃에 붙여 주는 x-amzn-oidc-* 헤더 가운데 ALB가 직접 서명하는 것, 그래서 사용자 식별·인가의 기준으로 쓰는 것은?",
+    a: "x-amzn-oidc-data 하나다 — ALB가 서명한 클레임 JWT이고, JWT 헤더의 signer에 그 ALB의 ARN이 들어 있다. x-amzn-oidc-accesstoken·x-amzn-oidc-identity에는 ALB 서명이 없다 (Cognito 방식의 accesstoken은 User Pool이 서명한 Access 토큰이라 JWKS로 따로 검증할 수는 있다).",
   },
 
   // ── 14 조합과 총정리 ─────────────────────────────────────────────────
