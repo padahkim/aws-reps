@@ -46,26 +46,54 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 
 작업 디렉터리는 `_workspace/chapter-audit/<id>/` (리포 루트 기준, `.gitignore` 대상).
 
-- `00_scope.md`가 **없다** → 처음부터.
-- 있으면 먼저 **대상이 그대로인지** 본다 — 대상 커밋이 같고, 1단계 명령으로 해시 목록을 다시 떠서 `00_hashes_repo.txt`(스냅샷 모드면 `00_hashes_snapshot.txt`)와 비교했을 때 **대상 챕터 디렉터리와 원장 줄**(`content/chapters/<id>/`·`docs/VERIFIED_FACTS.md`)이 같아야 "그대로"다. 커밋만 보면 안 된다 — 보고서 뒤에 커밋 없이 챕터를 고쳤으면 커밋은 같은데 보고서는 낡았다 (PR #301 Codex 지적). 다른 챕터 줄은 비교에서 뺀다 — 무관한 편집이 거짓 "낡음"을 만들지 않게.
+- `00_scope.md`·`00_inputs.txt`·`00_input_hashes.txt` 중 하나라도 **없다** → 처음부터. 이전 버전 산출물은 새 의존성 목록이 없어서 안전하게 재사용할 수 없다.
+- 있으면 먼저 **요청 대상이 같은지** 본다. 이번 호출의 root를 `cd <root> && pwd -P`로 정규화하고 mode를 `repo`(기본) 또는 `snapshot`(`--root`)으로 정한 뒤, `00_scope.md`의 `대상 루트`·`대상 모드`와 정확히 비교한다. 하나라도 다르면 이전 절대경로를 다시 해시하지 말고 곧바로 "대상이 바뀌었다"로 처리한다 — 같은 챕터·커밋이어도 worktree와 snapshot, 또는 서로 다른 snapshot은 같은 입력이 아니다 (PR #303 Codex 지적).
+- root/mode가 같을 때만 **판정 입력이 그대로인지** 본다 — 대상 커밋이 같고, 저장한 `00_inputs.txt`의 각 파일을 다시 해시해 `00_input_hashes.txt`와 비교했을 때 같아야 "그대로"다. 입력 목록에는 대상의 실제 렌더 자산뿐 아니라 `content/registry.ts`, 화면의 순서·선별을 정하는 app/lib 렌더러 소스, 용어집, `VERIFIED_FACTS`, Audience 절을 담은 `CLAUDE.md`, 레거시 원본(썼다면), **registry에서 대상보다 앞선 챕터의 실제 렌더 자산**을 넣는다. 앞 챕터와 용어집은 L1의 "이미 배움/팝오버로 정의됨" 판정을, 렌더러는 intro·preview·카드·마무리의 노출 여부와 순서를 바꾸므로 빠뜨리면 안 된다. 커밋만 보면 안 된다 — 보고서 뒤에 커밋 없이 입력을 고쳤으면 커밋은 같은데 보고서는 낡았다 (PR #301 Codex 지적). 반대로 판정에 쓰지 않은 다른 챕터·파일은 입력 목록에 넣지 않는다 — 무관한 편집이 거짓 "낡음"을 만들지 않게.
 - 있고 **대상이 그대로다**:
-  - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적에서 **그 축의 원 ID만 지운다**. 다른 축 출처가 남은 A는 그대로 살아 있고(판정도 유효), 출처가 하나도 남지 않은 A만 제목에 `[폐기 — <축> vN]`을 붙인다 — 병합된 지적을 통째로 버리면 다른 축이 독립으로 찾은 근거까지 사라진다 (PR #301 Codex 지적). 새 지적이 살아 있는 A와 같은 결함이면 그 A에 원 ID를 더하고(재검증 불필요), 아니면 마지막 번호 다음부터 이어 붙인다. 4단계는 새 번호만 검증한다 (이전에 refuted된 다른 축 지적을 새 원칙으로 다시 보려면 같은 배치에 넣는다). 이유: 판정 파일이 A번호로 묶여 있어서, 번호를 다시 매기면 이전 판정이 엉뚱한 지적에 붙는다 (PR #301 Codex 지적 — 2026-09-28 회귀 테스트는 이 방식으로 돌았다).
+  - "○○ 축만 다시" → 그 축만 2단계부터. 그 축의 이전 산출물은 `01_<agent>_findings.v<N>.md`로 남긴다. 3단계에서는 **A번호를 다시 매기지 않는다** — 그 축의 기존 지적에서 **그 축의 원 ID만 지운다**. 다른 축 출처가 남은 A는 살아 있고, 출처가 하나도 남지 않은 A는 제목에 `[폐기 — <축> vN]`과 `상태: tombstone`을 붙여 번호·이력만 보존한다. tombstone의 예전 본문은 **검증·판정 집계·보고에서 모두 제외**한다 — 재실행이 버린 지적을 verifier가 되살리면 안 된다. 새 지적이 기존 live A와 같은 결함이면 그 A에 원 ID를 더한다. tombstone과 같은 결함이면 그 A의 tombstone을 제거해 되살리고 원 ID를 붙인다. 어느 쪽도 아니면 마지막 번호 다음부터 이어 붙인다. **판정은 내용에 묶이지 A번호에 묶이지 않는다.** 살아 있는 A의 축/원 ID·위치·인용·문제·교정 방향·규모 중 하나라도 달라졌거나, tombstone/refuted 상태에서 되살아났거나, 새 A라면 그 A가 든 **배치 전체의 live A**를 4단계에서 다시 검증한다. 이전 판정 파일은 `.v<N>.md`로 남기고 새 판정으로 교체한다. 완전히 같은 live A만 기존 판정을 유지한다. 새 출처를 붙였다는 이유만으로 예전 refuted 판정을 물려주거나, 새 위치·교정 범위를 검증 없이 confirmed로 내보내면 안 된다 (PR #301·#303 Codex 지적).
   - "이슈 만들어·N번 등록" → `04_report.md`를 읽고 6단계로.
-- 있고 **대상이 바뀌었다**(커밋이 다르거나, 커밋은 같아도 대상 해시가 다르다) 또는 새 입력 → "N번 등록" 요청이었어도 낡은 보고서로 등록하지 않는다 — 바뀌었다는 사실과 재검수 필요를 보고한다. 재검수하면 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
+- 있고 **대상이 바뀌었다**(root·mode·커밋 중 하나가 다르거나, 모두 같아도 대상 해시가 다르다) 또는 새 입력 → "N번 등록" 요청이었어도 낡은 보고서로 등록하지 않는다 — 바뀌었다는 사실과 재검수 필요를 보고한다. 재검수하면 기존 디렉터리를 `<id>-<YYYYMMDD-HHMM>`으로 옮기고 처음부터. 옛 보고서의 "등록됨" 행은 새 보고서에 옮겨 적는다 — 같은 결함을 두 번 등록하지 않으려는 것이다.
 
 ## 1단계: 스코프 확정 (메인)
 
-1. **대상 루트.** 기본은 리포 루트(현행 브랜치). `--root`면 그 디렉터리. 회귀 테스트나 과거 시점 검수용 스냅샷은 이렇게 만든다 (scratchpad 등 리포 밖에):
+1. **대상 루트와 모드.** 기본은 리포 루트(현행 브랜치)와 `repo` mode. `--root`면 그 디렉터리의 정규화된 절대경로와 `snapshot` mode다. 회귀 테스트나 과거 시점 검수용 스냅샷은 이렇게 만든다 (scratchpad 등 리포 밖에):
    ```bash
    SHA=<커밋>; SNAP=<scratchpad>/snap-$SHA
-   mkdir -p "$SNAP" && git archive "$SHA" content/chapters content/glossary.ts docs/VERIFIED_FACTS.md \
+   mkdir -p "$SNAP" && git archive "$SHA" app lib content mdx-components.tsx CLAUDE.md docs/VERIFIED_FACTS.md \
      | tar -x -C "$SNAP"
    ```
-2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 스캔 대상이다 (정본은 그쪽 — 여기 복제하지 않는다). 대상 루트에 실제로 있는 파일만 줄 수와 함께 적는다. **챕터 퀴즈는 `drills.ts` 전량이 아니라 `meta.ts`가 내보내는 `quiz` 선별분만** 학습자에게 렌더된다 (예: ch0-2는 `CHAPTER_SCOPE`로 일부만 고른다). `meta.ts`의 `quiz` 정의를 읽어 **선별된 slug 목록**(전량 re-export면 "전량")을 스코프에 적고, 그 문항만 대조 대상으로 삼는다 — 선별 밖 문항은 학습자가 보지 않는다. 교정 위치는 `content/drills-src/` 원본이라고 적는다.
-3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 용어집 `<root>/content/glossary.ts`(본문 `<Term>` 팝오버가 여기 `short`를 띄운다 — L1 판정에 필요하다), 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `CLAUDE.md` Audience 절.
-4. **무결성 기준점 — 파일 해시 목록**: 5단계에서 대조한다. 검수자가 챕터를 고치면 사용자 선택 관문이 무너지기 때문이다.
+   전체 `app`을 담는 이유: chapter route의 repo-local import closure가 `app/chapters/` 밖의 진행률·접근성 컴포넌트까지 이어진다. 루트 `mdx-components.tsx`도 함께 담는다 — 모든 MDX의 컴포넌트 매핑을 정하지만 framework가 암묵적으로 읽어서 route import closure에는 나타나지 않는다. snapshot auditor는 현행 리포를 읽을 수 없으므로 이 파일들이 빠지면 노출 경로를 완성할 수 없다 (PR #303 Codex 지적).
+2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 자산 종류를 쓰되, 실제 집합은 **파일 존재가 아니라 렌더 그래프**로 확정한다.
+   - 화면 쪽 시작점은 `app/chapters/[id]/page.tsx`와 `app/chapters/[id]/[sec]/page.tsx`다. 두 route와 import helper를 따라 intro, 섹션 header, preview, self-quiz, concept, outro, finale의 노출 여부·순서를 먼저 확정한다. 적어도 `lib/content.ts`·`lib/chapter-routes.ts`와 실제로 쓰는 하위 renderer를 포함한다.
+   - import graph에 나타나지 않는 framework 진입점 `<root>/mdx-components.tsx`도 렌더 근거에 포함한다. 이 파일의 `useMDXComponents`가 챕터 MDX 전체의 실제 태그 매핑을 정한다.
+   - 콘텐츠 쪽은 `content/registry.ts`의 대상 entry에서 `loadBody`와 `data`가 가리키는 export를 시작점으로 삼고, `body.tsx`와 렌더되는 MDX의 import를 따라간다. `sections/*.mdx`·`outro.mdx`·`figs.tsx`는 이 그래프에서 실제로 도달하는 파일/심볼만 넣는다.
+   - `intro.mdx`는 대상 entry에 `loadIntro`가 있을 때만 넣는다. 파일이 남아 있어도 `loadIntro`가 없으면 화면에 나오지 않으므로 제외한다. 같은 원칙으로 registry/body 그래프에서 도달하지 않는 orphan 자산은 스캔하지 않고 `00_scope.md`의 "비렌더 제외"에 적는다.
+   - `session.ts`·`selfquiz.ts`도 registry의 `data` export와 유효한 섹션 매핑을 거쳐 실제 렌더되는 항목만 본다. **챕터 퀴즈는 `drills.ts` 전량이 아니라 `meta.ts`가 내보내는 `quiz` 선별분만** 대상이다 (예: ch0-2는 `CHAPTER_SCOPE`로 일부만 고른다). `meta.ts`의 `quiz` 정의를 읽어 **선별된 slug 목록**(전량 re-export면 "전량")을 적는다. 교정 위치는 `content/drills-src/` 원본이라고 적는다.
+   - 각 대상은 줄 수와 함께 적고, 부분 파일이면 렌더되는 export·slug·심볼도 적는다. 이렇게 해야 "디스크에 있음"과 "학습자가 봄"을 혼동하지 않는다 (PR #301 Codex 지적).
+3. **참고 경로**: `<root>/docs/VERIFIED_FACTS.md`, 용어집 `<root>/content/glossary.ts`(본문 `<Term>` 팝오버가 여기 `short`를 띄운다 — L1 판정에 필요하다), 레거시 원본(`meta.ts` 헤더 주석이 가리키는 `content/*.jsx` — 있으면), 선행 챕터(`<root>/content/chapters/`), `<root>/CLAUDE.md` Audience 절.
+4. `W=_workspace/chapter-audit/<id>`로 두고 `mkdir -p "$W"` 한 뒤, 다른 산출물보다 먼저 `$W/00_scope.md`를 쓴다:
+   ```markdown
+   # chapter-audit scope — <id>
+   - 대상 루트: <정규화한 절대경로>          (스냅샷이면: 원 커밋 <sha>)
+   - 대상 모드: repo | snapshot
+   - 대상 커밋: <sha>
+   - 규모: 기본 | 철저히
+   - 스캔 파일: `<root>/content/chapters/<id>/sections/01.mdx`(34) · …
+   - 렌더 근거: route/helper import graph=<요약> · registry entry=<위치> · loadIntro=<있음|없음> · body import graph=<요약>
+   - 비렌더 제외: <orphan intro·미선별 quiz·미사용 export | 없음>
+   - 참고: VERIFIED_FACTS=<경로> · 용어집=<root>/content/glossary.ts · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
+   - 챕터 퀴즈 선별: <slug 목록 | 전량 | 없음>   (마지막 섹션 페이지의 퀴즈·세션 도식·교차 복습도 스캔 대상이다)
+   - 출력 디렉터리: <리포>/_workspace/chapter-audit/<id>/
+   - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
+   ```
+5. **재사용 입력 + 무결성 기준점 — 파일 해시 목록**:
+   - `00_inputs.txt`에 이번 판정이 의존하는 **로컬 파일 전부**를 절대경로로 한 줄씩 쓴다: 방금 확정한 `00_scope.md`, 두 chapter route에서 시작한 **renderer import closure**(예: `lib/content.ts`·`lib/chapter-routes.ts`·preview/self-quiz/concept/finale renderer), framework가 암묵적으로 읽는 `<root>/mdx-components.tsx`, `content/registry.ts`, 대상의 렌더 자산, glossary, `VERIFIED_FACTS`, `<root>/CLAUDE.md`, 사용한 레거시 원본, registry상 앞선 챕터에서 L1/C1 판단에 참고할 렌더 자산, chapter-audit/chapter-review 지침, 에이전트 정의와 `finding-format.md`. scope를 먼저 만들고 해시하는 이유: 모든 auditor/verifier가 읽는 root·파일·심볼·quiz 선별 자체도 실행 도중 바뀌면 안 된다 (PR #303 Codex 지적). 외부 AWS 문서는 보고서의 확인 날짜·URL로 추적한다.
+   - 그 목록을 해시한 `00_input_hashes.txt`가 0단계 재사용 판정과 5단계 보고 전 대조의 기준이다. 별도로 리포의 `content`·`docs` 전체와 스냅샷을 해시해 검수자가 콘텐츠를 고치지 않았는지도 확인한다.
    ```bash
    W=_workspace/chapter-audit/<id>; mkdir -p "$W"   # 새 체크아웃에는 이 디렉터리가 없다 (.gitignore 대상)
+   while IFS= read -r p; do
+     if [ -f "$p" ]; then shasum "$p"; else printf 'MISSING  %s\n' "$p"; fi
+   done < "$W/00_inputs.txt" | LC_ALL=C sort -k2 > "$W/00_input_hashes.txt"
    find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 > "$W/00_hashes_repo.txt"                   # 리포 루트에서
    if [ -n "$SNAP" ]; then                                                                                     # 스냅샷 모드만
      (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) > "$W/00_hashes_snapshot.txt"
@@ -73,18 +101,6 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    ```
    - **왜 `git status`가 아니라 해시인가**: `git status --porcelain`은 상태 코드만 본다. 검수 시작 전에 이미 수정 중이던 파일(` M path`)을 검수자가 더 고쳐도 코드는 그대로라 대조를 통과한다 (PR #301 Codex 지적). 해시는 추적·미추적·수정 중 파일을 가리지 않고 **내용**을 본다. 스냅샷은 리포 밖이라 `git status`에 아예 안 잡히는데, 같은 해시 목록으로 한 번에 덮는다.
    - 범위를 `content`·`docs`로 좁히는 이유: 검수 도중 메인이 하네스 파일을 고치거나 커밋해도 거짓 경보가 나지 않게 하려는 것이다 (2026-09-28 회귀 테스트에서 실제로 걸렸다). 그러니 **메인도 검수 중에는 `content`·`docs`를 고치지 않는다**.
-5. `00_scope.md`를 쓴다:
-   ```markdown
-   # chapter-audit scope — <id>
-   - 대상 루트: <절대경로>          (스냅샷이면: 원 커밋 <sha>)
-   - 대상 커밋: <sha>
-   - 규모: 기본 | 철저히
-   - 스캔 파일: `<root>/content/chapters/<id>/sections/01.mdx`(34) · …
-   - 참고: VERIFIED_FACTS=<경로> · 용어집=<root>/content/glossary.ts · 레거시 원본=<경로|없음> · 선행 챕터=<root>/content/chapters/ · Audience=CLAUDE.md
-   - 챕터 퀴즈 선별: <slug 목록 | 전량 | 없음>   (마지막 섹션 페이지의 퀴즈·세션 도식·교차 복습도 스캔 대상이다)
-   - 출력 디렉터리: <리포>/_workspace/chapter-audit/<id>/
-   - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
-   ```
 
 ## 2단계: 3축 병렬 검수
 
@@ -106,6 +122,7 @@ chapter-audit 2단계 — <축> 검수.
 2. **중복 병합**: 위치가 겹치고 결함이 같으면 하나로 합친다. 축 표시는 양쪽 다 남긴다 — 두 축이 독립으로 찾았다는 건 확신 신호다. 위치가 같아도 결함이 다르면 따로 둔다 (예: 같은 문장이 모순(C1)이면서 공식 문서와도 다름(F1)).
 3. 새 ID `A01…`을 붙이고 원 ID(`F-03`·`C-07`)를 병기해 `02_merged_findings.md`에 쓴다. 각 지적은 `finding-format.md` §3 형식을 그대로 유지한다.
 4. **배치 분할**: 12건 이하씩 `b1`·`b2`… 로 나눈다. 검증자는 건마다 원문과 근거를 다시 열어서, 배치가 크면 뒤쪽 건의 검증이 얕아진다. 같은 위치를 공유하는 지적은 같은 배치에 둔다.
+   - 부분 재실행이면 새 A뿐 아니라 **내용 또는 출처가 달라진 live A가 하나라도 든 배치 전체**를 재검증 대상으로 표시한다. tombstone은 번호 위치만 차지하고 배치 입력에서는 뺀다. unchanged live A만 든 배치는 기존 판정을 유지한다.
 
 ## 4단계: 적대적 검증
 
@@ -113,17 +130,19 @@ chapter-audit 2단계 — <축> 검수.
 규모가 `철저히`면 배치마다 2명을 독립 실행하고 **둘 다 confirmed**인 것만 통과시킨다 (과반 규칙 — 2명의 과반은 2명).
 - 출력 파일을 검수자별로 **나눈다** — `03_finding-verifier_<batch>_v1_verdicts.md`·`…_v2_verdicts.md`. 같은 경로를 주면 한쪽이 다른 쪽을 덮어써서 "둘 다" 규칙을 강제할 수 없다 (PR #301 Codex 지적).
 - 합산은 메인이 한다: 둘 다 `confirmed` → confirmed · 둘 다 `refuted` → refuted · 한쪽 `confirmed`·다른 쪽 `refuted` → **uncertain**(판정 조건 "검증자 불일치 — 두 사유 한 줄씩") · 한쪽이라도 `uncertain` → uncertain. 불일치를 한쪽으로 몰지 않는 이유는 판단형 지적 원칙과 같다 — 갈린 판단은 사용자에게 넘긴다.
+- 부분 재실행에서는 3단계가 표시한 배치의 **live A를 전부** 다시 검증한다. tombstone은 입력에서 제외한다. 같은 배치의 예전 판정 파일은 덮어쓰기 전에 `.v<N>.md`로 남기고, 새 파일이 그 배치의 active verdict가 된다. 일부 live A만 새 판정, 나머지는 묵은 판정인 혼합 배치를 만들지 않는다.
 
 ```text
 chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 스코프: <리포>/_workspace/chapter-audit/<id>/00_scope.md
-입력: <리포>/_workspace/chapter-audit/<id>/02_merged_findings.md 의 A13~A24
+입력: <리포>/_workspace/chapter-audit/<id>/02_merged_findings.md 의 live A13~A24 (`상태: tombstone` 제외)
 출력: <리포>/_workspace/chapter-audit/<id>/03_finding-verifier_b2_verdicts.md
       (철저히: 같은 배치의 두 호출에 각각 …_b2_v1_verdicts.md · …_b2_v2_verdicts.md — 한 경로를 공유시키지 않는다)
 형식: <리포>/.claude/skills/chapter-audit/references/finding-format.md "판정 형식"
 ```
 
 통과 규칙:
+- `상태: tombstone` → 검증하지 않고 판정 집계·보고에서도 제외한다. ID와 폐기 이력은 `02_merged_findings.md`에만 남긴다.
 - `confirmed` → 보고서 본표.
 - `uncertain` → 보고서 "판단 필요" 표 (판정 조건과 함께).
 - `refuted` → 보고서 끝에 **건수와 한 줄 사유를 공개**한다. 제외 수를 숨기면 사용자는 "찾은 게 이것뿐"으로 오해한다.
@@ -131,11 +150,14 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 ## 5단계: 보고 → 멈춤
 
-1. **무결성 대조**: 1단계와 같은 명령으로 해시 목록을 다시 떠서 비교한다. 두 비교는 **서로 독립으로 둘 다** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 첫 비교가 차이를 내는 순간 두 번째가 실행되지 않는다 — PR #301 Codex 지적).
+1. **판정 입력 + 무결성 대조**: 1단계와 같은 명령으로 판정 입력, 리포, 스냅샷 해시 목록을 다시 떠서 비교한다. 세 비교는 **서로 독립으로 전부** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 앞 비교가 차이를 내는 순간 뒤 비교가 실행되지 않는다 — PR #301 Codex 지적).
    ```bash
+   while IFS= read -r p; do
+     if [ -f "$p" ]; then shasum "$p"; else printf 'MISSING  %s\n' "$p"; fi
+   done < "$W/00_inputs.txt" | LC_ALL=C sort -k2 | diff "$W/00_input_hashes.txt" - ; R0=$?
    find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 | diff "$W/00_hashes_repo.txt" - ; R1=$?
    R2=0; if [ -n "$SNAP" ]; then (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) | diff "$W/00_hashes_snapshot.txt" - ; R2=$?; fi
-   echo "repo=$R1 snapshot=$R2"   # 둘 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
+   echo "inputs=$R0 repo=$R1 snapshot=$R2"   # 셋 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
    ```
    다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
 2. `04_report.md`를 쓰고 채팅에는 표로 요약한다.
@@ -164,10 +186,11 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 | 파일 | 쓰는 쪽 | 읽는 쪽 |
 |---|---|---|
-| `00_scope.md` · `00_hashes_repo.txt` · `00_hashes_snapshot.txt`(스냅샷 모드) | 메인 (1단계) | 모든 에이전트 · 메인 (5단계) |
+| `00_scope.md` · `00_inputs.txt` · `00_input_hashes.txt` | 메인 (1단계) | 모든 에이전트 · 메인 (0단계 재사용 판정) |
+| `00_hashes_repo.txt` · `00_hashes_snapshot.txt`(스냅샷 모드) | 메인 (1단계) | 메인 (5단계 무결성 대조) |
 | `01_<agent>_findings.md` ×3 | 각 auditor (2단계) | 메인 (3단계) |
 | `02_merged_findings.md` | 메인 (3단계) | finding-verifier (4단계) |
-| `03_finding-verifier_<batch>_verdicts.md` | 각 verifier (4단계) | 메인 (5단계) |
+| `03_finding-verifier_<batch>[_v1|_v2]_verdicts.md` | 각 verifier (4단계) | 메인 (5단계) |
 | `04_report.md` | 메인 (5·6단계) | 사용자 · 다음 검수 (0단계) |
 
 에이전트의 반환 메시지는 건수 요약뿐이다. 지적 본문은 파일로만 오간다 — 메인 컨텍스트를 아끼고, 나중에 판정 과정을 되짚을 수 있게 한다.
