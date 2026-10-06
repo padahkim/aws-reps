@@ -59,12 +59,13 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
 1. **대상 루트와 모드.** 기본은 리포 루트(현행 브랜치)와 `repo` mode. `--root`면 그 디렉터리의 정규화된 절대경로와 `snapshot` mode다. 회귀 테스트나 과거 시점 검수용 스냅샷은 이렇게 만든다 (scratchpad 등 리포 밖에):
    ```bash
    SHA=<커밋>; SNAP=<scratchpad>/snap-$SHA
-   mkdir -p "$SNAP" && git archive "$SHA" app lib content CLAUDE.md docs/VERIFIED_FACTS.md \
+   mkdir -p "$SNAP" && git archive "$SHA" app lib content mdx-components.tsx CLAUDE.md docs/VERIFIED_FACTS.md \
      | tar -x -C "$SNAP"
    ```
-   전체 `app`을 담는 이유: chapter route의 repo-local import closure가 `app/chapters/` 밖의 진행률·접근성 컴포넌트까지 이어진다. snapshot auditor는 현행 리포를 읽을 수 없으므로 closure 일부만 archive하면 노출 경로를 완성할 수 없다 (PR #303 Codex 지적).
+   전체 `app`을 담는 이유: chapter route의 repo-local import closure가 `app/chapters/` 밖의 진행률·접근성 컴포넌트까지 이어진다. 루트 `mdx-components.tsx`도 함께 담는다 — 모든 MDX의 컴포넌트 매핑을 정하지만 framework가 암묵적으로 읽어서 route import closure에는 나타나지 않는다. snapshot auditor는 현행 리포를 읽을 수 없으므로 이 파일들이 빠지면 노출 경로를 완성할 수 없다 (PR #303 Codex 지적).
 2. **스캔 파일 목록** = `/chapter-review`의 "입력·범위"에 있는 자산 종류를 쓰되, 실제 집합은 **파일 존재가 아니라 렌더 그래프**로 확정한다.
    - 화면 쪽 시작점은 `app/chapters/[id]/page.tsx`와 `app/chapters/[id]/[sec]/page.tsx`다. 두 route와 import helper를 따라 intro, 섹션 header, preview, self-quiz, concept, outro, finale의 노출 여부·순서를 먼저 확정한다. 적어도 `lib/content.ts`·`lib/chapter-routes.ts`와 실제로 쓰는 하위 renderer를 포함한다.
+   - import graph에 나타나지 않는 framework 진입점 `<root>/mdx-components.tsx`도 렌더 근거에 포함한다. 이 파일의 `useMDXComponents`가 챕터 MDX 전체의 실제 태그 매핑을 정한다.
    - 콘텐츠 쪽은 `content/registry.ts`의 대상 entry에서 `loadBody`와 `data`가 가리키는 export를 시작점으로 삼고, `body.tsx`와 렌더되는 MDX의 import를 따라간다. `sections/*.mdx`·`outro.mdx`·`figs.tsx`는 이 그래프에서 실제로 도달하는 파일/심볼만 넣는다.
    - `intro.mdx`는 대상 entry에 `loadIntro`가 있을 때만 넣는다. 파일이 남아 있어도 `loadIntro`가 없으면 화면에 나오지 않으므로 제외한다. 같은 원칙으로 registry/body 그래프에서 도달하지 않는 orphan 자산은 스캔하지 않고 `00_scope.md`의 "비렌더 제외"에 적는다.
    - `session.ts`·`selfquiz.ts`도 registry의 `data` export와 유효한 섹션 매핑을 거쳐 실제 렌더되는 항목만 본다. **챕터 퀴즈는 `drills.ts` 전량이 아니라 `meta.ts`가 내보내는 `quiz` 선별분만** 대상이다 (예: ch0-2는 `CHAPTER_SCOPE`로 일부만 고른다). `meta.ts`의 `quiz` 정의를 읽어 **선별된 slug 목록**(전량 re-export면 "전량")을 적는다. 교정 위치는 `content/drills-src/` 원본이라고 적는다.
@@ -86,7 +87,7 @@ description: 챕터 하나를 사실(AWS 공식 문서 대조)·내부 일관성
    - 금지: 스코프 밖 파일(스냅샷 모드에서는 리포의 현행 content/·docs/), gh, git log/show — 정답이 새거나 다른 버전과 섞인다. 챕터·원장 수정 금지.
    ```
 5. **재사용 입력 + 무결성 기준점 — 파일 해시 목록**:
-   - `00_inputs.txt`에 이번 판정이 의존하는 **로컬 파일 전부**를 절대경로로 한 줄씩 쓴다: 방금 확정한 `00_scope.md`, 두 chapter route에서 시작한 **renderer import closure**(예: `lib/content.ts`·`lib/chapter-routes.ts`·preview/self-quiz/concept/finale renderer), `content/registry.ts`, 대상의 렌더 자산, glossary, `VERIFIED_FACTS`, `<root>/CLAUDE.md`, 사용한 레거시 원본, registry상 앞선 챕터에서 L1/C1 판단에 참고할 렌더 자산, chapter-audit/chapter-review 지침, 에이전트 정의와 `finding-format.md`. scope를 먼저 만들고 해시하는 이유: 모든 auditor/verifier가 읽는 root·파일·심볼·quiz 선별 자체도 실행 도중 바뀌면 안 된다 (PR #303 Codex 지적). 외부 AWS 문서는 보고서의 확인 날짜·URL로 추적한다.
+   - `00_inputs.txt`에 이번 판정이 의존하는 **로컬 파일 전부**를 절대경로로 한 줄씩 쓴다: 방금 확정한 `00_scope.md`, 두 chapter route에서 시작한 **renderer import closure**(예: `lib/content.ts`·`lib/chapter-routes.ts`·preview/self-quiz/concept/finale renderer), framework가 암묵적으로 읽는 `<root>/mdx-components.tsx`, `content/registry.ts`, 대상의 렌더 자산, glossary, `VERIFIED_FACTS`, `<root>/CLAUDE.md`, 사용한 레거시 원본, registry상 앞선 챕터에서 L1/C1 판단에 참고할 렌더 자산, chapter-audit/chapter-review 지침, 에이전트 정의와 `finding-format.md`. scope를 먼저 만들고 해시하는 이유: 모든 auditor/verifier가 읽는 root·파일·심볼·quiz 선별 자체도 실행 도중 바뀌면 안 된다 (PR #303 Codex 지적). 외부 AWS 문서는 보고서의 확인 날짜·URL로 추적한다.
    - 그 목록을 해시한 `00_input_hashes.txt`가 0단계 재사용 판정과 5단계 보고 전 대조의 기준이다. 별도로 리포의 `content`·`docs` 전체와 스냅샷을 해시해 검수자가 콘텐츠를 고치지 않았는지도 확인한다.
    ```bash
    W=_workspace/chapter-audit/<id>; mkdir -p "$W"   # 새 체크아웃에는 이 디렉터리가 없다 (.gitignore 대상)
