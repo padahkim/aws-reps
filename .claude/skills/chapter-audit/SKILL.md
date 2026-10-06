@@ -146,11 +146,14 @@ chapter-audit 4단계 — 적대적 검증, 배치 <b2> (A13~A24).
 
 ## 5단계: 보고 → 멈춤
 
-1. **무결성 대조**: 1단계와 같은 명령으로 해시 목록을 다시 떠서 비교한다. 두 비교는 **서로 독립으로 둘 다** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 첫 비교가 차이를 내는 순간 두 번째가 실행되지 않는다 — PR #301 Codex 지적).
+1. **판정 입력 + 무결성 대조**: 1단계와 같은 명령으로 판정 입력, 리포, 스냅샷 해시 목록을 다시 떠서 비교한다. 세 비교는 **서로 독립으로 전부** 돈다 — 앞의 결과로 뒤를 건너뛰지 않는다 (`&&`로 이으면 앞 비교가 차이를 내는 순간 뒤 비교가 실행되지 않는다 — PR #301 Codex 지적).
    ```bash
+   while IFS= read -r p; do
+     if [ -f "$p" ]; then shasum "$p"; else printf 'MISSING  %s\n' "$p"; fi
+   done < "$W/00_inputs.txt" | LC_ALL=C sort -k2 | diff "$W/00_input_hashes.txt" - ; R0=$?
    find content docs -type f -exec shasum {} + | LC_ALL=C sort -k2 | diff "$W/00_hashes_repo.txt" - ; R1=$?
    R2=0; if [ -n "$SNAP" ]; then (cd "$SNAP" && find . -type f -exec shasum {} + | LC_ALL=C sort -k2) | diff "$W/00_hashes_snapshot.txt" - ; R2=$?; fi
-   echo "repo=$R1 snapshot=$R2"   # 둘 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
+   echo "inputs=$R0 repo=$R1 snapshot=$R2"   # 셋 다 0이어야 통과. diff 출력의 < / > 줄이 바뀐·생긴·사라진 파일이다
    ```
    다르면 멈추고 무엇이 바뀌었는지 보고한다. **되돌리지 않는다** — 되돌림은 사용자 판단이다.
 2. `04_report.md`를 쓰고 채팅에는 표로 요약한다.
